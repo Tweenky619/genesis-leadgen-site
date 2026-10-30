@@ -483,6 +483,9 @@
   .fu-dispatch button{padding:11px 6px;border-radius:10px;font-weight:700;font-size:13.5px;border:1px solid var(--border);background:var(--card);color:var(--text);}
   .fu-dispatch button.full{grid-column:1 / -1;background:var(--brand);border-color:var(--brand);color:#fff;}
   .fu-dispatch button.ok{background:#0b6b3a;border-color:#0b6b3a;color:#fff;}
+  .na-btn{display:flex;align-items:center;justify-content:center;}
+  .na-sign{position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:3px solid #d93025;border-radius:50%;color:#d93025;font-weight:900;font-size:12px;letter-spacing:.3px;line-height:1;}
+  .na-sign::before{content:"";position:absolute;left:50%;top:50%;width:3px;height:120%;background:#d93025;opacity:.35;transform:translate(-50%,-50%) rotate(-45deg);border-radius:2px;}
   .fu-btns button.sold{background:#0b6b3a;border-color:#0b6b3a;color:#fff;}
   .sold-total{background:#e6f4ec;color:#0b6b3a;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-weight:800;display:flex;justify-content:space-between;}
   .sold-total span{font-weight:600;color:#2f6b4a;}
@@ -1370,7 +1373,7 @@
     if(st === "Sent to Monday" || st === "Dispatch Couldn't Reach"){
       return '<div class="fu-dispatch"><div class="lbl">Dispatch' + (st === "Sent to Monday" ? ' \u2014 waiting on confirmation call' : ' \u2014 call the homeowner yourself') + '</div><div class="row">' +
         '<button type="button" class="ok" data-fu="confirmed">Confirmed</button>' +
-        '<button type="button" data-fu="noreach" aria-label="No answer">\ud83d\udeab NA</button></div></div>';
+        '<button type="button" class="na-btn" data-fu="noreach" aria-label="No answer"><span class="na-sign">NA</span></button></div></div>';
     }
     return "";
   }
