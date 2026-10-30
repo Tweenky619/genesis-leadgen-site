@@ -55,7 +55,7 @@
     z-index:10;
   }
   header.topbar .title{
-    font-size:20px;
+    font-size:18px;
     font-weight:700;
     letter-spacing:0.2px;
   }
@@ -416,6 +416,43 @@
   .m-copy.done{background:#e9ebee;color:var(--text);}
   .m-open{display:block;text-align:center;margin-top:10px;padding:12px;border-radius:10px;background:#e9ebee;color:var(--text);font-weight:600;text-decoration:none;}
   .m-canv{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-top:4px;}
+  .opt{font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);}
+  details.more{margin:22px 0 18px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:0 14px;}
+  details.more summary{padding:14px 0;font-weight:700;cursor:pointer;color:var(--brand-dark);}
+  details.more[open]{padding-bottom:6px;}
+  .tabs{display:flex;gap:6px;padding:0 0 10px;overflow-x:auto;}
+  .tab{flex:none;border:1px solid var(--border);background:var(--card);color:var(--text);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;}
+  .tab.active{background:var(--brand);border-color:var(--brand);color:#fff;}
+  .tab .n{opacity:.75;font-weight:600;margin-left:3px;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;margin-top:6px;}
+  .st-new{background:#eef0f3;color:#3d4642;}
+  .st-noanswer{background:#fff4e0;color:#8a5a00;}
+  .st-contacted{background:#e6f0fb;color:#1d4f8a;}
+  .st-appt{background:var(--brand-light);color:var(--brand-dark);}
+  .st-sent{background:#ece8fb;color:#4b3a8f;}
+  .st-sold{background:#0b6b3a;color:#fff;}
+  .st-dead{background:#fdecea;color:var(--danger);}
+  .due{font-size:12px;font-weight:700;margin-top:4px;}
+  .due.over{color:var(--danger);}
+  .due.today{color:#b36b00;}
+  .due.later{color:var(--text-muted);font-weight:600;}
+  .quick{display:flex;gap:8px;margin:4px 0 14px;}
+  .quick a{flex:1;text-align:center;padding:11px 6px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;text-decoration:none;}
+  .quick a.alt{background:#e9ebee;color:var(--text);}
+  .fu-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg);margin-bottom:16px;}
+  .fu-box h3{margin:0 0 10px;font-size:15px;}
+  .fu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .fu-grid label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:4px;}
+  .fu-grid select,.fu-grid input,.fu-note input{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--text);font-family:inherit;}
+  .fu-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .fu-btns button{padding:11px 6px;border:none;border-radius:10px;font-weight:700;font-size:13.5px;background:var(--card);border:1px solid var(--border);color:var(--text);}
+  .fu-btns button:active{background:#eef0f3;}
+  .fu-note{display:flex;gap:8px;}
+  .fu-note button{flex:none;border:none;border-radius:8px;padding:0 14px;font-weight:700;background:var(--brand);color:#fff;}
+  .fu-log{margin-top:10px;font-size:13px;}
+  .fu-log div{padding:6px 0;border-top:1px solid var(--border);}
+  .fu-log b{color:var(--text-muted);font-weight:600;margin-right:6px;}
+  .m-sent{display:block;width:100%;margin-top:8px;padding:12px;border:none;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;}
 </style>
 </head>
 <body>
@@ -439,6 +476,7 @@
       <div class="search-wrap">
         <input type="text" id="searchInput" placeholder="Search by name or address">
       </div>
+      <div class="tabs" id="tabs"></div>
       <div id="listContainer"></div>
     </section>
 
@@ -446,7 +484,7 @@
     <section class="view" id="view-form">
       <div class="back-row" id="cancelFormBtn">&larr; Cancel</div>
       <form id="leadForm">
-        <div class="form-section-title">Contact Info</div>
+        <div class="form-section-title">At the Door</div>
         <div class="row2">
           <div class="field">
             <label>First Name</label>
@@ -469,22 +507,12 @@
           <label>Zip Code</label>
           <input type="text" id="f_zip" inputmode="numeric">
         </div>
-        <div class="row2">
-          <div class="field">
-            <label>Contact Number</label>
-            <input type="tel" id="f_phone">
-          </div>
-          <div class="field">
-            <label>Alt Number</label>
-            <input type="tel" id="f_alt_phone">
-          </div>
-        </div>
         <div class="field">
-          <label>Email</label>
-          <input type="email" id="f_email">
+          <label>Phone</label>
+          <input type="tel" id="f_phone" inputmode="tel">
         </div>
 
-        <div class="form-section-title">Interested In</div>
+        <div class="form-section-title">Products</div>
         <div class="field">
           <div class="interest-group" id="interestGroup">
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">Windows</label>
@@ -497,6 +525,58 @@
           </div>
         </div>
 
+        <div class="form-section-title">Appointment <span class="opt">(if booked)</span></div>
+        <div class="row2">
+          <div class="field">
+            <label>Day</label>
+            <select id="f_appt_day">
+              <option value="">Select day</option>
+              <option>Monday</option>
+              <option>Tuesday</option>
+              <option>Wednesday</option>
+              <option>Thursday</option>
+              <option>Friday</option>
+              <option>Saturday</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="f_appt_date">
+          </div>
+        </div>
+        <div class="field">
+          <label>Time</label>
+          <select id="f_appt_time">
+            <option value="">Select time</option>
+            <option>10:00 AM</option>
+            <option>11:00 AM</option>
+            <option>12:00 PM</option>
+            <option>1:00 PM</option>
+            <option>2:00 PM</option>
+            <option>3:00 PM</option>
+            <option>4:00 PM</option>
+            <option>5:00 PM</option>
+            <option>6:00 PM</option>
+          </select>
+        </div>
+
+        <div class="form-section-title">Notes</div>
+        <div class="field">
+          <textarea id="f_notes" placeholder="Comments, notes, or concerns..."></textarea>
+        </div>
+
+        <details class="more" id="moreDetails">
+          <summary>More details <span class="opt">(optional)</span></summary>
+          <div class="row2">
+            <div class="field">
+              <label>Alt Number</label>
+              <input type="tel" id="f_alt_phone">
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="email" id="f_email">
+            </div>
+          </div>
         <div class="form-section-title">Rapport Builder</div>
         <div class="row2">
           <div class="field">
@@ -586,45 +666,7 @@
           </div>
         </div>
 
-        <div class="form-section-title">Appointment</div>
-        <div class="row2">
-          <div class="field">
-            <label>Day</label>
-            <select id="f_appt_day">
-              <option value="">Select day</option>
-              <option>Monday</option>
-              <option>Tuesday</option>
-              <option>Wednesday</option>
-              <option>Thursday</option>
-              <option>Friday</option>
-              <option>Saturday</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>Date</label>
-            <input type="date" id="f_appt_date">
-          </div>
-        </div>
-        <div class="field">
-          <label>Time</label>
-          <select id="f_appt_time">
-            <option value="">Select time</option>
-            <option>10:00 AM</option>
-            <option>11:00 AM</option>
-            <option>12:00 PM</option>
-            <option>1:00 PM</option>
-            <option>2:00 PM</option>
-            <option>3:00 PM</option>
-            <option>4:00 PM</option>
-            <option>5:00 PM</option>
-            <option>6:00 PM</option>
-          </select>
-        </div>
-
-        <div class="form-section-title">Notes</div>
-        <div class="field">
-          <textarea id="f_notes" placeholder="Comments, notes, or concerns..."></textarea>
-        </div>
+        </details>
 
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" id="cancelFormBtn2">Cancel</button>
@@ -691,6 +733,33 @@
     return (first || "") + (last ? " " + last : "");
   }
 
+  var STATUSES = [
+    ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Sold","st-sold"],["Not Interested","st-dead"]
+  ];
+  var CLOSED = ["Sold","Not Interested"];
+  var currentTab = null;
+  function statusOf(l){ return l.status || "New"; }
+  function statusClass(st){ for(var i=0;i<STATUSES.length;i++){ if(STATUSES[i][0]===st) return STATUSES[i][1]; } return "st-new"; }
+  function isOpen(l){ return CLOSED.indexOf(statusOf(l)) === -1; }
+  function todayISO(){ var d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function addDaysISO(n){ var d=new Date(); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function isDue(l){ return isOpen(l) && l.next_followup && l.next_followup <= todayISO(); }
+  function dueLabel(l){
+    if(!isOpen(l) || !l.next_followup) return "";
+    var t = todayISO();
+    if(l.next_followup < t) return '<div class="due over">Overdue \u00b7 ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
+    if(l.next_followup === t) return '<div class="due today">Follow up today</div>';
+    return '<div class="due later">Next: ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
+  }
+  function addLog(l, text){ l.log = l.log || []; l.log.unshift({ ts: Date.now(), text: text }); }
+  var TABS = [
+    ["due","Due", function(l){ return isDue(l); }],
+    ["new","New", function(l){ return statusOf(l)==="New"; }],
+    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"; }],
+    ["all","All", function(){ return true; }]
+  ];
+
   function showView(id){
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
     document.getElementById(id).classList.add("active");
@@ -701,8 +770,17 @@
   function renderList(){
     var q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
     var container = document.getElementById("listContainer");
-    var sorted = leads.slice().sort(function(a,b){ return b.created_at - a.created_at; });
+    if(!currentTab){ currentTab = leads.some(isDue) ? "due" : "all"; }
+    var tabFn = TABS.filter(function(t){ return t[0]===currentTab; })[0][2];
+    document.getElementById("tabs").innerHTML = TABS.map(function(t){
+      return '<button type="button" class="tab' + (t[0]===currentTab?' active':'') + '" data-tab="' + t[0] + '">' + t[1] + '<span class="n">' + leads.filter(t[2]).length + '</span></button>';
+    }).join("");
+    var sorted = leads.slice().sort(function(a,b){
+      if(currentTab === "due"){ return (a.next_followup||"").localeCompare(b.next_followup||""); }
+      return b.created_at - a.created_at;
+    });
     var filtered = sorted.filter(function(l){
+      if(!q && !tabFn(l)) return false;
       if(!q) return true;
       return (l.homeowner_name||"").toLowerCase().indexOf(q) !== -1 ||
              (l.address||"").toLowerCase().indexOf(q) !== -1;
@@ -723,8 +801,8 @@
         container.innerHTML =
           '<div class="empty-state">' +
             '<div class="glyph">&#128269;</div>' +
-            '<h3>No matches</h3>' +
-            '<p>No leads match your search.</p>' +
+            '<h3>' + (q ? 'No matches' : (currentTab==='due' ? 'All caught up' : 'Nothing here')) + '</h3>' +
+            '<p>' + (q ? 'No leads match your search.' : (currentTab==='due' ? 'No follow-ups due today.' : 'No leads in this list.')) + '</p>' +
           '</div>';
       }
       return;
@@ -741,6 +819,8 @@
           '</div>' +
           '<div class="meta">' +
             '<div class="date">' + fmtDate(l.created_at) + '</div>' +
+            '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + '</span>' +
+            dueLabel(l) +
           '</div>' +
         '</div>'
       );
@@ -857,6 +937,7 @@
     viewingId = id;
 
     function item(label, value, full){
+      if(!value) return "";
       return '<div class="detail-item' + (full ? ' full' : '') + '">' +
                '<div class="label">' + esc(label) + '</div>' +
                '<div class="value">' + (value ? esc(value) : '<span style="color:var(--text-muted)">&mdash;</span>') + '</div>' +
@@ -869,6 +950,9 @@
 
     var apptBits = [l.appt_day, fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ");
 
+    function section(t, inner){
+      return inner ? sectionTitle(t) + '<div class="detail-grid">' + inner + '</div>' : "";
+    }
     function sectionTitle(t){
       return '<div class="form-section-title">' + esc(t) + '</div>';
     }
@@ -877,47 +961,40 @@
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
+      buildQuickActions(l) +
+      buildFollowUp(l) +
+      buildMondayBox(l) +
 
-      sectionTitle("Contact Info") +
-      '<div class="detail-grid">' +
+      section("Contact Info",
         item("Spouse", l.spouse) +
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
-        item("Email", l.email, true) +
-      '</div>' +
+        item("Email", l.email, true)) +
 
-      sectionTitle("Rapport Builder") +
-      '<div class="detail-grid">' +
+      section("Rapport Builder",
         item("Years Owned", l.years_owned) +
         item("# Windows", l.window_count) +
         item("# Sliding Doors", l.sliding_doors) +
         item("# French Doors", l.french_doors) +
-        item("Pet Door", l.pet_door) +
-      '</div>' +
+        item("Pet Door", l.pet_door)) +
 
-      sectionTitle("Roof") +
-      '<div class="detail-grid">' +
+      section("Roof",
         item("Roof Age", l.roof_age) +
         item("# Layers", l.roof_layers) +
         item("Solar Panels", l.solar_panels) +
         item("# Panels", l.solar_panel_count) +
         item("Any Leaks", l.roof_leaks) +
-        item("Leak Location", l.leak_location) +
-      '</div>' +
+        item("Leak Location", l.leak_location)) +
 
-      sectionTitle("Paint & Stucco") +
-      '<div class="detail-grid">' +
+      section("Paint & Stucco",
         item("Last Painted", l.last_painted) +
         item("Colors", l.paint_colors) +
         item("Fascia/Wood Replacement", l.fascia, true) +
         item("Cracks", l.cracks) +
-        item("Wear and Tear", l.wear_tear) +
-      '</div>' +
+        item("Wear and Tear", l.wear_tear)) +
 
-      sectionTitle("Appointment") +
-      '<div class="detail-grid">' +
-        item("Scheduled", apptBits, true) +
-      '</div>' +
+      section("Appointment",
+        item("Scheduled", apptBits, true)) +
 
       '<div class="detail-note">' +
         '<div class="label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:4px;">Notes</div>' +
@@ -925,7 +1002,6 @@
       '</div>' +
       '<div class="chip" style="margin-top:14px;">Captured ' + fmtDate(l.created_at) + '</div>';
 
-    html += buildMondayBox(l);
     document.getElementById("detailCard").innerHTML = html;
     showView("view-detail");
   }
@@ -969,10 +1045,23 @@
 
     if(editingId){
       var l = leads.find(function(x){ return x.id === editingId; });
+      var hadAppt = l.appt_date || l.appt_time;
       Object.assign(l, data);
+      if(!hadAppt && (data.appt_date || data.appt_time) && isOpen(l) && statusOf(l) !== "Sent to Monday"){
+        l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment set");
+      }
     } else {
       data.id = uid();
       data.created_at = Date.now();
+      if(data.appt_date || data.appt_time){
+        data.status = "Appt Set";
+        data.next_followup = "";
+        addLog(data, "Captured at door \u2014 appointment set");
+      } else {
+        data.status = "New";
+        data.next_followup = addDaysISO(1);
+        addLog(data, "Captured at door");
+      }
       leads.push(data);
     }
     save();
@@ -1015,7 +1104,10 @@
     ["appt_day", "Appt Day"],
     ["appt_date", "Appt Date"],
     ["appt_time", "Appt Time"],
-    ["notes", "Notes"]
+    ["notes", "Notes"],
+    ["status", "Status"],
+    ["next_followup", "Next Follow-up"],
+    ["log", "Follow-up Log"]
   ];
 
   function csvEscape(v){
@@ -1035,6 +1127,8 @@
         var val;
         if(key === "created_at"){ val = fmtDate(l.created_at); }
         else if(key === "interests"){ val = (l.interests || []).join("; "); }
+        else if(key === "status"){ val = statusOf(l); }
+        else if(key === "log"){ val = (l.log || []).map(function(e){ return fmtDate(e.ts) + ": " + e.text; }).join(" | "); }
         else { val = l[key]; }
         return csvEscape(val);
       }).join(",");
@@ -1156,6 +1250,71 @@
     setYesNo(field, value);
   });
 
+  // ---- Follow-up ----
+  function digits(p){ return (p||"").replace(/[^0-9+]/g, ""); }
+  function buildQuickActions(l){
+    var b = [];
+    if(l.phone){
+      b.push('<a href="tel:' + esc(digits(l.phone)) + '">Call</a>');
+      b.push('<a class="alt" href="sms:' + esc(digits(l.phone)) + '">Text</a>');
+    }
+    if(l.address){
+      b.push('<a class="alt" href="https://maps.apple.com/?q=' + encodeURIComponent(l.address + (l.zip ? ", " + l.zip : "")) + '" target="_blank" rel="noopener">Map</a>');
+    }
+    return b.length ? '<div class="quick">' + b.join("") + '</div>' : '';
+  }
+  function buildFollowUp(l){
+    var st = statusOf(l);
+    var opts = STATUSES.map(function(x){ return '<option' + (x[0]===st?' selected':'') + '>' + x[0] + '</option>'; }).join("");
+    var log = (l.log || []).map(function(e){
+      return '<div><b>' + esc(fmtDate(e.ts)) + '</b>' + esc(e.text) + '</div>';
+    }).join("");
+    return '<div class="fu-box"><h3>Follow-up</h3>' +
+      '<div class="fu-grid">' +
+        '<div><label>Status</label><select id="fuStatus">' + opts + '</select></div>' +
+        '<div><label>Next follow-up</label><input type="date" id="fuNext" value="' + esc(l.next_followup || "") + '"></div>' +
+      '</div>' +
+      '<div class="fu-btns">' +
+        '<button type="button" data-fu="noanswer">No answer \u2192 tomorrow</button>' +
+        '<button type="button" data-fu="talked">Talked \u2192 3 days</button>' +
+        '<button type="button" data-fu="booked">Booked appt</button>' +
+        '<button type="button" data-fu="dead">Not interested</button>' +
+      '</div>' +
+      '<div class="fu-note"><input type="text" id="fuNote" placeholder="Add a note\u2026"><button type="button" data-fu="note">Add</button></div>' +
+      (log ? '<div class="fu-log">' + log + '</div>' : '') +
+    '</div>';
+  }
+  function currentLead(){ return leads.find(function(x){ return x.id === viewingId; }); }
+  function refreshDetail(){ save(); var y = window.scrollY; openDetail(viewingId); window.scrollTo(0, y); }
+  document.getElementById("detailCard").addEventListener("click", function(e){
+    var b = e.target.closest("[data-fu]");
+    if(!b) return;
+    var l = currentLead(); if(!l) return;
+    var a = b.getAttribute("data-fu");
+    if(a === "noanswer"){ l.status = "No Answer"; l.next_followup = addDaysISO(1); addLog(l, "No answer"); }
+    else if(a === "talked"){ l.status = "Contacted"; l.next_followup = addDaysISO(3); addLog(l, "Talked"); }
+    else if(a === "booked"){ l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment booked"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); } }, 80); return; }
+    else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = ""; addLog(l, "Not interested"); }
+    else if(a === "sent"){ l.status = "Sent to Monday"; addLog(l, "Sent to Monday"); }
+    else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
+    refreshDetail();
+  });
+  document.getElementById("detailCard").addEventListener("change", function(e){
+    var l = currentLead(); if(!l) return;
+    if(e.target.id === "fuStatus"){
+      l.status = e.target.value; addLog(l, "Status \u2192 " + l.status);
+      if(!isOpen(l)) l.next_followup = "";
+      refreshDetail();
+    } else if(e.target.id === "fuNext"){
+      l.next_followup = e.target.value; addLog(l, l.next_followup ? "Follow-up set for " + fmtIsoDate(l.next_followup) : "Follow-up cleared");
+      refreshDetail();
+    }
+  });
+  document.getElementById("tabs").addEventListener("click", function(e){
+    var t = e.target.closest("[data-tab]"); if(!t) return;
+    currentTab = t.getAttribute("data-tab"); renderList();
+  });
+
   // ---- Copy for Monday (SoCal Contractor Exchange "New Lead" form) ----
   var MONDAY_FORM_URL = "https://wkf.ms/3mOAl1A";
   var CANVASSER_KEY = "socal_canvasser_name";
@@ -1216,7 +1375,9 @@
     return '<div class="monday-box"><h3>Copy for Monday</h3>' +
       '<div class="hint">Pick Office (1) and Team Captain (3) on the form. Tap Copy, then paste into each field.</div>' +
       rows +
-      '<a class="m-open" href="' + MONDAY_FORM_URL + '" target="_blank" rel="noopener">Open New Lead form &rarr;</a></div>';
+      '<a class="m-open" href="' + MONDAY_FORM_URL + '" target="_blank" rel="noopener">Open New Lead form &rarr;</a>' +
+      (statusOf(l) === "Sent to Monday" ? '' : '<button type="button" class="m-sent" data-fu="sent">Mark as sent to Monday</button>') +
+      '</div>';
   }
   function copyText(text, btn){
     function ok(){ btn.textContent = "Copied"; btn.classList.add("done"); setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500); }
