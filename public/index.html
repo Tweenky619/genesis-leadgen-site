@@ -444,6 +444,19 @@
   .fu-log{margin-top:10px;font-size:13px;}
   .fu-log div{padding:6px 0;border-top:1px solid var(--border);}
   .fu-log b{color:var(--text-muted);font-weight:600;margin-right:6px;}
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .photo-grid:empty{display:none;}
+  .photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;cursor:pointer;background:#e9ebee;}
+  .photo-add{display:block;margin-top:10px;text-align:center;padding:13px;border:2px dashed var(--border);border-radius:12px;background:var(--card);font-weight:700;color:var(--brand);cursor:pointer;}
+  .photo-add:active{background:var(--brand-light);}
+  .photo-busy{font-size:12px;color:var(--text-muted);margin-top:6px;}
+  .viewer{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom));}
+  .viewer[hidden]{display:none;}
+  .viewer img{max-width:100%;max-height:calc(100% - 70px);object-fit:contain;border-radius:8px;}
+  .viewer-bar{display:flex;gap:10px;margin-top:14px;width:100%;max-width:420px;}
+  .viewer-bar button{flex:1;padding:13px;border:none;border-radius:12px;font-weight:700;font-size:15px;}
+  #viewerDelete{background:#fdecea;color:var(--danger);}
+  #viewerClose{background:#fff;color:var(--text);}
 </style>
 </head>
 <body>
@@ -549,6 +562,15 @@
             <option>5:00 PM</option>
             <option>6:00 PM</option>
           </select>
+        </div>
+
+        <div class="form-section-title">Photos</div>
+        <div class="field">
+          <div class="photo-grid" id="formPhotos"></div>
+          <label class="photo-add">
+            <input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden>
+            <span>&#128247; Take / Add Photo</span>
+          </label>
         </div>
 
         <div class="form-section-title">Notes</div>
@@ -682,6 +704,13 @@
 
 </div>
 
+<div class="viewer" id="photoViewer" hidden>
+  <img id="viewerImg" alt="Lead photo">
+  <div class="viewer-bar">
+    <button type="button" id="viewerDelete">Delete photo</button>
+    <button type="button" id="viewerClose">Close</button>
+  </div>
+</div>
 <script>
 (function(){
   "use strict";
@@ -878,6 +907,8 @@
 
   function openNewForm(){
     resetForm();
+    draftId = uid();
+    renderPhotos(draftId, "formPhotos");
     document.getElementById("saveBtn").textContent = "Save Lead";
     showView("view-form");
     setTimeout(function(){
@@ -889,6 +920,8 @@
     var l = leads.find(function(x){ return x.id === id; });
     if(!l) return;
     editingId = id;
+    draftId = null;
+    renderPhotos(id, "formPhotos");
     document.getElementById("f_first_name").value = l.first_name || "";
     document.getElementById("f_last_name").value = l.last_name || "";
     document.getElementById("f_spouse").value = l.spouse || "";
@@ -954,6 +987,7 @@
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
+      '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
         item("Spouse", l.spouse) +
@@ -993,6 +1027,7 @@
       '<div class="chip" style="margin-top:14px;">Captured ' + fmtDate(l.created_at) + '</div>';
 
     document.getElementById("detailCard").innerHTML = html;
+    renderPhotos(id, "detailPhotos", "detailPhotosWrap");
     showView("view-detail");
   }
 
@@ -1041,7 +1076,8 @@
         l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment set");
       }
     } else {
-      data.id = uid();
+      data.id = draftId || uid();
+      draftId = null;
       data.created_at = Date.now();
       if(data.appt_date || data.appt_time){
         data.status = "Appt Set";
@@ -1198,15 +1234,14 @@
   document.getElementById("exportBtn").addEventListener("click", exportLeads);
   document.getElementById("newBtnTop").addEventListener("click", openNewForm);
   document.getElementById("newBtnFab").addEventListener("click", openNewForm);
-  document.getElementById("cancelFormBtn").addEventListener("click", function(){
-    resetForm();
-    showView(editingId === null ? "view-list" : "view-detail");
-  });
-  document.getElementById("cancelFormBtn2").addEventListener("click", function(){
+  function cancelForm(){
     var wasEditing = editingId;
+    if(draftId){ photoDeleteForLead(draftId); draftId = null; }
     resetForm();
-    showView(wasEditing ? "view-detail" : "view-list");
-  });
+    if(wasEditing){ openDetail(wasEditing); } else { showView("view-list"); }
+  }
+  document.getElementById("cancelFormBtn").addEventListener("click", cancelForm);
+  document.getElementById("cancelFormBtn2").addEventListener("click", cancelForm);
   document.getElementById("backFromDetailBtn").addEventListener("click", function(){
     viewingId = null;
     showView("view-list");
@@ -1218,6 +1253,7 @@
   document.getElementById("deleteBtn").addEventListener("click", function(){
     if(!viewingId) return;
     if(confirm("Delete this lead? This can't be undone.")){
+      photoDeleteForLead(viewingId);
       leads = leads.filter(function(x){ return x.id !== viewingId; });
       save();
       viewingId = null;
@@ -1303,6 +1339,115 @@
   document.getElementById("tabs").addEventListener("click", function(e){
     var t = e.target.closest("[data-tab]"); if(!t) return;
     currentTab = t.getAttribute("data-tab"); renderList();
+  });
+
+  // ---- Photos (stored on this device in IndexedDB, compressed) ----
+  var draftId = null;
+  var photoDB = null;
+  function openPhotoDB(){
+    if(photoDB) return Promise.resolve(photoDB);
+    return new Promise(function(res, rej){
+      if(!window.indexedDB){ rej(new Error("no idb")); return; }
+      var r = indexedDB.open("socal_lead_photos", 1);
+      r.onupgradeneeded = function(){
+        var st = r.result.createObjectStore("photos", { keyPath: "id" });
+        st.createIndex("leadId", "leadId");
+      };
+      r.onsuccess = function(){ photoDB = r.result; res(photoDB); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  function photoTx(mode){ return openPhotoDB().then(function(db){ return db.transaction("photos", mode).objectStore("photos"); }); }
+  function photosFor(leadId){
+    return photoTx("readonly").then(function(st){
+      return new Promise(function(res){
+        var q = st.index("leadId").getAll(leadId);
+        q.onsuccess = function(){ res((q.result || []).sort(function(a,b){ return a.ts - b.ts; })); };
+        q.onerror = function(){ res([]); };
+      });
+    }).catch(function(){ return []; });
+  }
+  function photoPut(rec){ return photoTx("readwrite").then(function(st){ return new Promise(function(res, rej){ var q = st.put(rec); q.onsuccess = res; q.onerror = function(){ rej(q.error); }; }); }); }
+  function photoDelete(id){ return photoTx("readwrite").then(function(st){ return new Promise(function(res){ var q = st.delete(id); q.onsuccess = res; q.onerror = res; }); }).catch(function(){}); }
+  function photoDeleteForLead(leadId){
+    return photosFor(leadId).then(function(list){ return Promise.all(list.map(function(p){ return photoDelete(p.id); })); });
+  }
+  function compressImage(file){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        var max = 1280, w = img.naturalWidth, h = img.naturalHeight;
+        var k = Math.min(1, max / Math.max(w, h));
+        var c = document.createElement("canvas");
+        c.width = Math.round(w * k); c.height = Math.round(h * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function(b){ b ? res(b) : rej(new Error("encode")); }, "image/jpeg", 0.72);
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("load")); };
+      img.src = url;
+    });
+  }
+  var shownUrls = {};
+  function renderPhotos(leadId, gridId, wrapId){
+    var grid = document.getElementById(gridId);
+    if(!grid) return;
+    (shownUrls[gridId] || []).forEach(function(u){ URL.revokeObjectURL(u); });
+    shownUrls[gridId] = [];
+    grid.innerHTML = "";
+    grid.setAttribute("data-lead", leadId);
+    photosFor(leadId).then(function(list){
+      if(grid.getAttribute("data-lead") !== leadId) return;
+      grid.innerHTML = list.map(function(p){
+        var u = URL.createObjectURL(p.blob); shownUrls[gridId].push(u);
+        return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo">';
+      }).join("");
+      if(wrapId){ document.getElementById(wrapId).style.display = list.length ? "" : "none"; }
+    });
+  }
+  document.getElementById("photoInput").addEventListener("change", function(e){
+    var files = Array.prototype.slice.call(e.target.files || []);
+    e.target.value = "";
+    var leadId = editingId || draftId;
+    if(!files.length || !leadId) return;
+    var grid = document.getElementById("formPhotos");
+    var busy = document.createElement("div"); busy.className = "photo-busy"; busy.textContent = "Saving photo\u2026";
+    grid.parentNode.appendChild(busy);
+    files.reduce(function(chain, f){
+      return chain.then(function(){ return compressImage(f); }).then(function(blob){
+        return photoPut({ id: uid(), leadId: leadId, ts: Date.now(), blob: blob });
+      });
+    }, Promise.resolve()).catch(function(){
+      alert("Couldn't save that photo. Try again.");
+    }).then(function(){
+      busy.remove();
+      renderPhotos(leadId, "formPhotos");
+    });
+  });
+  var viewing = null;
+  function openViewer(photoId, src, gridId){
+    viewing = { id: photoId, grid: gridId };
+    document.getElementById("viewerImg").src = src;
+    document.getElementById("photoViewer").hidden = false;
+  }
+  function closeViewer(){ document.getElementById("photoViewer").hidden = true; document.getElementById("viewerImg").removeAttribute("src"); viewing = null; }
+  document.addEventListener("click", function(e){
+    var im = e.target.closest && e.target.closest("img[data-photo]");
+    if(!im) return;
+    var grid = im.closest(".photo-grid");
+    openViewer(im.getAttribute("data-photo"), im.src, grid.id);
+  });
+  document.getElementById("viewerClose").addEventListener("click", closeViewer);
+  document.getElementById("viewerDelete").addEventListener("click", function(){
+    if(!viewing) return;
+    var v = viewing;
+    photoDelete(v.id).then(function(){
+      closeViewer();
+      var grid = document.getElementById(v.grid);
+      var leadId = grid.getAttribute("data-lead");
+      renderPhotos(leadId, v.grid, v.grid === "detailPhotos" ? "detailPhotosWrap" : null);
+    });
   });
 
   load();
