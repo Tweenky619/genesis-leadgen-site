@@ -1370,7 +1370,7 @@
     if(st === "Sent to Monday" || st === "Dispatch Couldn't Reach"){
       return '<div class="fu-dispatch"><div class="lbl">Dispatch' + (st === "Sent to Monday" ? ' \u2014 waiting on confirmation call' : ' \u2014 call the homeowner yourself') + '</div><div class="row">' +
         '<button type="button" class="ok" data-fu="confirmed">Confirmed</button>' +
-        '<button type="button" data-fu="noreach">Couldn\'t reach</button></div></div>';
+        '<button type="button" data-fu="noreach" aria-label="No answer">\ud83d\udeab NA</button></div></div>';
     }
     return "";
   }
