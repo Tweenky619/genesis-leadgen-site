@@ -422,6 +422,7 @@
   .st-contacted{background:#e6f0fb;color:#1d4f8a;}
   .st-appt{background:var(--brand-light);color:var(--brand-dark);}
   .st-sent{background:#ece8fb;color:#4b3a8f;}
+  .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
   .st-dead{background:#fdecea;color:var(--danger);}
   .due{font-size:12px;font-weight:700;margin-top:4px;}
@@ -457,6 +458,13 @@
   .viewer-bar button{flex:1;padding:13px;border:none;border-radius:12px;font-weight:700;font-size:15px;}
   #viewerDelete{background:#fdecea;color:var(--danger);}
   #viewerClose{background:#fff;color:var(--text);}
+  .fu-sale{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px;border-radius:10px;background:#e6f4ec;}
+  .fu-sale label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#0b6b3a;flex:none;}
+  .fu-sale .dollar{font-weight:800;color:#0b6b3a;}
+  .fu-sale input{flex:1;min-width:0;padding:9px 10px;border:1px solid #bfe0cc;border-radius:8px;font-size:17px;font-weight:700;background:#fff;color:var(--text);}
+  .fu-btns button.sold{background:#0b6b3a;border-color:#0b6b3a;color:#fff;}
+  .sold-total{background:#e6f4ec;color:#0b6b3a;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-weight:800;display:flex;justify-content:space-between;}
+  .sold-total span{font-weight:600;color:#2f6b4a;}
 </style>
 </head>
 <body>
@@ -755,7 +763,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Not Interested"];
   var currentTab = null;
@@ -777,8 +785,11 @@
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"; }],
+    ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["all","All", function(){ return true; }]
   ];
+  function fmtMoney(n){ return "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
+  function parseMoney(v){ var n = parseFloat(String(v || "").replace(/[^0-9.]/g, "")); return isNaN(n) ? "" : n; }
 
   function showView(id){
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
@@ -828,7 +839,12 @@
       return;
     }
 
-    container.innerHTML = filtered.map(function(l){
+    var banner = "";
+    if(currentTab === "sold" && !q){
+      var tot = filtered.reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
+      banner = '<div class="sold-total"><span>' + filtered.length + ' deal' + (filtered.length===1?'':'s') + ' sold</span>' + esc(fmtMoney(tot)) + '</div>';
+    }
+    container.innerHTML = banner + filtered.map(function(l){
       var tagLine = (l.interests && l.interests.length) ? esc(l.interests.join(" · ")) : "";
       return (
         '<div class="lead-row" data-id="' + l.id + '">' +
@@ -839,7 +855,7 @@
           '</div>' +
           '<div class="meta">' +
             '<div class="date">' + fmtDate(l.created_at) + '</div>' +
-            '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + '</span>' +
+            '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
             dueLabel(l) +
           '</div>' +
         '</div>'
@@ -1132,6 +1148,7 @@
     ["appt_time", "Appt Time"],
     ["notes", "Notes"],
     ["status", "Status"],
+    ["sale_amount", "Sale Amount"],
     ["next_followup", "Next Follow-up"],
     ["log", "Follow-up Log"]
   ];
@@ -1300,11 +1317,14 @@
         '<div><label>Status</label><select id="fuStatus">' + opts + '</select></div>' +
         '<div><label>Next follow-up</label><input type="date" id="fuNext" value="' + esc(l.next_followup || "") + '"></div>' +
       '</div>' +
+      (statusOf(l) === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(l.sale_amount === undefined || l.sale_amount === "" ? "" : String(l.sale_amount)) + '"></div>' : '') +
       '<div class="fu-btns">' +
         '<button type="button" data-fu="noanswer">No answer \u2192 tomorrow</button>' +
         '<button type="button" data-fu="talked">Talked \u2192 3 days</button>' +
         '<button type="button" data-fu="booked">Booked appt</button>' +
         '<button type="button" data-fu="dead">Not interested</button>' +
+        '<button type="button" data-fu="miss">Pitch &amp; miss</button>' +
+        '<button type="button" class="sold" data-fu="sold">Sold</button>' +
       '</div>' +
       '<div class="fu-note"><input type="text" id="fuNote" placeholder="Add a note\u2026"><button type="button" data-fu="note">Add</button></div>' +
       (log ? '<div class="fu-log">' + log + '</div>' : '') +
@@ -1321,6 +1341,8 @@
     else if(a === "talked"){ l.status = "Contacted"; l.next_followup = addDaysISO(3); addLog(l, "Talked"); }
     else if(a === "booked"){ l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment booked"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); } }, 80); return; }
     else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = ""; addLog(l, "Not interested"); }
+    else if(a === "miss"){ l.status = "Pitch & Miss"; l.next_followup = addDaysISO(30); addLog(l, "Pitched \u2014 no sale"); }
+    else if(a === "sold"){ l.status = "Sold"; l.next_followup = ""; addLog(l, "Sold"); refreshDetail(); setTimeout(function(){ var el = document.getElementById("fuAmount"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 60); return; }
     else if(a === "sent"){ l.status = "Sent to Monday"; addLog(l, "Sent to Monday"); }
     else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
     refreshDetail();
@@ -1330,6 +1352,10 @@
     if(e.target.id === "fuStatus"){
       l.status = e.target.value; addLog(l, "Status \u2192 " + l.status);
       if(!isOpen(l)) l.next_followup = "";
+      refreshDetail();
+    } else if(e.target.id === "fuAmount"){
+      l.sale_amount = parseMoney(e.target.value);
+      addLog(l, l.sale_amount !== "" ? "Sale amount " + fmtMoney(l.sale_amount) : "Sale amount cleared");
       refreshDetail();
     } else if(e.target.id === "fuNext"){
       l.next_followup = e.target.value; addLog(l, l.next_followup ? "Follow-up set for " + fmtIsoDate(l.next_followup) : "Follow-up cleared");
