@@ -404,18 +404,6 @@
     color:var(--text);
     background:var(--bg);
   }
-  .monday-box{margin-top:18px;border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg);}
-  .monday-box h3{margin:0 0 4px;font-size:15px;}
-  .monday-box .hint{font-size:12px;color:var(--text-muted);margin-bottom:10px;}
-  .m-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid var(--border);}
-  .m-row:first-of-type{border-top:none;}
-  .m-row .m-txt{flex:1;min-width:0;}
-  .m-row .m-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);}
-  .m-row .m-val{font-size:14px;white-space:pre-wrap;word-break:break-word;}
-  .m-copy{flex:none;border:none;border-radius:8px;padding:8px 12px;font-weight:600;font-size:13px;background:var(--brand);color:#fff;}
-  .m-copy.done{background:#e9ebee;color:var(--text);}
-  .m-open{display:block;text-align:center;margin-top:10px;padding:12px;border-radius:10px;background:#e9ebee;color:var(--text);font-weight:600;text-decoration:none;}
-  .m-canv{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-top:4px;}
   .opt{font-weight:500;text-transform:none;letter-spacing:0;color:var(--text-muted);}
   details.more{margin:22px 0 18px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:0 14px;}
   details.more summary{padding:14px 0;font-weight:700;cursor:pointer;color:var(--brand-dark);}
@@ -452,7 +440,6 @@
   .fu-log{margin-top:10px;font-size:13px;}
   .fu-log div{padding:6px 0;border-top:1px solid var(--border);}
   .fu-log b{color:var(--text-muted);font-weight:600;margin-right:6px;}
-  .m-sent{display:block;width:100%;margin-top:8px;padding:12px;border:none;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;}
 </style>
 </head>
 <body>
@@ -963,7 +950,6 @@
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
-      buildMondayBox(l) +
 
       section("Contact Info",
         item("Spouse", l.spouse) +
@@ -1313,94 +1299,6 @@
   document.getElementById("tabs").addEventListener("click", function(e){
     var t = e.target.closest("[data-tab]"); if(!t) return;
     currentTab = t.getAttribute("data-tab"); renderList();
-  });
-
-  // ---- Copy for Monday (SoCal Contractor Exchange "New Lead" form) ----
-  var MONDAY_FORM_URL = "https://wkf.ms/3mOAl1A";
-  var CANVASSER_KEY = "socal_canvasser_name";
-  var mondayVals = [];
-  function getCanvasser(){ try { return localStorage.getItem(CANVASSER_KEY) || ""; } catch(e){ return ""; } }
-  function setCanvasser(v){ try { localStorage.setItem(CANVASSER_KEY, v); } catch(e){} }
-  function mondayCustomerName(l){
-    var n = [l.last_name, l.first_name].filter(Boolean).join(", ");
-    if(l.spouse) n += " & " + l.spouse;
-    return n;
-  }
-  function mondayDateTime(l){
-    var d = "";
-    if(l.appt_date){ var p = l.appt_date.split("-"); if(p.length === 3) d = (+p[1]) + "/" + (+p[2]); }
-    var t = (l.appt_time || "").replace(/\s*(AM|PM)$/i, function(m, ap){ return ap.toLowerCase(); });
-    if(d && t) return d + " @ " + t;
-    return d || t || l.appt_day || "";
-  }
-  function mondayNotes(l){
-    var parts = [];
-    function add(label, v){ if(v) parts.push(label + ": " + v); }
-    add("Last painted", l.last_painted);
-    add("Colors", l.paint_colors);
-    add("Roof age", l.roof_age);
-    add("Roof layers", l.roof_layers);
-    if(l.solar_panels) add("Solar", l.solar_panels + (l.solar_panel_count ? " (" + l.solar_panel_count + " panels)" : ""));
-    if(l.roof_leaks) add("Leaks", l.roof_leaks + (l.leak_location ? " - " + l.leak_location : ""));
-    add("Fascia/wood", l.fascia);
-    add("Cracks", l.cracks);
-    add("Wear and tear", l.wear_tear);
-    add("Years owned", l.years_owned);
-    add("Windows", l.window_count);
-    add("Sliding doors", l.sliding_doors);
-    add("French doors", l.french_doors);
-    add("Pet door", l.pet_door);
-    add("Alt phone", l.alt_phone);
-    add("Email", l.email);
-    if(l.notes) parts.push("Notes: " + l.notes);
-    return parts.join("\n");
-  }
-  function buildMondayBox(l){
-    mondayVals = [
-      ["2. Canvasser Name", getCanvasser()],
-      ["4. Customer Name", mondayCustomerName(l)],
-      ["5. Address", [l.address, l.zip].filter(Boolean).join(", ")],
-      ["6. Phone Number", l.phone || ""],
-      ["7. Products", (l.interests || []).join(", ")],
-      ["8. Date/Time", mondayDateTime(l)],
-      ["9. Appointment Notes", mondayNotes(l)]
-    ];
-    var rows = mondayVals.map(function(r, i){
-      var val = i === 0
-        ? '<input class="m-canv" id="mCanvasser" placeholder="Your first & last name" value="' + esc(r[1]) + '">'
-        : '<div class="m-val">' + (r[1] ? esc(r[1]) : '<span style="color:var(--text-muted)">&mdash;</span>') + '</div>';
-      return '<div class="m-row"><div class="m-txt"><div class="m-lbl">' + esc(r[0]) + '</div>' + val + '</div>' +
-             '<button type="button" class="m-copy" data-copy="' + i + '">Copy</button></div>';
-    }).join("");
-    return '<div class="monday-box"><h3>Copy for Monday</h3>' +
-      '<div class="hint">Pick Office (1) and Team Captain (3) on the form. Tap Copy, then paste into each field.</div>' +
-      rows +
-      '<a class="m-open" href="' + MONDAY_FORM_URL + '" target="_blank" rel="noopener">Open New Lead form &rarr;</a>' +
-      (statusOf(l) === "Sent to Monday" ? '' : '<button type="button" class="m-sent" data-fu="sent">Mark as sent to Monday</button>') +
-      '</div>';
-  }
-  function copyText(text, btn){
-    function ok(){ btn.textContent = "Copied"; btn.classList.add("done"); setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1500); }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(ok, function(){ fallbackCopy(text); ok(); });
-    } else { fallbackCopy(text); ok(); }
-  }
-  function fallbackCopy(text){
-    var ta = document.createElement("textarea");
-    ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
-    try { document.execCommand("copy"); } catch(e){}
-    document.body.removeChild(ta);
-  }
-  document.getElementById("detailCard").addEventListener("click", function(e){
-    var btn = e.target.closest(".m-copy");
-    if(!btn) return;
-    var i = +btn.getAttribute("data-copy");
-    if(i === 0){ var c = document.getElementById("mCanvasser"); mondayVals[0][1] = c ? c.value.trim() : ""; }
-    copyText(mondayVals[i][1] || "", btn);
-  });
-  document.getElementById("detailCard").addEventListener("input", function(e){
-    if(e.target.id === "mCanvasser"){ setCanvasser(e.target.value.trim()); mondayVals[0][1] = e.target.value.trim(); }
   });
 
   load();
