@@ -512,6 +512,8 @@
       <div class="subtitle" id="headerSubtitle">Lead Tracker</div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="importBtn" title="Import leads (CSV)">&#8657;</button>
+      <input type="file" id="importInput" accept=".csv,text/csv" hidden>
       <button class="icon-btn" id="exportBtn" title="Export leads">&#8659;</button>
       <button class="icon-btn" id="newBtnTop" title="New lead">+</button>
     </div>
@@ -771,7 +773,7 @@
 (function(){
   "use strict";
 
-  var STORAGE_KEY = "genesis_leadgen_leads_v1";
+  var STORAGE_KEY = "socal_leads_v1"; // fresh start; old leads remain under "genesis_leadgen_leads_v1"
   var leads = [];
   var editingId = null;
   var viewingId = null;
@@ -1643,6 +1645,75 @@
   ["f_appt_date","f_appt_day","f_appt_time","f_spouse"].forEach(function(id){
     document.getElementById(id).addEventListener("change", function(){ setTimeout(updateScript, 0); });
     document.getElementById(id).addEventListener("input", function(){ setTimeout(updateScript, 0); });
+  });
+
+  // ---- Import CSV ----
+  function parseCSV(text){
+    var rows = [], row = [], f = "", q = false, i = 0;
+    text = text.replace(/^\ufeff/, "");
+    for(; i < text.length; i++){
+      var c = text[i];
+      if(q){
+        if(c === '"'){ if(text[i+1] === '"'){ f += '"'; i++; } else { q = false; } }
+        else { f += c; }
+      } else if(c === '"'){ q = true; }
+      else if(c === ","){ row.push(f); f = ""; }
+      else if(c === "\n" || c === "\r"){
+        if(c === "\r" && text[i+1] === "\n") i++;
+        row.push(f); f = ""; rows.push(row); row = [];
+      } else { f += c; }
+    }
+    if(f !== "" || row.length){ row.push(f); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(x){ return x.trim() !== ""; }); });
+  }
+  function importCSV(text){
+    var rows = parseCSV(text);
+    if(rows.length < 2) return { added: 0, skipped: 0 };
+    var head = rows[0].map(function(h){ return h.trim().toLowerCase(); });
+    var byLabel = {};
+    CSV_FIELDS.forEach(function(f){ byLabel[f[1].toLowerCase()] = f[0]; });
+    var seen = {};
+    leads.forEach(function(l){ seen[[l.first_name, l.last_name, l.address].join("|").toLowerCase()] = 1; });
+    var added = 0, skipped = 0;
+    rows.slice(1).forEach(function(r){
+      var l = {};
+      head.forEach(function(h, idx){ var k = byLabel[h]; if(k){ l[k] = (r[idx] || "").trim(); } });
+      if(!l.first_name && !l.last_name && !l.address){ skipped++; return; }
+      var key = [l.first_name, l.last_name, l.address].join("|").toLowerCase();
+      if(seen[key]){ skipped++; return; }
+      seen[key] = 1;
+      var ts = Date.parse(l.created_at || "");
+      l.created_at = isNaN(ts) ? Date.now() : ts;
+      l.interests = l.interests ? l.interests.split(/;\s*/).filter(Boolean) : [];
+      var logStr = l.log || ""; l.log = [];
+      if(logStr){
+        logStr.split(" | ").forEach(function(part){
+          var m = part.match(/^([A-Za-z]{3} \d{1,2}, \d{4}): (.*)$/);
+          var t = m ? Date.parse(m[1]) : NaN;
+          l.log.push({ ts: isNaN(t) ? l.created_at : t, text: m ? m[2] : part });
+        });
+      }
+      if(l.sale_amount !== undefined){ l.sale_amount = parseMoney(l.sale_amount); }
+      if(!l.status){ l.status = (l.appt_date || l.appt_time) ? "Appt Set" : "New"; }
+      l.homeowner_name = fullName(l.first_name, l.last_name);
+      l.id = uid();
+      leads.push(l); added++;
+    });
+    save();
+    return { added: added, skipped: skipped };
+  }
+  document.getElementById("importBtn").addEventListener("click", function(){ document.getElementById("importInput").click(); });
+  document.getElementById("importInput").addEventListener("change", function(e){
+    var file = e.target.files && e.target.files[0]; e.target.value = "";
+    if(!file) return;
+    var rd = new FileReader();
+    rd.onload = function(){
+      var res;
+      try { res = importCSV(String(rd.result || "")); } catch(err){ alert("Couldn't read that file. Make sure it's a CSV exported from this app."); return; }
+      currentTab = "all"; renderList(); showView("view-list");
+      alert("Imported " + res.added + " lead" + (res.added === 1 ? "" : "s") + (res.skipped ? " (" + res.skipped + " skipped as duplicates or blank)" : "") + ".");
+    };
+    rd.readAsText(file);
   });
 
   load();
