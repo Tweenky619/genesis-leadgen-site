@@ -424,6 +424,7 @@
   .st-sent{background:#ece8fb;color:#4b3a8f;}
   .st-confirmed{background:#dff3e8;color:#0b6b3a;}
   .st-noreach{background:#fde7e4;color:#a8321f;}
+  .st-reset{background:#e6eefc;color:#1d4f8a;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
   .st-dead{background:#fdecea;color:var(--danger);}
@@ -795,7 +796,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Dispatch Couldn't Reach","st-noreach"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Dispatch Couldn't Reach","st-noreach"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Not Interested"];
   var currentTab = null;
@@ -816,7 +817,7 @@
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
-    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Dispatch Couldn't Reach"; }],
+    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Dispatch Couldn't Reach"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["all","All", function(){ return true; }]
   ];
@@ -1119,8 +1120,12 @@
     if(editingId){
       var l = leads.find(function(x){ return x.id === editingId; });
       var hadAppt = l.appt_date || l.appt_time;
+      var oldAppt = (l.appt_date || "") + "|" + (l.appt_time || "");
       Object.assign(l, data);
-      if(!hadAppt && (data.appt_date || data.appt_time) && isOpen(l) && ["Sent to Monday","Confirmed","Dispatch Couldn't Reach"].indexOf(statusOf(l)) === -1){
+      if(hadAppt && oldAppt !== (l.appt_date || "") + "|" + (l.appt_time || "") && (l.appt_date || l.appt_time)){
+        addLog(l, "Appointment moved to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" "));
+      }
+      if(!hadAppt && (data.appt_date || data.appt_time) && isOpen(l) && ["Sent to Monday","Confirmed","Reset","Dispatch Couldn't Reach"].indexOf(statusOf(l)) === -1){
         l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment set");
       }
     } else {
@@ -1356,9 +1361,10 @@
         '<button type="button" data-fu="noanswer">No answer \u2192 tomorrow</button>' +
         '<button type="button" data-fu="talked">Talked \u2192 3 days</button>' +
         '<button type="button" data-fu="booked">Booked appt</button>' +
+        '<button type="button" data-fu="reset">\ud83d\udd04 Reset</button>' +
         '<button type="button" data-fu="dead">Not interested</button>' +
         '<button type="button" data-fu="miss">Pitch &amp; miss</button>' +
-        '<button type="button" class="sold" data-fu="sold">Sold</button>' +
+        '<button type="button" class="sold" data-fu="sold" style="grid-column:1 / -1;">Sold</button>' +
       '</div>' +
       '<div class="fu-note"><input type="text" id="fuNote" placeholder="Add a note\u2026"><button type="button" data-fu="note">Add</button></div>' +
       (log ? '<div class="fu-log">' + log + '</div>' : '') +
@@ -1370,8 +1376,8 @@
       return '<div class="fu-dispatch"><div class="lbl">Dispatch</div><div class="row">' +
         '<button type="button" class="full" data-fu="sent">Sent to Monday</button></div></div>';
     }
-    if(st === "Sent to Monday" || st === "Dispatch Couldn't Reach"){
-      return '<div class="fu-dispatch"><div class="lbl">Dispatch' + (st === "Sent to Monday" ? ' \u2014 waiting on confirmation call' : ' \u2014 call the homeowner yourself') + '</div><div class="row">' +
+    if(st === "Sent to Monday" || st === "Dispatch Couldn't Reach" || st === "Reset"){
+      return '<div class="fu-dispatch"><div class="lbl">Dispatch' + (st === "Sent to Monday" ? ' \u2014 waiting on confirmation call' : st === "Reset" ? ' \u2014 confirm the new time' : ' \u2014 call the homeowner yourself') + '</div><div class="row">' +
         '<button type="button" class="ok" data-fu="confirmed">\u2705 Confirmed</button>' +
         '<button type="button" class="na-btn" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button></div></div>';
     }
@@ -1386,6 +1392,7 @@
     var a = b.getAttribute("data-fu");
     if(a === "noanswer"){ l.status = "No Answer"; l.next_followup = addDaysISO(1); addLog(l, "No answer"); }
     else if(a === "talked"){ l.status = "Contacted"; l.next_followup = addDaysISO(3); addLog(l, "Talked"); }
+    else if(a === "reset"){ l.status = "Reset"; l.next_followup = ""; addLog(l, "Reset \u2014 rescheduling appointment"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 80); return; }
     else if(a === "booked"){ l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment booked"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); } }, 80); return; }
     else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = ""; addLog(l, "Not interested"); }
     else if(a === "miss"){ l.status = "Pitch & Miss"; l.next_followup = addDaysISO(30); addLog(l, "Pitched \u2014 no sale"); }
