@@ -432,6 +432,19 @@
   .quick{display:flex;gap:8px;margin:4px 0 14px;}
   .quick a{flex:1;text-align:center;padding:11px 6px;border-radius:10px;background:var(--brand);color:#fff;font-weight:700;font-size:14px;text-decoration:none;}
   .quick a.alt{background:#e9ebee;color:var(--text);}
+  .map-split{flex:1;display:flex;border-radius:10px;overflow:hidden;background:#e9ebee;}
+  .map-split button{border:none;background:transparent;color:var(--text);font-weight:700;font-size:14px;padding:11px 6px;}
+  .map-go{flex:1;}
+  .map-pick{flex:none;width:38px;border-left:1px solid #d6dae0 !important;}
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:60;display:flex;align-items:flex-end;justify-content:center;}
+  .sheet-bg[hidden]{display:none;}
+  .sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + var(--safe-bottom));}
+  .sheet h3{margin:0 0 4px;font-size:16px;}
+  .sheet p{margin:0 0 12px;font-size:13px;color:var(--text-muted);}
+  .sheet button{display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;margin-bottom:8px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-size:15px;font-weight:700;color:var(--text);}
+  .sheet button.on{border-color:var(--brand);background:var(--brand-light);}
+  .sheet button .ck{color:var(--brand);}
+  .sheet button.cancel{justify-content:center;background:#e9ebee;border-color:#e9ebee;}
   .fu-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg);margin-bottom:16px;}
   .fu-box h3{margin:0 0 10px;font-size:15px;}
   .fu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
@@ -717,6 +730,14 @@
   <div class="viewer-bar">
     <button type="button" id="viewerDelete">Delete photo</button>
     <button type="button" id="viewerClose">Close</button>
+  </div>
+</div>
+<div class="sheet-bg" id="mapSheet" hidden>
+  <div class="sheet">
+    <h3>Open address in&hellip;</h3>
+    <p>Your pick becomes the default. Tap &#9662; next to Map to change it.</p>
+    <div id="mapOptions"></div>
+    <button type="button" class="cancel" id="mapCancel">Cancel</button>
   </div>
 </div>
 <script>
@@ -1302,7 +1323,8 @@
       b.push('<a class="alt" href="sms:' + esc(digits(l.phone)) + '">Text</a>');
     }
     if(l.address){
-      b.push('<a class="alt" href="https://maps.apple.com/?q=' + encodeURIComponent(l.address + (l.zip ? ", " + l.zip : "")) + '" target="_blank" rel="noopener">Map</a>');
+      var app = getMapApp();
+      b.push('<div class="map-split"><button type="button" class="map-go" data-map="go">' + (app ? esc(MAP_APPS[app].short) : 'Map') + '</button><button type="button" class="map-pick" data-map="pick" aria-label="Choose map app">&#9662;</button></div>');
     }
     return b.length ? '<div class="quick">' + b.join("") + '</div>' : '';
   }
@@ -1475,6 +1497,45 @@
       renderPhotos(leadId, v.grid, v.grid === "detailPhotos" ? "detailPhotosWrap" : null);
     });
   });
+
+  // ---- Map app choice ----
+  var MAP_KEY = "socal_map_app";
+  var MAP_APPS = {
+    apple:  { label: "Apple Maps",  short: "Apple",  url: function(a){ return "https://maps.apple.com/?q=" + encodeURIComponent(a); } },
+    google: { label: "Google Maps", short: "Google", url: function(a){ return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a); } },
+    waze:   { label: "Waze",        short: "Waze", url: function(a){ return "https://waze.com/ul?q=" + encodeURIComponent(a) + "&navigate=yes"; } }
+  };
+  function getMapApp(){ try { var v = localStorage.getItem(MAP_KEY); return MAP_APPS[v] ? v : ""; } catch(e){ return ""; } }
+  function setMapApp(v){ try { localStorage.setItem(MAP_KEY, v); } catch(e){} }
+  function leadAddress(l){ return (l.address || "") + (l.zip ? ", " + l.zip : ""); }
+  function openMap(app, l){
+    var a = document.createElement("a");
+    a.href = MAP_APPS[app].url(leadAddress(l)); a.target = "_blank"; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  function showMapSheet(){
+    var cur = getMapApp();
+    document.getElementById("mapOptions").innerHTML = Object.keys(MAP_APPS).map(function(k){
+      return '<button type="button" data-app="' + k + '"' + (k===cur?' class="on"':'') + '>' + MAP_APPS[k].label + (k===cur?'<span class="ck">Default &#10003;</span>':'') + '</button>';
+    }).join("");
+    document.getElementById("mapSheet").hidden = false;
+  }
+  function hideMapSheet(){ document.getElementById("mapSheet").hidden = true; }
+  document.getElementById("detailCard").addEventListener("click", function(e){
+    var b = e.target.closest("[data-map]"); if(!b) return;
+    var l = currentLead(); if(!l) return;
+    var app = getMapApp();
+    if(b.getAttribute("data-map") === "go" && app){ openMap(app, l); }
+    else { showMapSheet(); }
+  });
+  document.getElementById("mapOptions").addEventListener("click", function(e){
+    var b = e.target.closest("[data-app]"); if(!b) return;
+    var app = b.getAttribute("data-app");
+    setMapApp(app); hideMapSheet();
+    var l = currentLead(); if(l){ openMap(app, l); refreshDetail(); }
+  });
+  document.getElementById("mapCancel").addEventListener("click", hideMapSheet);
+  document.getElementById("mapSheet").addEventListener("click", function(e){ if(e.target.id === "mapSheet") hideMapSheet(); });
 
   load();
   renderList();
