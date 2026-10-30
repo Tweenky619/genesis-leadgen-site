@@ -1358,11 +1358,7 @@
       (statusOf(l) === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(l.sale_amount === undefined || l.sale_amount === "" ? "" : String(l.sale_amount)) + '"></div>' : '') +
       buildDispatch(l) +
       '<div class="fu-btns">' +
-        '<button type="button" data-fu="noanswer">No answer \u2192 tomorrow</button>' +
-        '<button type="button" data-fu="talked">Talked \u2192 3 days</button>' +
-        '<button type="button" data-fu="booked">Booked appt</button>' +
         '<button type="button" data-fu="reset">\ud83d\udd04 Reset</button>' +
-        '<button type="button" data-fu="dead">Not interested</button>' +
         '<button type="button" data-fu="miss">Pitch &amp; miss</button>' +
         '<button type="button" class="sold" data-fu="sold" style="grid-column:1 / -1;">Sold</button>' +
       '</div>' +
