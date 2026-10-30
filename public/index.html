@@ -490,6 +490,8 @@
   .fu-btns button.sold{background:#0b6b3a;border-color:#0b6b3a;color:#fff;}
   .sold-total{background:#e6f4ec;color:#0b6b3a;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-weight:800;display:flex;justify-content:space-between;}
   .sold-total span{font-weight:600;color:#2f6b4a;}
+  .sched-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+  .sched-hint.warn{color:var(--danger);font-weight:700;}
 </style>
 </head>
 <body>
@@ -584,17 +586,9 @@
         <div class="field">
           <label>Time</label>
           <select id="f_appt_time">
-            <option value="">Select time</option>
-            <option>10:00 AM</option>
-            <option>11:00 AM</option>
-            <option>12:00 PM</option>
-            <option>1:00 PM</option>
-            <option>2:00 PM</option>
-            <option>3:00 PM</option>
-            <option>4:00 PM</option>
-            <option>5:00 PM</option>
-            <option>6:00 PM</option>
+            <option value="">Pick a day first</option>
           </select>
+          <div class="sched-hint" id="schedHint"></div>
         </div>
 
         <div class="form-section-title">Photos</div>
@@ -905,6 +899,7 @@
   function resetForm(){
     editingId = null;
     document.getElementById("leadForm").reset();
+    buildTimeOptions("");
     Array.prototype.forEach.call(document.querySelectorAll(".interest-toggle"), function(el){
       el.classList.remove("active");
     });
@@ -998,7 +993,7 @@
     document.getElementById("f_wear_tear").value = l.wear_tear || "";
     document.getElementById("f_appt_day").value = l.appt_day || "";
     document.getElementById("f_appt_date").value = l.appt_date || "";
-    document.getElementById("f_appt_time").value = l.appt_time || "";
+    buildTimeOptions(l.appt_time || "");
     document.getElementById("f_notes").value = l.notes || "";
     document.getElementById("saveBtn").textContent = "Save Changes";
     showView("view-form");
@@ -1566,6 +1561,44 @@
   });
   document.getElementById("mapCancel").addEventListener("click", hideMapSheet);
   document.getElementById("mapSheet").addEventListener("click", function(e){ if(e.target.id === "mapSheet") hideMapSheet(); });
+
+  // ---- Appointment schedule ----
+  var SCHEDULE = { Monday:[10,19], Tuesday:[13,19], Wednesday:[10,19], Thursday:[10,19], Friday:[10,18], Saturday:[10,17] };
+  var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  function hourLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":00 " + ap; }
+  function buildTimeOptions(keep){
+    var day = document.getElementById("f_appt_day").value;
+    var sel = document.getElementById("f_appt_time");
+    var hint = document.getElementById("schedHint");
+    var cur = keep !== undefined ? keep : sel.value;
+    var win = SCHEDULE[day];
+    var opts = [];
+    if(win){ for(var h = win[0]; h <= win[1]; h++){ opts.push(hourLabel(h)); } }
+    var html = '<option value="">' + (win ? "Select time" : "Pick a day first") + '</option>' +
+      opts.map(function(t){ return '<option' + (t === cur ? ' selected' : '') + '>' + t + '</option>'; }).join("");
+    if(cur && opts.indexOf(cur) === -1){ html += '<option selected>' + esc(cur) + '</option>'; }
+    sel.innerHTML = html;
+    hint.className = "sched-hint";
+    if(win){
+      hint.textContent = day + " hours: " + hourLabel(win[0]).replace(":00","") + " \u2013 " + hourLabel(win[1]).replace(":00","");
+      if(cur && opts.indexOf(cur) === -1){ hint.textContent += " \u2014 current time is outside hours"; hint.className = "sched-hint warn"; }
+    } else { hint.textContent = ""; }
+  }
+  document.getElementById("f_appt_day").addEventListener("change", function(){ buildTimeOptions(); });
+  document.getElementById("f_appt_date").addEventListener("change", function(e){
+    var v = e.target.value; var hint = document.getElementById("schedHint");
+    if(!v){ return; }
+    var p = v.split("-"); var d = new Date(+p[0], +p[1]-1, +p[2]);
+    var name = DAYS[d.getDay()];
+    if(!SCHEDULE[name]){
+      document.getElementById("f_appt_day").value = "";
+      buildTimeOptions("");
+      hint.textContent = name + " \u2014 no appointments that day"; hint.className = "sched-hint warn";
+      return;
+    }
+    document.getElementById("f_appt_day").value = name;
+    buildTimeOptions();
+  });
 
   load();
   renderList();
