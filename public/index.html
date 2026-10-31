@@ -501,6 +501,14 @@
   details.script .tag{display:inline-block;background:var(--accent);color:#fff;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;padding:3px 8px;border-radius:999px;}
   details.script .step:has(input:checked) p{opacity:.45;}
   details.script b.s-when,details.script b.s-spouse,details.script b.s-day{color:#0b6b3a;}
+  .restore{background:#fff8f5;border:2px solid var(--accent);border-radius:12px;padding:12px;margin-bottom:12px;}
+  .restore[hidden]{display:none;}
+  .restore b{display:block;margin-bottom:4px;}
+  .restore p{margin:0 0 10px;font-size:13px;color:var(--text-muted);}
+  .restore .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .restore button{flex:1;min-width:120px;padding:11px 8px;border-radius:10px;border:none;font-weight:700;font-size:14px;background:var(--brand);color:#fff;}
+  .restore button.alt{background:#e9ebee;color:var(--text);}
+  .restore button.x{flex:none;min-width:0;background:transparent;color:var(--text-muted);}
 </style>
 </head>
 <body>
@@ -526,6 +534,7 @@
       <div class="search-wrap">
         <input type="text" id="searchInput" placeholder="Search by name or address">
       </div>
+      <div class="restore" id="restoreBox" hidden></div>
       <div class="tabs" id="tabs"></div>
       <div id="listContainer"></div>
     </section>
@@ -849,6 +858,7 @@
   }
 
   function renderList(){
+    if(typeof renderRestore === "function"){ try { renderRestore(); } catch(e){} }
     var q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
     var container = document.getElementById("listContainer");
     if(!currentTab){ currentTab = leads.some(isDue) ? "due" : "all"; }
@@ -1714,6 +1724,51 @@
       alert("Imported " + res.added + " lead" + (res.added === 1 ? "" : "s") + (res.skipped ? " (" + res.skipped + " skipped as duplicates or blank)" : "") + ".");
     };
     rd.readAsText(file);
+  });
+
+  // ---- Restore leads saved by the previous version on this phone ----
+  var OLD_KEY = "genesis_leadgen_leads_v1";
+  var RESTORE_HIDE_KEY = "socal_restore_hidden";
+  function oldLeads(){ try { return JSON.parse(localStorage.getItem(OLD_KEY) || "[]") || []; } catch(e){ return []; } }
+  function leadKey(l){ return [l.first_name, l.last_name, l.address].join("|").toLowerCase(); }
+  function notYetHere(list){
+    var have = {}; leads.forEach(function(l){ have[leadKey(l)] = 1; });
+    return list.filter(function(l){ return !have[leadKey(l)]; });
+  }
+  function isToday(ts){ var d = new Date(ts), n = new Date(); return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate(); }
+  function renderRestore(){
+    var box = document.getElementById("restoreBox");
+    var hidden = false; try { hidden = localStorage.getItem(RESTORE_HIDE_KEY) === "1"; } catch(e){}
+    var pending = notYetHere(oldLeads());
+    if(hidden || !pending.length){ box.hidden = true; return; }
+    var today = pending.filter(function(l){ return isToday(l.created_at); });
+    box.innerHTML = '<b>Leads from the previous version</b><p>' + pending.length + ' saved on this phone' + (today.length ? ' \u2014 ' + today.length + ' from today' : '') + '.</p><div class="row">' +
+      (today.length ? '<button type="button" data-restore="today">Restore today\u2019s ' + today.length + '</button>' : '') +
+      '<button type="button" class="alt" data-restore="all">Restore all ' + pending.length + '</button>' +
+      '<button type="button" class="x" data-restore="hide" aria-label="Hide">Hide</button></div>';
+    box.hidden = false;
+  }
+  function restore(which){
+    var pending = notYetHere(oldLeads());
+    if(which === "today"){ pending = pending.filter(function(l){ return isToday(l.created_at); }); }
+    pending.forEach(function(l){
+      var c = JSON.parse(JSON.stringify(l));
+      if(!c.status){ c.status = (c.appt_date || c.appt_time) ? "Appt Set" : "New"; }
+      if(c.status === "New" && !c.next_followup && isToday(c.created_at)){ c.next_followup = addDaysISO(1); }
+      if(!c.log){ c.log = [{ ts: c.created_at || Date.now(), text: "Captured at door" }]; }
+      c.homeowner_name = c.homeowner_name || fullName(c.first_name, c.last_name);
+      leads.push(c);
+    });
+    save();
+    currentTab = "all";
+    renderList();
+    return pending.length;
+  }
+  document.getElementById("restoreBox").addEventListener("click", function(e){
+    var b = e.target.closest("[data-restore]"); if(!b) return;
+    var w = b.getAttribute("data-restore");
+    if(w === "hide"){ try { localStorage.setItem(RESTORE_HIDE_KEY, "1"); } catch(err){} renderRestore(); return; }
+    restore(w);
   });
 
   load();
