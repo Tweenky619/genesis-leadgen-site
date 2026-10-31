@@ -430,6 +430,7 @@
   .st-noshow{background:#fde7e4;color:#a8321f;}
   .st-ctc{background:#fde7e4;color:#a8321f;}
   .st-nomr{background:#fff1d6;color:#8a5a00;}
+  .st-represet{background:#e6eefc;color:#1d4f8a;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
   .st-dead{background:#fdecea;color:var(--danger);}
@@ -547,6 +548,8 @@
   .fu-outcome .oc.sold{grid-column:1 / -1;background:#fff;color:#0b6b3a;border-color:#bfe0cc;font-size:15px;}
   .fu-outcome .oc.sold.on{background:#0b6b3a;color:#fff;border-color:#0b6b3a;}
   .fu-outcome .fu-sale{margin:8px 0 0;}
+  .fu-outcome .roll-cancel{background:#e9ebee;color:var(--text);border:none;}
+  .fu-outcome .roll-save{background:var(--brand);color:#fff;border:none;}
 </style>
 </head>
 <body>
@@ -882,7 +885,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Not Interested"];
   var currentTab = null;
@@ -903,7 +906,7 @@
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
-    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Confirm NA"; }],
+    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["all","All", function(){ return true; }]
   ];
@@ -1479,16 +1482,22 @@
       '<button type="button" class="oc' + on("Call to Cancel") + '" data-fu="ctc">\ud83d\udcf5 Call to Cancel</button>' +
       '<button type="button" class="oc' + on("No Mr./Mrs.") + '" data-fu="nomr">\ud83d\udc64 No Mr./Mrs.</button>' +
       '<button type="button" class="oc' + on("Pitch & Miss") + '" data-fu="miss">\u274c Pitch Miss</button>' +
+      '<button type="button" class="oc' + on("Rep Reset") + '" data-fu="represet" style="grid-column:1 / -1;">\ud83d\udd01 Rep Reset</button>' +
       '<button type="button" class="oc sold' + on("Sold") + '" data-fu="sold">\ud83d\udcb0 Sold</button>' +
+      '</div>' +
+      '<div class="roll-form" id="rrForm" hidden>' +
+        '<div class="roll-row"><input type="date" id="rrDate"><select id="rrTime"><option value="">Pick a date first</option></select></div>' +
+        '<div class="sched-hint" id="rrHint"></div>' +
+        '<div class="roll-row"><button type="button" class="roll-cancel" data-fu="rrcancel">Cancel</button><button type="button" class="roll-save" data-fu="rrsave">Save reset</button></div>' +
       '</div>' +
       (st === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(amt) + '"></div>' : '') +
       '</div>';
   }
-  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Confirm NA","Confirmed","Blow Out"];
+  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
-    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : "How did the confirmation go?";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
     return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div><div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
@@ -1515,6 +1524,20 @@
     else if(a === "reset"){ l.status = "Reset"; l.next_followup = ""; addLog(l, "Reset \u2014 rescheduling appointment"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 80); return; }
     else if(a === "booked"){ l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment booked"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); } }, 80); return; }
     else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = ""; addLog(l, "Not interested"); }
+    else if(a === "represet"){
+      var rf = document.getElementById("rrForm"); rf.hidden = false;
+      document.getElementById("rrDate").value = ""; fillRollTimes("", "rr");
+      rf.scrollIntoView({ block: "center" }); document.getElementById("rrDate").focus();
+      return;
+    }
+    else if(a === "rrcancel"){ document.getElementById("rrForm").hidden = true; return; }
+    else if(a === "rrsave"){
+      var rd = document.getElementById("rrDate").value, rt = document.getElementById("rrTime").value;
+      if(!rd || !rt){ var hh = document.getElementById("rrHint"); hh.textContent = "Pick the new date and time."; hh.className = "sched-hint warn"; return; }
+      var rp = rd.split("-"); l.appt_day = DAYS[new Date(+rp[0], +rp[1]-1, +rp[2]).getDay()];
+      l.appt_date = rd; l.appt_time = rt; l.status = "Rep Reset"; l.next_followup = "";
+      addLog(l, "Rep reset for " + fmtIsoDate(rd) + " " + rt);
+    }
     else if(a === "noshow"){ l.status = "No Show"; l.next_followup = addDaysISO(1); addLog(l, "No show"); }
     else if(a === "ctc"){ l.status = "Call to Cancel"; l.next_followup = addDaysISO(1); addLog(l, "Called to cancel"); }
     else if(a === "nomr"){ l.status = "No Mr./Mrs."; l.next_followup = addDaysISO(1); addLog(l, "No Mr./Mrs. \u2014 not all decision makers home"); }
@@ -1927,8 +1950,9 @@
   });
 
   // ---- Roll to another day ----
-  function fillRollTimes(keep){
-    var d = document.getElementById("rollDate").value, sel = document.getElementById("rollTime"), hint = document.getElementById("rollHint");
+  function fillRollTimes(keep, pre){
+    pre = pre || "roll";
+    var d = document.getElementById(pre + "Date").value, sel = document.getElementById(pre + "Time"), hint = document.getElementById(pre + "Hint");
     hint.className = "sched-hint"; hint.textContent = "";
     if(!d){ sel.innerHTML = '<option value="">Pick a date first</option>'; return; }
     var p = d.split("-"); var name = DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()]; var win = SCHEDULE[name];
@@ -1937,7 +1961,7 @@
     sel.innerHTML = '<option value="">Select time</option>' + opts.map(function(t){ return '<option' + (t === keep ? ' selected' : '') + '>' + t + '</option>'; }).join("");
     hint.textContent = name + " hours: " + hourLabel(win[0]).replace(":00","") + " \u2013 " + hourLabel(win[1]).replace(":00","");
   }
-  document.getElementById("detailCard").addEventListener("change", function(e){ if(e.target.id === "rollDate"){ fillRollTimes(""); } });
+  document.getElementById("detailCard").addEventListener("change", function(e){ if(e.target.id === "rollDate"){ fillRollTimes(""); } if(e.target.id === "rrDate"){ fillRollTimes("", "rr"); } });
 
   load();
   renderList();
