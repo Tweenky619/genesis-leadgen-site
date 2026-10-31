@@ -787,12 +787,29 @@
   var editingId = null;
   var viewingId = null;
 
+  // Old leads only count as booked if their appointment is today or later.
+  function importedStatus(l){
+    return (l.appt_date && l.appt_date >= todayISO()) ? "Appt Set" : "New";
+  }
   function load(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
       leads = raw ? JSON.parse(raw) : [];
     }catch(e){
       leads = [];
+    }
+    // One-time fix: imported leads marked Appt Set for an appointment that already passed (or has no date) go back to New.
+    var fixed = false, done = false;
+    try { done = localStorage.getItem("socal_fix_appt_v1") === "1"; } catch(e){}
+    if(!done){
+      leads.forEach(function(l){
+        var touched = (l.log || []).some(function(e){ return !/^Captured at door$/.test(e.text); });
+        if(l.status === "Appt Set" && !touched && !(l.appt_date && l.appt_date >= todayISO())){
+          l.status = "New"; fixed = true;
+        }
+      });
+      if(fixed){ save(); }
+      try { localStorage.setItem("socal_fix_appt_v1", "1"); } catch(e){}
     }
   }
   function save(){
@@ -1704,7 +1721,7 @@
         });
       }
       if(l.sale_amount !== undefined){ l.sale_amount = parseMoney(l.sale_amount); }
-      if(!l.status){ l.status = (l.appt_date || l.appt_time) ? "Appt Set" : "New"; }
+      if(!l.status){ l.status = importedStatus(l); }
       l.homeowner_name = fullName(l.first_name, l.last_name);
       l.id = uid();
       leads.push(l); added++;
@@ -1753,7 +1770,7 @@
     if(which === "today"){ pending = pending.filter(function(l){ return isToday(l.created_at); }); }
     pending.forEach(function(l){
       var c = JSON.parse(JSON.stringify(l));
-      if(!c.status){ c.status = (c.appt_date || c.appt_time) ? "Appt Set" : "New"; }
+      if(!c.status){ c.status = importedStatus(c); }
       if(c.status === "New" && !c.next_followup && isToday(c.created_at)){ c.next_followup = addDaysISO(1); }
       if(!c.log){ c.log = [{ ts: c.created_at || Date.now(), text: "Captured at door" }]; }
       c.homeowner_name = c.homeowner_name || fullName(c.first_name, c.last_name);
