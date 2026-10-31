@@ -425,6 +425,7 @@
   .st-confirmed{background:#dff3e8;color:#0b6b3a;}
   .st-noreach{background:#fde7e4;color:#a8321f;}
   .st-reset{background:#e6eefc;color:#1d4f8a;}
+  .st-blow{background:#2b2b2b;color:#fff;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
   .st-dead{background:#fdecea;color:var(--danger);}
@@ -518,6 +519,12 @@
   label.sole{display:flex;align-items:center;gap:10px;margin:2px 0 10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:15px;font-weight:700;color:var(--text);text-transform:none;letter-spacing:normal;cursor:pointer;}
   label.sole input{width:20px;height:20px;accent-color:#0b6b3a;margin:0;}
   #dmBox[hidden]{display:none;}
+  .fu-dispatch .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .fu-dispatch .row3 button{padding:12px 4px;border-radius:10px;font-weight:700;font-size:13.5px;border:2px solid var(--border);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center;min-height:52px;}
+  .fu-dispatch .row3 button.ok{background:#fff;color:#0b6b3a;border-color:#bfe0cc;}
+  .fu-dispatch .row3 button.ok.on{background:#0b6b3a;color:#fff;border-color:#0b6b3a;}
+  .fu-dispatch .row3 button.blow.on{background:#2b2b2b;color:#fff;border-color:#2b2b2b;}
+  .fu-dispatch .row3 button.na-btn.on{border-color:#d93025;background:#fdecea;}
 </style>
 </head>
 <body>
@@ -808,6 +815,7 @@
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
       leads = raw ? JSON.parse(raw) : [];
+      leads.forEach(function(l){ if(l.status === "Dispatch Couldn" + "'t Reach"){ l.status = "Confirm NA"; } });
     }catch(e){
       leads = [];
     }
@@ -852,7 +860,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Dispatch Couldn't Reach","st-noreach"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Not Interested"];
   var currentTab = null;
@@ -873,7 +881,7 @@
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
-    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Dispatch Couldn't Reach"; }],
+    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Confirm NA"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["all","All", function(){ return true; }]
   ];
@@ -1195,7 +1203,7 @@
       if(hadAppt && oldAppt !== (l.appt_date || "") + "|" + (l.appt_time || "") && (l.appt_date || l.appt_time)){
         addLog(l, "Appointment moved to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" "));
       }
-      if(!hadAppt && (data.appt_date || data.appt_time) && isOpen(l) && ["Sent to Monday","Confirmed","Reset","Dispatch Couldn't Reach"].indexOf(statusOf(l)) === -1){
+      if(!hadAppt && (data.appt_date || data.appt_time) && isOpen(l) && ["Sent to Monday","Confirmed","Reset","Confirm NA"].indexOf(statusOf(l)) === -1){
         l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment set");
       }
     } else {
@@ -1215,12 +1223,16 @@
     }
     save();
     renderList();
-    if(editingId){
-      openDetail(editingId);
+    var wasEditing = editingId;
+    var savedId = editingId || (leads.length ? leads[leads.length - 1].id : null);
+    var savedLead = leads.find(function(x){ return x.id === savedId; });
+    resetForm();
+    if(savedLead && (wasEditing || savedLead.appt_date || savedLead.appt_time)){
+      openDetail(savedId);
+      setTimeout(function(){ var box = document.querySelector("#detailCard .fu-dispatch"); if(box){ box.scrollIntoView({ block: "center" }); } }, 60);
     } else {
       showView("view-list");
     }
-    resetForm();
   });
 
   var CSV_FIELDS = [
@@ -1441,18 +1453,17 @@
       (log ? '<div class="fu-log">' + log + '</div>' : '') +
     '</div>';
   }
+  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
     var st = statusOf(l);
-    if(st === "Appt Set"){
-      return '<div class="fu-dispatch"><div class="lbl">Dispatch</div><div class="row">' +
-        '<button type="button" class="full" data-fu="sent">Sent to Monday</button></div></div>';
-    }
-    if(st === "Sent to Monday" || st === "Dispatch Couldn't Reach" || st === "Reset"){
-      return '<div class="fu-dispatch"><div class="lbl">Dispatch' + (st === "Sent to Monday" ? ' \u2014 waiting on confirmation call' : st === "Reset" ? ' \u2014 confirm the new time' : ' \u2014 call the homeowner yourself') + '</div><div class="row">' +
-        '<button type="button" class="ok" data-fu="confirmed">\u2705 Confirmed</button>' +
-        '<button type="button" class="na-btn" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button></div></div>';
-    }
-    return "";
+    if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : "How did the confirmation go?";
+    function on(x){ return st === x ? " on" : ""; }
+    return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div><div class="row3">' +
+      '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
+      '<button type="button" class="blow' + on("Blow Out") + '" data-fu="blowout">\ud83d\udca5 Blow out</button>' +
+      '<button type="button" class="na-btn' + on("Confirm NA") + '" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button>' +
+      '</div></div>';
   }
   function currentLead(){ return leads.find(function(x){ return x.id === viewingId; }); }
   function refreshDetail(){ save(); var y = window.scrollY; openDetail(viewingId); window.scrollTo(0, y); }
@@ -1469,8 +1480,9 @@
     else if(a === "miss"){ l.status = "Pitch & Miss"; l.next_followup = addDaysISO(30); addLog(l, "Pitched \u2014 no sale"); }
     else if(a === "sold"){ l.status = "Sold"; l.next_followup = ""; addLog(l, "Sold"); refreshDetail(); setTimeout(function(){ var el = document.getElementById("fuAmount"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 60); return; }
     else if(a === "sent"){ l.status = "Sent to Monday"; l.next_followup = addDaysISO(1); addLog(l, "Sent to Monday"); }
+    else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
     else if(a === "confirmed"){ l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
-    else if(a === "noreach"){ l.status = "Dispatch Couldn't Reach"; l.next_followup = todayISO(); addLog(l, "Dispatch couldn't reach homeowner"); }
+    else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); addLog(l, "No answer on confirmation"); }
     else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
     refreshDetail();
   });
