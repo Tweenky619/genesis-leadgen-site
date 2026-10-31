@@ -552,6 +552,9 @@
   .fu-outcome .roll-save{background:var(--brand);color:#fff;border:none;}
   .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .photo-btns .photo-add{margin-top:10px;}
+  #projNotes .pn{margin-top:10px;}
+  #projNotes .pn label{display:block;font-size:12px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
+  #projNotes .pn textarea{width:100%;min-height:58px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:15px;color:var(--text);font-family:inherit;resize:vertical;}
 </style>
 </head>
 <body>
@@ -635,6 +638,7 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other</label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
+          <div id="projNotes"></div>
         </div>
 
         <div class="form-section-title">Photos of concern areas <span class="opt">(cracks, roof, trim, paint)</span></div>
@@ -677,8 +681,8 @@
           </div>
         </div>
         <div class="sched-hint" id="schedHint" style="margin:-8px 0 14px;"></div>
-        <div class="form-section-title">Notes</div>
-        <div class="field">
+        <div class="form-section-title" style="display:none">Notes</div>
+        <div class="field" style="display:none">
           <textarea id="f_notes" placeholder="Comments, notes, or concerns..."></textarea>
         </div>
 
@@ -1008,6 +1012,7 @@
     setOthers([]);
     document.getElementById("dmBox").hidden = false;
     document.getElementById("f_other_project").style.display = "none";
+    setProjNotes({});
     buildTimeOptions("");
     setTimeout(updateScript, 0);
     Array.prototype.forEach.call(document.querySelectorAll(".interest-toggle"), function(el){
@@ -1092,6 +1097,7 @@
     document.getElementById("f_address").value = l.address || "";
     document.getElementById("f_zip").value = l.zip || "";
     setCheckedInterests(l.interests);
+    setProjNotes(l.project_notes || {});
     document.getElementById("f_phone").value = l.phone || "";
     document.getElementById("f_alt_phone").value = l.alt_phone || "";
     document.getElementById("f_email").value = l.email || "";
@@ -1186,10 +1192,12 @@
       section("Appointment",
         item("Scheduled", apptBits, true)) +
 
-      '<div class="detail-note">' +
+      (l.project_notes && Object.keys(l.project_notes).length ? '<div class="form-section-title">Project details</div><div class="detail-grid">' +
+        Object.keys(l.project_notes).map(function(k){ return item(k === "Other" ? ((l.interests || []).filter(function(i){ return /^Other:/.test(i); })[0] || "Other") : k, l.project_notes[k], true); }).join("") + '</div>' : '') +
+      (l.notes ? '<div class="detail-note">' +
         '<div class="label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-muted);margin-bottom:4px;">Notes</div>' +
-        '<div class="value">' + (l.notes ? esc(l.notes) : '<span style="color:var(--text-muted)">No notes</span>') + '</div>' +
-      '</div>' +
+        '<div class="value">' + esc(l.notes) + '</div>' +
+      '</div>' : '') +
       '<div class="chip" style="margin-top:14px;">Captured ' + fmtDate(l.created_at) + '</div>';
 
     document.getElementById("detailCard").innerHTML = html;
@@ -1208,6 +1216,7 @@
       spouse: document.getElementById("f_spouse").value.trim(),
       sole_owner: document.getElementById("f_sole_owner").checked,
       dm_relation: document.getElementById("f_dm_rel").value,
+      project_notes: getProjNotes(),
       others: getOthers().filter(function(o){ return o.name; }),
       address: document.getElementById("f_address").value.trim(),
       zip: document.getElementById("f_zip").value.trim(),
@@ -1291,6 +1300,7 @@
     ["alt_phone", "Alt Number"],
     ["email", "Email"],
     ["interests", "Interested In"],
+    ["project_notes", "Project Details"],
     ["years_owned", "Years Owned"],
     ["window_count", "# Windows"],
     ["sliding_doors", "# Sliding Doors"],
@@ -1334,6 +1344,7 @@
         var val;
         if(key === "created_at"){ val = fmtDate(l.created_at); }
         else if(key === "interests"){ val = (l.interests || []).join("; "); }
+        else if(key === "project_notes"){ val = Object.keys(l.project_notes || {}).map(function(k){ return k + ": " + l.project_notes[k]; }).join(" | "); }
         else if(key === "status"){ val = statusOf(l); }
         else if(key === "sole_owner"){ val = l.sole_owner ? "Yes" : ""; }
         else if(key === "others"){ val = (l.others || []).map(function(o){ return o.rel + ": " + o.name; }).join("; "); }
@@ -1859,6 +1870,8 @@
       l.created_at = isNaN(ts) ? Date.now() : ts;
       l.interests = l.interests ? l.interests.split(/;\s*/).filter(Boolean) : [];
       l.sole_owner = /^y/i.test(l.sole_owner || "");
+      var pnStr = l.project_notes || ""; l.project_notes = {};
+      String(pnStr).split(" | ").forEach(function(x){ var m = /^([^:]+):\s*([\s\S]*)$/.exec(x); if(m && m[2]){ l.project_notes[m[1]] = m[2]; } });
       l.others = l.others ? String(l.others).split(/;\s*/).filter(Boolean).map(function(x){ var m = x.match(/^([^:]+):\s*(.*)$/); return m ? { rel: m[1], name: m[2] } : { rel: "Other", name: x }; }) : [];
       var logStr = l.log || ""; l.log = [];
       if(logStr){
@@ -1986,6 +1999,36 @@
     hint.textContent = name + " hours: " + hourLabel(win[0]).replace(":00","") + " \u2013 " + hourLabel(win[1]).replace(":00","");
   }
   document.getElementById("detailCard").addEventListener("change", function(e){ if(e.target.id === "rollDate"){ fillRollTimes(""); } if(e.target.id === "rrDate"){ fillRollTimes("", "rr"); } });
+
+  // ---- Per-project details ----
+  var PROJ_HINTS = {
+    "Roof": "Age, leaks, layers, solar, where\u2026",
+    "Fascia/Trim Boards": "Rot, damage, which sides\u2026",
+    "Paint/Stucco": "Last painted, colors, cracks\u2026",
+    "Windows": "How many, type, issues\u2026",
+    "Other": "Details\u2026"
+  };
+  var projDraft = {};
+  function renderProjNotes(){
+    var box = document.getElementById("projNotes");
+    Array.prototype.forEach.call(box.querySelectorAll("textarea"), function(t){ projDraft[t.getAttribute("data-proj")] = t.value; });
+    var picked = getCheckedInterests();
+    box.innerHTML = picked.map(function(name){
+      var label = name === "Other" ? ("Other" + (document.getElementById("f_other_project").value.trim() ? " \u2014 " + document.getElementById("f_other_project").value.trim() : "")) : name;
+      return '<div class="pn"><label>' + esc(label) + ' details</label><textarea data-proj="' + esc(name) + '" placeholder="' + esc(PROJ_HINTS[name] || "Details\u2026") + '">' + esc(projDraft[name] || "") + '</textarea></div>';
+    }).join("");
+  }
+  function getProjNotes(){
+    var out = {};
+    Array.prototype.forEach.call(document.querySelectorAll("#projNotes textarea"), function(t){ var v = t.value.trim(); if(v){ out[t.getAttribute("data-proj")] = v; } });
+    return out;
+  }
+  function setProjNotes(obj){ projDraft = {}; Object.keys(obj || {}).forEach(function(k){ projDraft[k] = obj[k]; }); document.getElementById("projNotes").innerHTML = ""; renderProjNotes(); }
+  document.getElementById("interestGroup").addEventListener("change", function(){ renderProjNotes(); });
+  document.getElementById("f_other_project").addEventListener("input", function(){
+    var t = document.querySelector('#projNotes textarea[data-proj="Other"]');
+    if(t){ t.parentNode.querySelector("label").textContent = "Other" + (this.value.trim() ? " \u2014 " + this.value.trim() : "") + " details"; }
+  });
 
   load();
   renderList();
