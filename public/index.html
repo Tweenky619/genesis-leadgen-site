@@ -426,6 +426,7 @@
   .st-noreach{background:#fde7e4;color:#a8321f;}
   .st-reset{background:#e6eefc;color:#1d4f8a;}
   .st-blow{background:#2b2b2b;color:#fff;}
+  .st-rolled{background:#fff1d6;color:#8a5a00;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
   .st-dead{background:#fdecea;color:var(--danger);}
@@ -525,6 +526,16 @@
   .fu-dispatch .row3 button.ok.on{background:#0b6b3a;color:#fff;border-color:#0b6b3a;}
   .fu-dispatch .row3 button.blow.on{background:#2b2b2b;color:#fff;border-color:#2b2b2b;}
   .fu-dispatch .row3 button.na-btn.on{border-color:#d93025;background:#fdecea;}
+  .fu-dispatch .roll-btn{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #f0d49a;background:#fffaf0;color:#8a5a00;font-weight:800;font-size:14px;}
+  .fu-dispatch .roll-btn.on{background:#fff1d6;border-color:#e0b75a;}
+  .roll-form{margin-top:8px;padding:10px;border-radius:10px;background:#fff;border:1px solid var(--border);}
+  .roll-form[hidden]{display:none;}
+  .roll-row{display:flex;gap:8px;}
+  .roll-row + .roll-row{margin-top:10px;}
+  .roll-row input,.roll-row select{flex:1;min-width:0;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--text);font-family:inherit;}
+  .roll-row button{flex:1;padding:11px;border:none;border-radius:10px;font-weight:800;font-size:14px;}
+  .fu-dispatch .roll-cancel{background:#e9ebee;color:var(--text);border:none;}
+  .fu-dispatch .roll-save{background:var(--brand);color:#fff;border:none;}
 </style>
 </head>
 <body>
@@ -860,7 +871,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Not Interested"];
   var currentTab = null;
@@ -881,7 +892,7 @@
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
-    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Confirm NA"; }],
+    ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Confirm NA"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["all","All", function(){ return true; }]
   ];
@@ -1453,17 +1464,24 @@
       (log ? '<div class="fu-log">' + log + '</div>' : '') +
     '</div>';
   }
-  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Confirm NA","Confirmed","Blow Out"];
+  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
-    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : "How did the confirmation go?";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
     return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div><div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
       '<button type="button" class="blow' + on("Blow Out") + '" data-fu="blowout">\ud83d\udca5 Blow out</button>' +
       '<button type="button" class="na-btn' + on("Confirm NA") + '" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button>' +
-      '</div></div>';
+      '</div>' +
+      '<button type="button" class="roll-btn' + on("Rolled") + '" data-fu="roll">\ud83d\udcc5 Rolled to another day</button>' +
+      '<div class="roll-form" id="rollForm" hidden>' +
+        '<div class="roll-row"><input type="date" id="rollDate"><select id="rollTime"><option value="">Pick a date first</option></select></div>' +
+        '<div class="sched-hint" id="rollHint"></div>' +
+        '<div class="roll-row"><button type="button" class="roll-cancel" data-fu="rollcancel">Cancel</button><button type="button" class="roll-save" data-fu="rollsave">Save new day</button></div>' +
+      '</div>' +
+      '</div>';
   }
   function currentLead(){ return leads.find(function(x){ return x.id === viewingId; }); }
   function refreshDetail(){ save(); var y = window.scrollY; openDetail(viewingId); window.scrollTo(0, y); }
@@ -1480,6 +1498,19 @@
     else if(a === "miss"){ l.status = "Pitch & Miss"; l.next_followup = addDaysISO(30); addLog(l, "Pitched \u2014 no sale"); }
     else if(a === "sold"){ l.status = "Sold"; l.next_followup = ""; addLog(l, "Sold"); refreshDetail(); setTimeout(function(){ var el = document.getElementById("fuAmount"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 60); return; }
     else if(a === "sent"){ l.status = "Sent to Monday"; l.next_followup = addDaysISO(1); addLog(l, "Sent to Monday"); }
+    else if(a === "roll"){
+      var f = document.getElementById("rollForm"); f.hidden = false;
+      var d = document.getElementById("rollDate"); d.value = ""; fillRollTimes(""); d.focus();
+      return;
+    }
+    else if(a === "rollcancel"){ document.getElementById("rollForm").hidden = true; return; }
+    else if(a === "rollsave"){
+      var nd = document.getElementById("rollDate").value, nt = document.getElementById("rollTime").value;
+      if(!nd || !nt){ document.getElementById("rollHint").textContent = "Pick the new date and time."; document.getElementById("rollHint").className = "sched-hint warn"; return; }
+      var pp = nd.split("-"); l.appt_day = DAYS[new Date(+pp[0], +pp[1]-1, +pp[2]).getDay()];
+      l.appt_date = nd; l.appt_time = nt; l.status = "Rolled"; l.next_followup = "";
+      addLog(l, "Rolled to " + fmtIsoDate(nd) + " " + nt);
+    }
     else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
     else if(a === "confirmed"){ l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
     else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); addLog(l, "No answer on confirmation"); }
@@ -1871,6 +1902,19 @@
     document.getElementById("dmBox").hidden = e.target.checked;
     updateScript();
   });
+
+  // ---- Roll to another day ----
+  function fillRollTimes(keep){
+    var d = document.getElementById("rollDate").value, sel = document.getElementById("rollTime"), hint = document.getElementById("rollHint");
+    hint.className = "sched-hint"; hint.textContent = "";
+    if(!d){ sel.innerHTML = '<option value="">Pick a date first</option>'; return; }
+    var p = d.split("-"); var name = DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()]; var win = SCHEDULE[name];
+    if(!win){ sel.innerHTML = '<option value="">No appointments</option>'; hint.textContent = name + " \u2014 no appointments that day"; hint.className = "sched-hint warn"; return; }
+    var opts = []; for(var h = win[0]; h <= win[1]; h++){ opts.push(hourLabel(h)); }
+    sel.innerHTML = '<option value="">Select time</option>' + opts.map(function(t){ return '<option' + (t === keep ? ' selected' : '') + '>' + t + '</option>'; }).join("");
+    hint.textContent = name + " hours: " + hourLabel(win[0]).replace(":00","") + " \u2013 " + hourLabel(win[1]).replace(":00","");
+  }
+  document.getElementById("detailCard").addEventListener("change", function(e){ if(e.target.id === "rollDate"){ fillRollTimes(""); } });
 
   load();
   renderList();
