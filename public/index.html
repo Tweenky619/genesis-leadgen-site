@@ -550,6 +550,8 @@
   .fu-outcome .fu-sale{margin:8px 0 0;}
   .fu-outcome .roll-cancel{background:#e9ebee;color:var(--text);border:none;}
   .fu-outcome .roll-save{background:var(--brand);color:#fff;border:none;}
+  .photo-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .photo-btns .photo-add{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -634,6 +636,21 @@
           </div>
         </div>
 
+        <div class="form-section-title">Photos of concern areas <span class="opt">(cracks, roof, trim, paint)</span></div>
+        <div class="field">
+          <div class="photo-grid" id="formPhotos"></div>
+          <div class="photo-btns">
+            <label class="photo-add">
+              <input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden>
+              <span>&#128247; Take Photo</span>
+            </label>
+            <label class="photo-add">
+              <input type="file" id="photoLibInput" accept="image/*" multiple hidden>
+              <span>&#128444;&#65039; From Library</span>
+            </label>
+          </div>
+        </div>
+
         <div class="form-section-title">Appointment <span class="opt">(if booked)</span></div>
         <div style="display:none">
           <select id="f_appt_day">
@@ -677,14 +694,6 @@
         <div>
         </div>
 
-        <div class="form-section-title" style="display:none">Photos</div>
-        <div class="field" style="display:none">
-          <div class="photo-grid" id="formPhotos"></div>
-          <label class="photo-add">
-            <input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden>
-            <span>&#128247; Take / Add Photo</span>
-          </label>
-        </div>
 
         <details class="more" id="moreDetails" style="display:none">
           <summary>More details <span class="opt">(optional)</span></summary>
@@ -1135,7 +1144,7 @@
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
-      '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos</div><div class="photo-grid" id="detailPhotos"></div></div>' +
+      '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
         (l.sole_owner ? item("Decision maker", "Sole owner") : item(l.dm_relation || "Spouse", l.spouse)) +
@@ -1648,7 +1657,7 @@
       if(wrapId){ document.getElementById(wrapId).style.display = list.length ? "" : "none"; }
     });
   }
-  document.getElementById("photoInput").addEventListener("change", function(e){
+  function onPhotoPick(e){
     var files = Array.prototype.slice.call(e.target.files || []);
     e.target.value = "";
     var leadId = editingId || draftId;
@@ -1666,7 +1675,9 @@
       busy.remove();
       renderPhotos(leadId, "formPhotos");
     });
-  });
+  }
+  document.getElementById("photoInput").addEventListener("change", onPhotoPick);
+  document.getElementById("photoLibInput").addEventListener("change", onPhotoPick);
   var viewing = null;
   function openViewer(photoId, src, gridId){
     viewing = { id: photoId, grid: gridId };
