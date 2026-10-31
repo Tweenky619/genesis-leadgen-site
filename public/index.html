@@ -634,6 +634,7 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">Windows</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other</label>
           </div>
+          <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
         </div>
 
         <div class="form-section-title">Photos of concern areas <span class="opt">(cracks, roof, trim, paint)</span></div>
@@ -1006,6 +1007,7 @@
     document.getElementById("leadForm").reset();
     setOthers([]);
     document.getElementById("dmBox").hidden = false;
+    document.getElementById("f_other_project").style.display = "none";
     buildTimeOptions("");
     setTimeout(updateScript, 0);
     Array.prototype.forEach.call(document.querySelectorAll(".interest-toggle"), function(el){
@@ -1028,12 +1030,18 @@
 
   function setCheckedInterests(interests){
     interests = interests || [];
+    var other = "";
+    interests.forEach(function(i){ var m = /^Other:\s*(.*)$/.exec(i); if(m){ other = m[1]; } });
     Array.prototype.forEach.call(document.querySelectorAll(".f_interest"), function(el){
-      var on = interests.indexOf(el.value) !== -1;
+      var on = interests.indexOf(el.value) !== -1 || (el.value === "Other" && !!other);
       el.checked = on;
       el.closest(".interest-toggle").classList.toggle("active", on);
     });
+    var box = document.getElementById("f_other_project");
+    box.value = other;
+    box.style.display = document.querySelector('.f_interest[value="Other"]').checked ? "" : "none";
   }
+
 
   function getYesNo(field){
     var group = document.querySelector('.yesno-group[data-field="' + field + '"]');
@@ -1203,7 +1211,7 @@
       others: getOthers().filter(function(o){ return o.name; }),
       address: document.getElementById("f_address").value.trim(),
       zip: document.getElementById("f_zip").value.trim(),
-      interests: getCheckedInterests().concat(editingId ? ((leads.find(function(x){ return x.id === editingId; }) || {}).interests || []).filter(function(i){ return !document.querySelector('.f_interest[value="' + i.replace(/"/g, '') + '"]'); }) : []),
+      interests: getCheckedInterests().map(function(i){ var t = document.getElementById("f_other_project").value.trim(); return (i === "Other" && t) ? "Other: " + t : i; }).concat(editingId ? ((leads.find(function(x){ return x.id === editingId; }) || {}).interests || []).filter(function(i){ return !/^Other:/.test(i) && !document.querySelector('.f_interest[value="' + i.replace(/"/g, '') + '"]'); }) : []),
       phone: document.getElementById("f_phone").value.trim(),
       alt_phone: document.getElementById("f_alt_phone").value.trim(),
       email: document.getElementById("f_email").value.trim(),
@@ -1440,6 +1448,11 @@
   document.getElementById("interestGroup").addEventListener("change", function(e){
     if(e.target.classList.contains("f_interest")){
       e.target.closest(".interest-toggle").classList.toggle("active", e.target.checked);
+      if(e.target.value === "Other"){
+        var box = document.getElementById("f_other_project");
+        box.style.display = e.target.checked ? "" : "none";
+        if(e.target.checked){ box.focus(); } else { box.value = ""; }
+      }
     }
   });
   document.getElementById("leadForm").addEventListener("click", function(e){
