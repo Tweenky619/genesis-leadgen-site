@@ -509,6 +509,15 @@
   .restore button{flex:1;min-width:120px;padding:11px 8px;border-radius:10px;border:none;font-weight:700;font-size:14px;background:var(--brand);color:#fff;}
   .restore button.alt{background:#e9ebee;color:var(--text);}
   .restore button.x{flex:none;min-width:0;background:transparent;color:var(--text-muted);}
+  .dm-row{display:flex;gap:8px;margin-bottom:8px;}
+  .dm-row select{flex:0 0 38%;min-width:0;padding:12px 10px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:16px;color:var(--text);font-family:inherit;}
+  .dm-row input{flex:1;min-width:0;}
+  .dm-row .dm-x{flex:none;width:40px;border:none;border-radius:10px;background:#fdecea;color:var(--danger);font-size:18px;font-weight:700;}
+  .dm-add{width:100%;padding:11px;border:2px dashed var(--border);border-radius:10px;background:transparent;color:var(--brand);font-weight:700;font-size:14px;}
+  .dm-add[hidden]{display:none;}
+  label.sole{display:flex;align-items:center;gap:10px;margin:2px 0 10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:15px;font-weight:700;color:var(--text);text-transform:none;letter-spacing:normal;cursor:pointer;}
+  label.sole input{width:20px;height:20px;accent-color:#0b6b3a;margin:0;}
+  #dmBox[hidden]{display:none;}
 </style>
 </head>
 <body>
@@ -555,8 +564,13 @@
           </div>
         </div>
         <div class="field">
-          <label>Spouse</label>
-          <input type="text" id="f_spouse">
+          <label>Decision makers <span class="opt">(who helps decide on money)</span></label>
+          <label class="sole"><input type="checkbox" id="f_sole_owner"> Sole owner &mdash; decides alone</label>
+          <div id="dmBox">
+          <div class="dm-row"><select id="f_dm_rel" class="dm-rel"><option>Spouse</option><option>Partner</option><option>Parent</option><option>Son</option><option>Daughter</option><option>Sibling</option><option>Co-owner</option><option>Relative</option><option>Other</option></select><input type="text" id="f_spouse" placeholder="Name"></div>
+          <div id="dmExtra"></div>
+          <button type="button" class="dm-add" id="dmAdd">+ Add another decision maker</button>
+          </div>
         </div>
         <div class="field">
           <label>Address</label>
@@ -617,7 +631,7 @@
           <summary>Close script <span class="opt">(say it before you leave)</span></summary>
           <label class="step"><input type="checkbox"><div><span class="tag">1 &middot; Separate the spouse</span>
             <p class="why">Make sure ALL homeowners are present for the inspection.</p>
-            <p>&ldquo;Now <b class="s-when">tomorrow at ___</b> is a good time for you &ndash; you won&rsquo;t be on work calls or going to the gym? &mdash; and your spouse <b class="s-spouse">___</b>, she won&rsquo;t be picking up the kids or working from home?&rdquo;</p></div></label>
+            <p>&ldquo;Now <b class="s-when">tomorrow at ___</b> is a good time for you &ndash; you won&rsquo;t be on work calls or going to the gym?<span class="s-dm-clause"> &mdash; and your <b class="s-spouse">spouse ___</b>, they won&rsquo;t be picking up the kids or working from home?</span>&rdquo;</p></div></label>
           <label class="step"><input type="checkbox"><div><span class="tag">2 &middot; Set the stage</span>
             <p>&ldquo;Now <b class="s-when">tomorrow at ___</b>, my guy will come out and do a full inspection for you. Take measurements and pictures. Then he will sit down with you, show you a copy of our credentials &ndash; license, bond, insurance &ndash; show you some styles and options to choose from, and leave you an exact price in writing for if and when you&rsquo;re ready. &mdash; <b>FAIR ENOUGH?</b>&rdquo;</p></div></label>
           <label class="step"><input type="checkbox"><div><span class="tag">3 &middot; Confirmation</span>
@@ -948,6 +962,8 @@
   function resetForm(){
     editingId = null;
     document.getElementById("leadForm").reset();
+    setOthers([]);
+    document.getElementById("dmBox").hidden = false;
     buildTimeOptions("");
     setTimeout(updateScript, 0);
     Array.prototype.forEach.call(document.querySelectorAll(".interest-toggle"), function(el){
@@ -1019,6 +1035,10 @@
     document.getElementById("f_first_name").value = l.first_name || "";
     document.getElementById("f_last_name").value = l.last_name || "";
     document.getElementById("f_spouse").value = l.spouse || "";
+    document.getElementById("f_dm_rel").value = l.dm_relation || "Spouse";
+    document.getElementById("f_sole_owner").checked = !!l.sole_owner;
+    document.getElementById("dmBox").hidden = !!l.sole_owner;
+    setOthers(l.others || []);
     document.getElementById("f_address").value = l.address || "";
     document.getElementById("f_zip").value = l.zip || "";
     setCheckedInterests(l.interests);
@@ -1085,7 +1105,8 @@
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
-        item("Spouse", l.spouse) +
+        (l.sole_owner ? item("Decision maker", "Sole owner") : item(l.dm_relation || "Spouse", l.spouse)) +
+        (l.sole_owner ? "" : (l.others || []).map(function(o){ return item(o.rel, o.name); }).join("")) +
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
         item("Email", l.email, true)) +
@@ -1135,6 +1156,9 @@
       last_name: lastName,
       homeowner_name: fullName(firstName, lastName),
       spouse: document.getElementById("f_spouse").value.trim(),
+      sole_owner: document.getElementById("f_sole_owner").checked,
+      dm_relation: document.getElementById("f_dm_rel").value,
+      others: getOthers().filter(function(o){ return o.name; }),
       address: document.getElementById("f_address").value.trim(),
       zip: document.getElementById("f_zip").value.trim(),
       interests: getCheckedInterests().concat(editingId ? ((leads.find(function(x){ return x.id === editingId; }) || {}).interests || []).filter(function(i){ return !document.querySelector('.f_interest[value="' + i.replace(/"/g, '') + '"]'); }) : []),
@@ -1204,6 +1228,9 @@
     ["first_name", "First Name"],
     ["last_name", "Last Name"],
     ["spouse", "Spouse"],
+    ["sole_owner", "Sole Owner"],
+    ["dm_relation", "Decision Maker Relation"],
+    ["others", "Other Decision Makers"],
     ["address", "Address"],
     ["zip", "Zip"],
     ["phone", "Contact Number"],
@@ -1254,6 +1281,8 @@
         if(key === "created_at"){ val = fmtDate(l.created_at); }
         else if(key === "interests"){ val = (l.interests || []).join("; "); }
         else if(key === "status"){ val = statusOf(l); }
+        else if(key === "sole_owner"){ val = l.sole_owner ? "Yes" : ""; }
+        else if(key === "others"){ val = (l.others || []).map(function(o){ return o.rel + ": " + o.name; }).join("; "); }
         else if(key === "log"){ val = (l.log || []).map(function(e){ return fmtDate(e.ts) + ": " + e.text; }).join(" | "); }
         else { val = l[key]; }
         return csvEscape(val);
@@ -1666,7 +1695,12 @@
     var dayTxt = (when === "tomorrow" || !when) ? "tomorrow\u2019s" : (when === "today" ? "today\u2019s" : when + "\u2019s");
     Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-when"), function(el){ el.textContent = whenTxt; });
     Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-day"), function(el){ el.textContent = dayTxt; });
-    Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-spouse"), function(el){ el.textContent = spouse || "___"; });
+    var rel = (document.getElementById("f_dm_rel").value || "Spouse").toLowerCase();
+    var who = [rel + " " + (spouse || "___")].concat(getOthers().filter(function(o){ return o.name; }).map(function(o){ return o.rel.toLowerCase() + " " + o.name; }));
+    var whoTxt = who.length > 1 ? who.slice(0, -1).join(", ") + " and " + who[who.length - 1] : who[0];
+    Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-spouse"), function(el){ el.textContent = whoTxt; });
+    var sole = document.getElementById("f_sole_owner").checked;
+    Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-dm-clause"), function(el){ el.style.display = sole ? "none" : ""; });
   }
   ["f_appt_date","f_appt_day","f_appt_time","f_spouse"].forEach(function(id){
     document.getElementById(id).addEventListener("change", function(){ setTimeout(updateScript, 0); });
@@ -1711,6 +1745,8 @@
       var ts = Date.parse(l.created_at || "");
       l.created_at = isNaN(ts) ? Date.now() : ts;
       l.interests = l.interests ? l.interests.split(/;\s*/).filter(Boolean) : [];
+      l.sole_owner = /^y/i.test(l.sole_owner || "");
+      l.others = l.others ? String(l.others).split(/;\s*/).filter(Boolean).map(function(x){ var m = x.match(/^([^:]+):\s*(.*)$/); return m ? { rel: m[1], name: m[2] } : { rel: "Other", name: x }; }) : [];
       var logStr = l.log || ""; l.log = [];
       if(logStr){
         logStr.split(" | ").forEach(function(part){
@@ -1785,6 +1821,43 @@
     var w = b.getAttribute("data-restore");
     if(w === "hide"){ try { localStorage.setItem(RESTORE_HIDE_KEY, "1"); } catch(err){} renderRestore(); return; }
     restore(w);
+  });
+
+  // ---- Decision makers ----
+  var DM_RELS = ["Spouse","Partner","Parent","Son","Daughter","Sibling","Co-owner","Relative","Other"];
+  function dmRowHtml(o){
+    return '<div class="dm-row dm-extra"><select class="dm-rel">' + DM_RELS.map(function(r){ return '<option' + (o && o.rel === r ? ' selected' : '') + '>' + r + '</option>'; }).join("") + '</select>' +
+      '<input type="text" class="dm-name" placeholder="Name" value="' + esc(o && o.name || "") + '">' +
+      '<button type="button" class="dm-x" aria-label="Remove">&times;</button></div>';
+  }
+  function getOthers(){
+    return Array.prototype.map.call(document.querySelectorAll("#dmExtra .dm-extra"), function(r){
+      return { rel: r.querySelector(".dm-rel").value, name: r.querySelector(".dm-name").value.trim() };
+    });
+  }
+  function setOthers(list){
+    document.getElementById("dmExtra").innerHTML = (list || []).slice(0, 2).map(dmRowHtml).join("");
+    document.getElementById("dmAdd").hidden = (list || []).length >= 2;
+  }
+  document.getElementById("dmAdd").addEventListener("click", function(){
+    var box = document.getElementById("dmExtra");
+    if(box.querySelectorAll(".dm-extra").length >= 2) return;
+    box.insertAdjacentHTML("beforeend", dmRowHtml({ rel: "Parent", name: "" }));
+    document.getElementById("dmAdd").hidden = box.querySelectorAll(".dm-extra").length >= 2;
+    var inputs = box.querySelectorAll(".dm-name"); inputs[inputs.length - 1].focus();
+  });
+  document.getElementById("dmExtra").addEventListener("click", function(e){
+    var x = e.target.closest(".dm-x"); if(!x) return;
+    x.closest(".dm-extra").remove();
+    document.getElementById("dmAdd").hidden = false;
+    updateScript();
+  });
+  document.getElementById("dmExtra").addEventListener("input", function(){ updateScript(); });
+  document.getElementById("dmExtra").addEventListener("change", function(){ updateScript(); });
+  document.getElementById("f_dm_rel").addEventListener("change", function(){ updateScript(); });
+  document.getElementById("f_sole_owner").addEventListener("change", function(e){
+    document.getElementById("dmBox").hidden = e.target.checked;
+    updateScript();
   });
 
   load();
