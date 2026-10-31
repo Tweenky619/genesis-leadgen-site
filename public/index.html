@@ -566,50 +566,53 @@
           <label>Zip Code</label>
           <input type="text" id="f_zip" inputmode="numeric">
         </div>
-        <div class="field">
-          <label>Phone</label>
-          <input type="tel" id="f_phone" inputmode="tel">
+        <div class="row2">
+          <div class="field">
+            <label>Cell Phone</label>
+            <input type="tel" id="f_phone" inputmode="tel">
+          </div>
+          <div class="field">
+            <label>Alternative Number</label>
+            <input type="tel" id="f_alt_phone" inputmode="tel">
+          </div>
         </div>
 
-        <div class="form-section-title">Products</div>
+        <div class="form-section-title">Project</div>
         <div class="field">
           <div class="interest-group" id="interestGroup">
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Roof">Roof</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Fascia/Trim Boards">Fascia/Trim Boards</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Paint/Stucco">Paint/Stucco</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">Windows</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Roofing">Roofing</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Painting">Painting</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Patio Covers">Patio Covers</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="HVAC">HVAC</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Stucco/Wood">Stucco/Wood</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Hardscape/Landscape/Pavers/Turf">Hardscape/Landscape/Pavers/Turf</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other</label>
           </div>
         </div>
 
         <div class="form-section-title">Appointment <span class="opt">(if booked)</span></div>
+        <div style="display:none">
+          <select id="f_appt_day">
+            <option value="">Select day</option>
+            <option>Monday</option>
+            <option>Tuesday</option>
+            <option>Wednesday</option>
+            <option>Thursday</option>
+            <option>Friday</option>
+            <option>Saturday</option>
+          </select>
+        </div>
         <div class="row2">
-          <div class="field">
-            <label>Day</label>
-            <select id="f_appt_day">
-              <option value="">Select day</option>
-              <option>Monday</option>
-              <option>Tuesday</option>
-              <option>Wednesday</option>
-              <option>Thursday</option>
-              <option>Friday</option>
-              <option>Saturday</option>
-            </select>
-          </div>
           <div class="field">
             <label>Date</label>
             <input type="date" id="f_appt_date">
           </div>
+          <div class="field">
+            <label>Time</label>
+            <select id="f_appt_time">
+              <option value="">Pick a date first</option>
+            </select>
+          </div>
         </div>
-        <div class="field">
-          <label>Time</label>
-          <select id="f_appt_time">
-            <option value="">Pick a day first</option>
-          </select>
-          <div class="sched-hint" id="schedHint"></div>
-        </div>
+        <div class="sched-hint" id="schedHint" style="margin:-8px 0 14px;"></div>
         <details class="script" id="closeScript" open>
           <summary>Close script <span class="opt">(say it before you leave)</span></summary>
           <label class="step"><input type="checkbox"><div><span class="tag">1 &middot; Separate the spouse</span>
@@ -623,8 +626,8 @@
         <div>
         </div>
 
-        <div class="form-section-title">Photos</div>
-        <div class="field">
+        <div class="form-section-title" style="display:none">Photos</div>
+        <div class="field" style="display:none">
           <div class="photo-grid" id="formPhotos"></div>
           <label class="photo-add">
             <input type="file" id="photoInput" accept="image/*" capture="environment" multiple hidden>
@@ -637,13 +640,9 @@
           <textarea id="f_notes" placeholder="Comments, notes, or concerns..."></textarea>
         </div>
 
-        <details class="more" id="moreDetails">
+        <details class="more" id="moreDetails" style="display:none">
           <summary>More details <span class="opt">(optional)</span></summary>
           <div class="row2">
-            <div class="field">
-              <label>Alt Number</label>
-              <input type="tel" id="f_alt_phone">
-            </div>
             <div class="field">
               <label>Email</label>
               <input type="email" id="f_email">
@@ -1138,7 +1137,7 @@
       spouse: document.getElementById("f_spouse").value.trim(),
       address: document.getElementById("f_address").value.trim(),
       zip: document.getElementById("f_zip").value.trim(),
-      interests: getCheckedInterests(),
+      interests: getCheckedInterests().concat(editingId ? ((leads.find(function(x){ return x.id === editingId; }) || {}).interests || []).filter(function(i){ return !document.querySelector('.f_interest[value="' + i.replace(/"/g, '') + '"]'); }) : []),
       phone: document.getElementById("f_phone").value.trim(),
       alt_phone: document.getElementById("f_alt_phone").value.trim(),
       email: document.getElementById("f_email").value.trim(),
@@ -1626,7 +1625,7 @@
     var win = SCHEDULE[day];
     var opts = [];
     if(win){ for(var h = win[0]; h <= win[1]; h++){ opts.push(hourLabel(h)); } }
-    var html = '<option value="">' + (win ? "Select time" : "Pick a day first") + '</option>' +
+    var html = '<option value="">' + (win ? "Select time" : "Pick a date first") + '</option>' +
       opts.map(function(t){ return '<option' + (t === cur ? ' selected' : '') + '>' + t + '</option>'; }).join("");
     if(cur && opts.indexOf(cur) === -1){ html += '<option selected>' + esc(cur) + '</option>'; }
     sel.innerHTML = html;
