@@ -583,6 +583,8 @@
   .lm-pop b{display:block;font-size:14px;}
   .lm-pop span{display:block;color:#555;font-size:12px;margin:2px 0 6px;}
   .lm-pop button{border:none;border-radius:8px;padding:7px 10px;font-weight:700;background:#152535;color:#fff;font-size:12px;}
+  .lm-pop button.mv{background:#e9ebee;color:#152535;}
+  .lm-move{flex-basis:100%;background:#fff1d6;color:#8a5a00;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 </style>
 </head>
 <body>
@@ -2199,7 +2201,7 @@
   }
 
   // ---- Map of leads ----
-  var lmMap = null, lmLayer = null, leafletLoading = null, geocoding = false;
+  var lmMap = null, lmLayer = null, leafletLoading = null, geocoding = false, movingId = null;
   function loadLeaflet(){
     if(window.L) return Promise.resolve();
     if(leafletLoading) return leafletLoading;
@@ -2222,7 +2224,9 @@
     var missing = leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; }).length;
     document.getElementById("lmBar").innerHTML = '<span>' + have + ' of ' + leads.length + ' leads on the map</span>' +
       (missing ? '<button type="button" id="lmGeo">' + (geocoding ? 'Locating\u2026' : 'Find ' + missing + ' address' + (missing === 1 ? '' : 'es')) + '</button>' : '') +
-      '<button type="button" class="alt" id="lmMe">\ud83d\udccd Me</button>';
+      '<button type="button" class="alt" id="lmMe">\ud83d\udccd Me</button>' +
+      (!geocoding && leads.some(function(l){ return l.geo_src === "address" || l.geo_fail; }) ? '<button type="button" class="alt" id="lmRecheck">\u21bb Re-check address pins</button>' : '') +
+      (movingId ? '<div class="lm-move">Tap the map where this house is. <button type="button" class="alt" id="lmMoveCancel">Cancel</button></div>' : '');
   }
   function drawPins(fit){
     if(!lmMap) return;
@@ -2233,7 +2237,7 @@
       if(!(l.lat && l.lng)) return;
       pts.push([l.lat, l.lng]);
       L.circleMarker([l.lat, l.lng], { radius: 9, color: "#fff", weight: 2, fillColor: pinColor(l), fillOpacity: 1 })
-        .bindPopup('<div class="lm-pop"><b>' + esc(l.homeowner_name || fullName(l.first_name, l.last_name) || "Lead") + '</b><span>' + esc(l.address || "") + ' \u00b7 ' + esc(statusOf(l)) + '</span><button type="button" data-open-lead="' + esc(l.id) + '">Open lead</button></div>')
+        .bindPopup('<div class="lm-pop"><b>' + esc(l.homeowner_name || fullName(l.first_name, l.last_name) || "Lead") + '</b><span>' + esc(l.address || "") + ' \u00b7 ' + esc(statusOf(l)) + '</span><button type="button" data-open-lead="' + esc(l.id) + '">Open lead</button> <button type="button" class="mv" data-move-lead="' + esc(l.id) + '">\u2725 Move pin</button></div>')
         .addTo(lmLayer);
     });
     if(fit){
@@ -2247,6 +2251,12 @@
       if(!lmMap){
         lmMap = L.map("leadMap", { zoomControl: true });
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(lmMap);
+        lmMap.on("click", function(ev){
+          if(!movingId) return;
+          var l = leads.find(function(x){ return x.id === movingId; });
+          if(l){ l.lat = +ev.latlng.lat.toFixed(6); l.lng = +ev.latlng.lng.toFixed(6); l.geo_src = "manual"; delete l.geo_fail; save(); }
+          movingId = null; renderMapBar(); drawPins(false);
+        });
       }
       setTimeout(function(){ lmMap.invalidateSize(); drawPins(true); }, 50);
     }).catch(function(){
@@ -2256,9 +2266,13 @@
   function geocodeNext(queue){
     if(!queue.length){ geocoding = false; renderMapBar(); drawPins(true); return; }
     var l = queue.shift();
-    var q = [l.address, l.zip, "CA", "USA"].filter(Boolean).join(", ");
-    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
-      .then(function(r){ return r.json(); })
+    var base = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&bounded=1&viewbox=-117.62,33.52,-116.08,32.53";
+    var structured = base + "&state=California&street=" + encodeURIComponent(l.address) +
+      (l.zip ? "&postalcode=" + encodeURIComponent(l.zip) : "&county=" + encodeURIComponent("San Diego County"));
+    var freeform = base + "&q=" + encodeURIComponent([l.address, l.zip, "CA"].filter(Boolean).join(", "));
+    function get(u){ return fetch(u, { headers: { "Accept": "application/json" } }).then(function(r){ return r.json(); }); }
+    get(structured)
+      .then(function(j){ if(j && j[0]) return j; return new Promise(function(res){ setTimeout(res, 1100); }).then(function(){ return get(freeform); }); })
       .then(function(j){
         if(j && j[0]){ l.lat = +(+j[0].lat).toFixed(6); l.lng = +(+j[0].lon).toFixed(6); l.geo_src = "address"; }
         else { l.geo_fail = true; }
@@ -2274,6 +2288,14 @@
       geocoding = true; renderMapBar();
       geocodeNext(leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; }));
     }
+    if(e.target.id === "lmMoveCancel"){ movingId = null; renderMapBar(); return; }
+    if(e.target.id === "lmRecheck" && !geocoding){
+      var redo = leads.filter(function(l){ return (l.geo_src === "address" || l.geo_fail) && l.address; });
+      redo.forEach(function(l){ delete l.lat; delete l.lng; delete l.geo_fail; delete l.geo_src; });
+      save(); geocoding = true; renderMapBar(); drawPins(false);
+      geocodeNext(redo);
+      return;
+    }
     if(e.target.id === "lmMe" && navigator.geolocation && lmMap){
       navigator.geolocation.getCurrentPosition(function(pos){
         lmMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
@@ -2282,6 +2304,8 @@
     }
   });
   document.addEventListener("click", function(e){
+    var mv = e.target.closest && e.target.closest("[data-move-lead]");
+    if(mv){ e.preventDefault(); movingId = mv.getAttribute("data-move-lead"); if(lmMap){ lmMap.closePopup(); } renderMapBar(); return; }
     var b = e.target.closest && e.target.closest("[data-open-lead]"); if(!b) return;
     e.preventDefault();
     openDetail(b.getAttribute("data-open-lead"));
