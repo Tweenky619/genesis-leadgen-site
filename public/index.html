@@ -556,6 +556,24 @@
   #projNotes .pn{margin-top:10px;}
   #projNotes .pn label{display:block;font-size:12px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
   #projNotes .pn textarea{width:100%;min-height:58px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);font-size:15px;color:var(--text);font-family:inherit;resize:vertical;}
+  .st-h{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--brand-dark);margin:18px 0 8px;}
+  .st-h:first-child{margin-top:4px;}
+  .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .st-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
+  .st-card .n{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
+  .st-card .l{font-size:11.5px;font-weight:700;color:var(--text-muted);margin-top:4px;}
+  .st-card.good .n{color:#0b6b3a;}
+  .st-card.bad .n{color:#a8321f;}
+  .st-rate{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:8px;}
+  .st-rate .top{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;}
+  .st-rate .top span{font-size:22px;}
+  .st-rate .sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+  .st-bar{height:10px;border-radius:999px;background:#e9ebee;overflow:hidden;margin-top:8px;display:flex;}
+  .st-bar i{display:block;height:100%;}
+  .st-money{background:#e6f4ec;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+  .st-money .big{font-size:26px;font-weight:800;color:#0b6b3a;}
+  .st-money .sm{font-size:12px;color:#2f6b4a;font-weight:600;text-align:right;}
+  .st-empty{color:var(--text-muted);text-align:center;padding:30px 10px;}
 </style>
 </head>
 <body>
@@ -567,6 +585,7 @@
       <div class="subtitle" id="headerSubtitle">Lead Tracker</div>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
       <button class="icon-btn" id="importBtn" title="Import leads (CSV)">&#8657;</button>
       <input type="file" id="importInput" accept=".csv,text/csv" hidden>
       <button class="icon-btn" id="exportBtn" title="Export leads">&#8659;</button>
@@ -815,6 +834,13 @@
         <button class="btn btn-secondary" id="editBtn">Edit</button>
         <button class="btn btn-danger" id="deleteBtn">Delete</button>
       </div>
+    </section>
+
+    <!-- STATS VIEW -->
+    <section class="view" id="view-stats">
+      <div class="back-row" id="backFromStatsBtn">&larr; All Leads</div>
+      <div class="tabs" id="statsPeriods"></div>
+      <div id="statsBody"></div>
     </section>
 
   </main>
@@ -2029,6 +2055,95 @@
   document.getElementById("f_other_project").addEventListener("input", function(){
     var t = document.querySelector('#projNotes textarea[data-proj="Other"]');
     if(t){ t.parentNode.querySelector("label").textContent = "Other" + (this.value.trim() ? " \u2014 " + this.value.trim() : "") + " details"; }
+  });
+
+  // ---- Stats ----
+  var STAT_PERIODS = [["today","Today"],["week","This week"],["month","This month"],["all","All time"]];
+  var statPeriod = "week";
+  function periodStart(k){
+    var d = new Date(); d.setHours(0,0,0,0);
+    if(k === "today") return d.getTime();
+    if(k === "week"){ d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
+    if(k === "month"){ d.setDate(1); return d.getTime(); }
+    return 0;
+  }
+  var EVENT_RULES = [
+    [/^Dispatch confirmed appointment|^Status \u2192 Confirmed$/, "confirmed"],
+    [/^Blow out|^Status \u2192 Blow Out$/, "blowout"],
+    [/^No answer on confirmation|^Dispatch couldn't reach|^Status \u2192 (Confirm NA|Dispatch Couldn't Reach)$/, "na"],
+    [/^Sold$|^Status \u2192 Sold$/, "sold"],
+    [/^Pitch miss|^Pitched \u2014 no sale|^Status \u2192 Pitch & Miss$/, "miss"],
+    [/^No show|^Status \u2192 No Show$/, "noshow"],
+    [/^Called to cancel|^Status \u2192 Call to Cancel$/, "ctc"],
+    [/^No Mr\.\/Mrs\.|^Status \u2192 No Mr\.\/Mrs\.$/, "nomr"],
+    [/^Rolled to|^Status \u2192 Rolled$/, "rolled"],
+    [/^Rep reset for|^Status \u2192 Rep Reset$/, "represet"]
+  ];
+  var STATUS_TYPE = { "Confirmed":"confirmed", "Blow Out":"blowout", "Confirm NA":"na", "Sold":"sold", "Pitch & Miss":"miss", "No Show":"noshow", "Call to Cancel":"ctc", "No Mr./Mrs.":"nomr", "Rolled":"rolled", "Rep Reset":"represet" };
+  function leadEvents(l){
+    var ev = {};
+    (l.log || []).forEach(function(e){
+      EVENT_RULES.forEach(function(r){ if(r[0].test(e.text)){ ev[r[1]] = ev[r[1]] || []; ev[r[1]].push(e.ts); } });
+    });
+    var t = STATUS_TYPE[statusOf(l)];
+    if(t && !ev[t]){ ev[t] = [l.created_at || 0]; }
+    return ev;
+  }
+  function computeStats(k){
+    var from = periodStart(k), c = { leads:0, appts:0, confirmed:0, blowout:0, na:0, sold:0, miss:0, noshow:0, ctc:0, nomr:0, rolled:0, represet:0, money:0 };
+    leads.forEach(function(l){
+      var made = l.created_at || 0;
+      if(made >= from){ c.leads++; if(l.appt_date || l.appt_time){ c.appts++; } }
+      var ev = leadEvents(l);
+      Object.keys(ev).forEach(function(type){
+        if(ev[type].some(function(ts){ return ts >= from; })){
+          c[type]++;
+          if(type === "sold"){ c.money += Number(l.sale_amount) || 0; }
+        }
+      });
+    });
+    return c;
+  }
+  function pct(a, b){ return b ? Math.round(a * 100 / b) + "%" : "\u2014"; }
+  function card(n, label, cls){ if(n === 0){ cls = ""; } return '<div class="st-card' + (cls ? " " + cls : "") + '"><div class="n">' + n + '</div><div class="l">' + label + '</div></div>'; }
+  function bar(parts){
+    var tot = parts.reduce(function(a, p){ return a + p[0]; }, 0) || 1;
+    return '<div class="st-bar">' + parts.map(function(p){ return '<i style="width:' + (p[0] * 100 / tot) + '%;background:' + p[1] + '"></i>'; }).join("") + '</div>';
+  }
+  function renderStats(){
+    document.getElementById("statsPeriods").innerHTML = STAT_PERIODS.map(function(p){
+      return '<button type="button" class="tab' + (p[0] === statPeriod ? ' active' : '') + '" data-period="' + p[0] + '">' + p[1] + '</button>';
+    }).join("");
+    var c = computeStats(statPeriod);
+    var confTot = c.confirmed + c.blowout + c.na;
+    var ran = c.sold + c.miss;
+    var notRan = c.noshow + c.ctc + c.nomr;
+    var html =
+      '<div class="st-h">At the door</div><div class="st-grid">' +
+        card(c.leads, "Leads") + card(c.appts, "Appts set") + card(pct(c.appts, c.leads), "Set rate") +
+      '</div>' +
+      '<div class="st-h">Confirmations</div><div class="st-grid">' +
+        card(c.confirmed, "\u2705 Confirmed", "good") + card(c.blowout, "\ud83d\udca5 Blow outs", "bad") + card(c.na, "\ud83d\udeab NA", "bad") +
+      '</div>' +
+      '<div class="st-rate"><div class="top">Confirm rate<span>' + pct(c.confirmed, confTot) + '</span></div>' +
+        '<div class="sub">' + c.confirmed + ' of ' + confTot + ' confirmation calls' + (c.rolled ? ' \u00b7 ' + c.rolled + ' rolled' : '') + '</div>' +
+        bar([[c.confirmed, "#0b6b3a"], [c.blowout, "#2b2b2b"], [c.na, "#d93025"]]) + '</div>' +
+      '<div class="st-h">Appointments</div><div class="st-grid">' +
+        card(c.sold, "\ud83d\udcb0 Sold", "good") + card(c.miss, "\u274c Pitch miss", "bad") + card(c.represet, "\ud83d\udd01 Rep reset") +
+        card(c.noshow, "\ud83d\udeaa No show", "bad") + card(c.ctc, "\ud83d\udcf5 Call to cancel", "bad") + card(c.nomr, "\ud83d\udc64 No Mr./Mrs.", "bad") +
+      '</div>' +
+      '<div class="st-rate"><div class="top">Close rate<span>' + pct(c.sold, ran) + '</span></div>' +
+        '<div class="sub">' + c.sold + ' sold of ' + ran + ' pitched' + (notRan ? ' \u00b7 ' + notRan + ' didn\u2019t run' : '') + '</div>' +
+        bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
+      '<div class="st-money"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
+        '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>';
+    document.getElementById("statsBody").innerHTML = html;
+  }
+  document.getElementById("statsBtn").addEventListener("click", function(){ renderStats(); showView("view-stats"); });
+  document.getElementById("backFromStatsBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
+  document.getElementById("statsPeriods").addEventListener("click", function(e){
+    var b = e.target.closest("[data-period]"); if(!b) return;
+    statPeriod = b.getAttribute("data-period"); renderStats();
   });
 
   load();
