@@ -659,6 +659,13 @@
       <div class="back-row" id="cancelFormBtn">&larr; Cancel</div>
       <form id="leadForm">
         <div class="form-section-title">Rep: Arturo Delgado Mora</div>
+        <details class="script" id="infoScript" open>
+          <summary>Info script <span class="opt">(fill out the lead sheet)</span></summary>
+          <label class="step"><input type="checkbox"><div><span class="tag">Info</span>
+            <p>&ldquo;Excuse me &ndash; my name is <b>Art</b>, and you are? And how do I spell your last name? And how do I spell your spouse&rsquo;s name?&rdquo;</p>
+            <p>&ldquo;And your address is <b class="i-addr">___</b>, and this is <b class="i-zip">___</b>?&rdquo;</p>
+            <p>&ldquo;Just in case we&rsquo;re running a little late &ndash; we value your time &ndash; the best number to get a hold of you is 619 or 760?&rdquo;</p></div></label>
+        </details>
         <div class="row2">
           <div class="field">
             <label>First Name</label>
@@ -1119,7 +1126,7 @@
     document.getElementById("f_other_project").style.display = "none";
     setProjNotes({});
     buildTimeOptions("");
-    setTimeout(updateScript, 0);
+    setTimeout(function(){ updateScript(); if(typeof updateInfoScript === "function"){ updateInfoScript(); } }, 0);
     Array.prototype.forEach.call(document.querySelectorAll(".interest-toggle"), function(el){
       el.classList.remove("active");
     });
@@ -1225,7 +1232,7 @@
     document.getElementById("f_appt_day").value = l.appt_day || "";
     document.getElementById("f_appt_date").value = l.appt_date || "";
     buildTimeOptions(l.appt_time || "");
-    setTimeout(updateScript, 0);
+    setTimeout(function(){ updateScript(); if(typeof updateInfoScript === "function"){ updateInfoScript(); } }, 0);
     document.getElementById("f_notes").value = l.notes || "";
     document.getElementById("saveBtn").textContent = "Save Changes";
     showView("view-form");
@@ -1937,6 +1944,12 @@
     var sole = document.getElementById("f_sole_owner").checked;
     Array.prototype.forEach.call(document.querySelectorAll("#closeScript .s-dm-clause"), function(el){ el.style.display = sole ? "none" : ""; });
   }
+  function updateInfoScript(){
+    var a = document.getElementById("f_address").value.trim(), z = document.getElementById("f_zip").value.trim();
+    Array.prototype.forEach.call(document.querySelectorAll("#infoScript .i-addr"), function(el){ el.textContent = a || "___"; });
+    Array.prototype.forEach.call(document.querySelectorAll("#infoScript .i-zip"), function(el){ el.textContent = z || "___"; });
+  }
+  ["f_address","f_zip"].forEach(function(id){ document.getElementById(id).addEventListener("input", updateInfoScript); });
   ["f_appt_date","f_appt_day","f_appt_time","f_spouse"].forEach(function(id){
     document.getElementById(id).addEventListener("change", function(){ setTimeout(updateScript, 0); });
     document.getElementById(id).addEventListener("input", function(){ setTimeout(updateScript, 0); });
@@ -2380,6 +2393,6 @@
   renderList();
 })();
 </script>
-<script src="practice.js?v=5"></script>
+<script src="practice.js?v=6"></script>
 </body>
 </html>
