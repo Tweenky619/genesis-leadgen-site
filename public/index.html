@@ -574,6 +574,15 @@
   .st-money .big{font-size:26px;font-weight:800;color:#0b6b3a;}
   .st-money .sm{font-size:12px;color:#2f6b4a;font-weight:600;text-align:right;}
   .st-empty{color:var(--text-muted);text-align:center;padding:30px 10px;}
+  #leadMap{height:calc(100vh - 260px);min-height:320px;border-radius:12px;border:1px solid var(--border);overflow:hidden;background:#e9ebee;}
+  .lm-bar{display:flex;gap:8px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--text-muted);flex-wrap:wrap;}
+  .lm-bar button{border:none;border-radius:10px;padding:9px 12px;font-weight:700;font-size:13px;background:var(--brand);color:#fff;}
+  .lm-bar button.alt{background:#e9ebee;color:var(--text);}
+  .lm-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;color:var(--text-muted);font-weight:600;}
+  .lm-legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;}
+  .lm-pop b{display:block;font-size:14px;}
+  .lm-pop span{display:block;color:#555;font-size:12px;margin:2px 0 6px;}
+  .lm-pop button{border:none;border-radius:8px;padding:7px 10px;font-weight:700;background:#152535;color:#fff;font-size:12px;}
 </style>
 </head>
 <body>
@@ -586,9 +595,9 @@
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
-      <button class="icon-btn" id="importBtn" title="Import leads (CSV)">&#8657;</button>
+      <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
+      <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
       <input type="file" id="importInput" accept=".csv,text/csv" hidden>
-      <button class="icon-btn" id="exportBtn" title="Export leads">&#8659;</button>
       <button class="icon-btn" id="newBtnTop" title="New lead">+</button>
     </div>
   </header>
@@ -836,6 +845,20 @@
       </div>
     </section>
 
+    <!-- MAP VIEW -->
+    <section class="view" id="view-map">
+      <div class="back-row" id="backFromMapBtn">&larr; All Leads</div>
+      <div class="lm-bar" id="lmBar"></div>
+      <div id="leadMap"></div>
+      <div class="lm-legend">
+        <span><i style="background:#0b6b3a"></i>Sold</span>
+        <span><i style="background:#2f6fd6"></i>Booked</span>
+        <span><i style="background:#e08a00"></i>Follow-up</span>
+        <span><i style="background:#8a9199"></i>Other</span>
+        <span><i style="background:#c0392b"></i>Lost</span>
+      </div>
+    </section>
+
     <!-- STATS VIEW -->
     <section class="view" id="view-stats">
       <div class="back-row" id="backFromStatsBtn">&larr; All Leads</div>
@@ -854,6 +877,15 @@
   <div class="viewer-bar">
     <button type="button" id="viewerDelete">Delete photo</button>
     <button type="button" id="viewerClose">Close</button>
+  </div>
+</div>
+<div class="sheet-bg" id="backupSheet" hidden>
+  <div class="sheet">
+    <h3>Backup</h3>
+    <p>Your leads are saved on this phone. Export a backup at the end of each day.</p>
+    <button type="button" id="exportBtn">&#8659; Export backup (CSV)</button>
+    <button type="button" id="importBtn">&#8657; Import leads (CSV)</button>
+    <button type="button" class="cancel" id="backupCancel">Cancel</button>
   </div>
 </div>
 <div class="sheet-bg" id="mapSheet" hidden>
@@ -1275,6 +1307,7 @@
 
     if(editingId){
       var l = leads.find(function(x){ return x.id === editingId; });
+      if((l.address || "") !== data.address || (l.zip || "") !== data.zip){ if(l.geo_src !== "gps"){ delete l.lat; delete l.lng; delete l.geo_fail; } }
       var hadAppt = l.appt_date || l.appt_time;
       var oldAppt = (l.appt_date || "") + "|" + (l.appt_time || "");
       Object.assign(l, data);
@@ -1286,6 +1319,7 @@
       }
     } else {
       data.id = draftId || uid();
+      captureLocation(data.id);
       draftId = null;
       data.created_at = Date.now();
       if(data.appt_date || data.appt_time){
@@ -2145,6 +2179,113 @@
     var b = e.target.closest("[data-period]"); if(!b) return;
     statPeriod = b.getAttribute("data-period"); renderStats();
   });
+
+  // ---- Backup sheet ----
+  document.getElementById("backupBtn").addEventListener("click", function(){ document.getElementById("backupSheet").hidden = false; });
+  document.getElementById("backupCancel").addEventListener("click", function(){ document.getElementById("backupSheet").hidden = true; });
+  document.getElementById("backupSheet").addEventListener("click", function(e){ if(e.target.id === "backupSheet" || e.target.id === "exportBtn" || e.target.id === "importBtn"){ document.getElementById("backupSheet").hidden = true; } });
+
+  // ---- Lead location: GPS at the door ----
+  function captureLocation(leadId){
+    if(!navigator.geolocation) return;
+    try {
+      navigator.geolocation.getCurrentPosition(function(pos){
+        if(pos.coords.accuracy > 250) return;
+        var l = leads.find(function(x){ return x.id === leadId; }); if(!l) return;
+        l.lat = +pos.coords.latitude.toFixed(6); l.lng = +pos.coords.longitude.toFixed(6); l.geo_src = "gps";
+        save();
+      }, function(){}, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+    } catch(e){}
+  }
+
+  // ---- Map of leads ----
+  var lmMap = null, lmLayer = null, leafletLoading = null, geocoding = false;
+  function loadLeaflet(){
+    if(window.L) return Promise.resolve();
+    if(leafletLoading) return leafletLoading;
+    leafletLoading = new Promise(function(res, rej){
+      var css = document.createElement("link"); css.rel = "stylesheet"; css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; document.head.appendChild(css);
+      var js = document.createElement("script"); js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; js.onload = res; js.onerror = rej; document.head.appendChild(js);
+    });
+    return leafletLoading;
+  }
+  function pinColor(l){
+    var st = statusOf(l);
+    if(st === "Sold") return "#0b6b3a";
+    if(["Appt Set","Sent to Monday","Confirmed","Reset","Rolled","Rep Reset"].indexOf(st) !== -1) return "#2f6fd6";
+    if(["Not Interested","Blow Out","Call to Cancel","Pitch & Miss"].indexOf(st) !== -1) return "#c0392b";
+    if(isDue(l) || st === "New" || st === "No Answer" || st === "Confirm NA" || st === "No Show" || st === "No Mr./Mrs.") return "#e08a00";
+    return "#8a9199";
+  }
+  function renderMapBar(){
+    var have = leads.filter(function(l){ return l.lat && l.lng; }).length;
+    var missing = leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; }).length;
+    document.getElementById("lmBar").innerHTML = '<span>' + have + ' of ' + leads.length + ' leads on the map</span>' +
+      (missing ? '<button type="button" id="lmGeo">' + (geocoding ? 'Locating\u2026' : 'Find ' + missing + ' address' + (missing === 1 ? '' : 'es')) + '</button>' : '') +
+      '<button type="button" class="alt" id="lmMe">\ud83d\udccd Me</button>';
+  }
+  function drawPins(fit){
+    if(!lmMap) return;
+    if(lmLayer){ lmLayer.remove(); }
+    lmLayer = L.layerGroup().addTo(lmMap);
+    var pts = [];
+    leads.forEach(function(l){
+      if(!(l.lat && l.lng)) return;
+      pts.push([l.lat, l.lng]);
+      L.circleMarker([l.lat, l.lng], { radius: 9, color: "#fff", weight: 2, fillColor: pinColor(l), fillOpacity: 1 })
+        .bindPopup('<div class="lm-pop"><b>' + esc(l.homeowner_name || fullName(l.first_name, l.last_name) || "Lead") + '</b><span>' + esc(l.address || "") + ' \u00b7 ' + esc(statusOf(l)) + '</span><button type="button" data-open-lead="' + esc(l.id) + '">Open lead</button></div>')
+        .addTo(lmLayer);
+    });
+    if(fit){
+      if(pts.length){ lmMap.fitBounds(pts, { padding: [30, 30], maxZoom: 17 }); }
+      else { lmMap.setView([32.7157, -117.1611], 11); }
+    }
+  }
+  function openLeadMap(){
+    showView("view-map"); renderMapBar();
+    loadLeaflet().then(function(){
+      if(!lmMap){
+        lmMap = L.map("leadMap", { zoomControl: true });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "&copy; OpenStreetMap" }).addTo(lmMap);
+      }
+      setTimeout(function(){ lmMap.invalidateSize(); drawPins(true); }, 50);
+    }).catch(function(){
+      document.getElementById("leadMap").innerHTML = '<div class="st-empty">Map couldn\u2019t load. Check your connection and try again.</div>';
+    });
+  }
+  function geocodeNext(queue){
+    if(!queue.length){ geocoding = false; renderMapBar(); drawPins(true); return; }
+    var l = queue.shift();
+    var q = [l.address, l.zip, "CA", "USA"].filter(Boolean).join(", ");
+    fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q=" + encodeURIComponent(q), { headers: { "Accept": "application/json" } })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        if(j && j[0]){ l.lat = +(+j[0].lat).toFixed(6); l.lng = +(+j[0].lon).toFixed(6); l.geo_src = "address"; }
+        else { l.geo_fail = true; }
+        save(); renderMapBar(); drawPins(false);
+      })
+      .catch(function(){})
+      .then(function(){ setTimeout(function(){ geocodeNext(queue); }, 1100); });
+  }
+  document.getElementById("leadMapBtn").addEventListener("click", openLeadMap);
+  document.getElementById("backFromMapBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
+  document.getElementById("lmBar").addEventListener("click", function(e){
+    if(e.target.id === "lmGeo" && !geocoding){
+      geocoding = true; renderMapBar();
+      geocodeNext(leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; }));
+    }
+    if(e.target.id === "lmMe" && navigator.geolocation && lmMap){
+      navigator.geolocation.getCurrentPosition(function(pos){
+        lmMap.setView([pos.coords.latitude, pos.coords.longitude], 16);
+        L.circleMarker([pos.coords.latitude, pos.coords.longitude], { radius: 7, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1 }).addTo(lmLayer);
+      }, function(){}, { enableHighAccuracy: true, timeout: 15000 });
+    }
+  });
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-open-lead]"); if(!b) return;
+    e.preventDefault();
+    openDetail(b.getAttribute("data-open-lead"));
+  }, true);
 
   load();
   renderList();
