@@ -204,11 +204,11 @@
   var esc = A.esc;
 
   function header(){
-    var chips = PRODUCTS.concat(["Mix", "Rebuttals"]).map(function(p){
-      var lbl = p === "Mix" ? "🎲 Mix" : p === "Rebuttals" ? "🛡️ Rebuttals" : p;
+    var chips = PRODUCTS.concat(["Mix", "Rebuttals", "Progress"]).map(function(p){
+      var lbl = p === "Mix" ? "🎲 Mix" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
-    var modes = st.product === "Rebuttals" ? "" :
+    var modes = (st.product === "Rebuttals" || st.product === "Progress") ? "" :
       '<div class="pr-modes"><button type="button" class="' + (st.mode === "learn" ? "on" : "") + '" data-pm="learn">📖 Learn</button><button type="button" class="' + (st.mode === "drill" ? "on" : "") + '" data-pm="drill">🎯 Drill</button></div>';
     return '<div class="tabs pr-tabs">' + chips + '</div>' + modes;
   }
@@ -292,6 +292,55 @@
     return html;
   }
 
+
+  // ---------- Damage progression diagrams (original) ----------
+  var PROGRESS = [
+    { product: "Roof", icon: "🏠", say: "It starts with the granules washing off — and if it waits, it turns into rotted wood and mold in the attic.",
+      stages: [
+        ["Granule loss", "Shingles look worn and shiny. The sun starts baking the asphalt.", "$"],
+        ["Exposed fiberglass", "Shingles crack, curl, and blow off. Water gets underneath.", "$$"],
+        ["Attic leaks", "Wet insulation, stained ceilings, the decking starts to rot.", "$$$"],
+        ["Rot & mold", "Decking and framing have to be replaced. Mold, termites, interior repairs.", "$$$$"] ],
+      fix: "Inspect and fix at stage 1–2 — it's a roofing job. Wait until stage 4 and it's a wood-replacement job." },
+    { product: "Paint/Stucco", icon: "🧱", say: "It starts with a little chipping — and if it waits, it's the wood behind the stucco that rots.",
+      stages: [
+        ["Chalky paint & hairline cracks", "The paint stops sealing. The wall drinks water every rain and sprinkler cycle.", "$"],
+        ["Chipping, peeling & efflorescence", "\"Stucco cancer\" — the alkaline in the soil attacks the glue in the stucco.", "$$"],
+        ["Water behind the stucco", "Studs swell, the sill plate gets wet, cracks spread sideways and straight up.", "$$$"],
+        ["Dry rot, termites & mold", "Stucco comes off to repair the framing. Interior stains and damage.", "$$$$"] ],
+      fix: "Seal and repair early — it's a paint and stucco job. Wait and it becomes a framing job." },
+    { product: "Fascia/Trim Boards", icon: "🪵", say: "It starts with peeling paint on the trim — and if it waits, the rot moves into the roof edge.",
+      stages: [
+        ["Peeling paint", "The wood is unprotected and soaks up water and dew.", "$"],
+        ["Dark, soft spots", "Moisture in the wood — rot starts at corners and joints.", "$$"],
+        ["Gaps & pests", "Bees, birds, rodents, and termites get in through the rotted trim.", "$$$"],
+        ["Rot reaches the roof edge", "Rafter tails and the roof edge need repair. Gutters pull away.", "$$$$"] ],
+      fix: "Replace the bad boards and seal early — before the rot reaches the rafters." },
+    { product: "Windows", icon: "🪟", say: "It starts with a foggy window — and if it waits, the water gets into the wall.",
+      stages: [
+        ["Foggy glass", "The seal has failed. Outside air and moisture get between the panes.", "$"],
+        ["Drafts & energy loss", "Rooms run hot or cold. The AC works harder — money out the glass every month.", "$$"],
+        ["Hard to open, broken locks", "Frames wear out — comfort and security both suffer.", "$$$"],
+        ["Leaks & frame damage", "Water gets past the window into the wall — rot, stained drywall, mold.", "$$$$"] ],
+      fix: "Inspect early and see the options with an exact price — before it's a wall repair too." }
+  ];
+  function progressCards(){
+    var colors = ["#e8b400", "#e07a00", "#d04a2a", "#8f1d12"];
+    return '<p class="pr-sub" style="margin:0 0 10px">Show how the damage advances — and that catching it early is the cheap fix.</p>' +
+      PROGRESS.map(function(g){
+        var rows = g.stages.map(function(sg, i){
+          return '<div class="pg-stage"><div class="pg-dot" style="background:' + colors[i] + '">' + (i + 1) + '</div>' +
+            '<div class="pg-body"><div class="pg-top"><b>' + esc(sg[0]) + '</b><span class="pg-cost" style="color:' + colors[i] + '">' + sg[2] + '</span></div>' +
+            '<div class="pg-txt">' + esc(sg[1]) + '</div></div></div>';
+        }).join('<div class="pg-arrow">↓</div>');
+        return '<div class="pr-card pg-card"><div class="pg-title">' + g.icon + ' ' + esc(g.product) + '</div>' +
+          '<div class="pg-meter"><span>Catch it early</span><i></i><span>Cost of waiting</span></div>' +
+          rows +
+          '<div class="pg-fix"><b>✅ The fix</b>' + esc(g.fix) + '</div>' +
+          '<div class="pg-say"><b>Say it like this:</b> “' + esc(g.say) + '”</div></div>';
+      }).join("");
+  }
+
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : st.product;
     return '<div class="pr-card pr-start"><div class="pr-step">Question → Education · ' + esc(p) + '</div>' +
@@ -304,6 +353,7 @@
   function render(){
     var body;
     if(st.product === "Rebuttals"){ body = rebuttalCard(); }
+    else if(st.product === "Progress"){ body = progressCards(); }
     else if(!st.run){ body = startCard(); }
     else if(st.run.finished){ body = summaryCard(); }
     else { body = stepCard(); }
