@@ -324,6 +324,7 @@
         ["Leaks & frame damage", "Water gets past the window into the wall — rot, stained drywall, mold.", "$$$$"] ],
       fix: "Inspect early and see the options with an exact price — before it's a wall repair too." }
   ];
+  var EXAMPLES = {"Roof": [["Asphalt shingle granule loss (InspectAPedia)", "https://inspectapedia.com/roof/Asphalt_Shingle_Granule_Loss.php"], ["Inspecting asphalt shingles (InterNACHI)", "https://nachi.org/asphalt-comp-shingles-part34-88.htm"]], "Paint/Stucco": [["Efflorescence explained (Sherwin-Williams)", "https://www.sherwin-williams.com/home-builders/scrapers/resources/SW-ARTICLE-PRO-EFFLORESCENCE"], ["Efflorescence for inspectors (InterNACHI)", "https://www.nachi.org/efflorescence/html.htm/1000.htm"]], "Fascia/Trim Boards": [["How to identify rotting wood (This Old House)", "https://www.thisoldhouse.com/woodworking/identify-and-repair-rotting-wood"], ["Rot in fascia boards (Sure Building Inspections)", "https://surebuildinginspections.au/defects/timber-fungal-decay-rot-in-fascia-and-barge-boards/"]], "Windows": [["Condensation in double-pane windows (InterNACHI)", "https://www.nachi.org/condensation-double-paned-windows"], ["What to do about a broken window seal (Bob Vila)", "https://www.bobvila.com/articles/broken-window-seal/"]]};
   function progressCards(){
     var colors = ["#e8b400", "#e07a00", "#d04a2a", "#8f1d12"];
     return '<p class="pr-sub" style="margin:0 0 10px">Show how the damage advances — and that catching it early is the cheap fix.</p>' +
@@ -337,7 +338,8 @@
           '<div class="pg-meter"><span>Catch it early</span><i></i><span>Cost of waiting</span></div>' +
           rows +
           '<div class="pg-fix"><b>✅ The fix</b>' + esc(g.fix) + '</div>' +
-          '<div class="pg-say"><b>Say it like this:</b> “' + esc(g.say) + '”</div></div>';
+          '<div class="pg-say"><b>Say it like this:</b> “' + esc(g.say) + '”</div>' +
+          '<div class="pg-links"><b>🔎 See real examples</b>' + (EXAMPLES[g.product] || []).map(function(x){ return '<a href="' + esc(x[1]) + '" target="_blank" rel="noopener">' + esc(x[0]) + ' ↗</a>'; }).join("") + '</div></div>';
       }).join("");
   }
 
