@@ -585,6 +585,7 @@
   .lm-pop button{border:none;border-radius:8px;padding:7px 10px;font-weight:700;background:#152535;color:#fff;font-size:12px;}
   .lm-pop button.mv{background:#e9ebee;color:#152535;}
   .lm-move{flex-basis:100%;background:#fff1d6;color:#8a5a00;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .lm-busy{background:#e6eefc;color:#1d4f8a;border-radius:10px;padding:8px 12px;font-weight:700;}
 </style>
 </head>
 <body>
@@ -1322,6 +1323,10 @@
     } else {
       data.id = draftId || uid();
       captureLocation(data.id);
+      (function(id){ setTimeout(function(){
+        var l = leads.find(function(x){ return x.id === id; });
+        if(l && !(l.lat && l.lng) && l.address && !geocoding && navigator.onLine !== false){ geocodeNext([l]); }
+      }, 20000); })(data.id);
       draftId = null;
       data.created_at = Date.now();
       if(data.appt_date || data.appt_time){
@@ -2223,7 +2228,7 @@
     var have = leads.filter(function(l){ return l.lat && l.lng; }).length;
     var missing = leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; }).length;
     document.getElementById("lmBar").innerHTML = '<span>' + have + ' of ' + leads.length + ' leads on the map</span>' +
-      (missing ? '<button type="button" id="lmGeo">' + (geocoding ? 'Locating\u2026' : 'Find ' + missing + ' address' + (missing === 1 ? '' : 'es')) + '</button>' : '') +
+      (geocoding ? '<span class="lm-busy">Locating ' + missing + ' more\u2026</span>' : (missing ? '<button type="button" id="lmGeo">Find ' + missing + ' address' + (missing === 1 ? '' : 'es') + '</button>' : '')) +
       '<button type="button" class="alt" id="lmMe">\ud83d\udccd Me</button>' +
       (!geocoding && leads.some(function(l){ return l.geo_src === "address" || l.geo_fail; }) ? '<button type="button" class="alt" id="lmRecheck">\u21bb Re-check address pins</button>' : '') +
       (movingId ? '<div class="lm-move">Tap the map where this house is. <button type="button" class="alt" id="lmMoveCancel">Cancel</button></div>' : '');
@@ -2258,10 +2263,23 @@
           movingId = null; renderMapBar(); drawPins(false);
         });
       }
-      setTimeout(function(){ lmMap.invalidateSize(); drawPins(true); }, 50);
+      setTimeout(function(){ lmMap.invalidateSize(); drawPins(true); autoLocate(); }, 50);
     }).catch(function(){
       document.getElementById("leadMap").innerHTML = '<div class="st-empty">Map couldn\u2019t load. Check your connection and try again.</div>';
     });
+  }
+  function autoLocate(){
+    if(geocoding) return;
+    var redone = false; try { redone = localStorage.getItem("socal_geo_v2") === "1"; } catch(e){}
+    if(!redone){
+      leads.forEach(function(l){ if(l.geo_src === "address" || l.geo_fail){ delete l.lat; delete l.lng; delete l.geo_fail; delete l.geo_src; } });
+      save(); try { localStorage.setItem("socal_geo_v2", "1"); } catch(e){}
+      drawPins(false);
+    }
+    var queue = leads.filter(function(l){ return !(l.lat && l.lng) && l.address && !l.geo_fail; });
+    if(!queue.length){ renderMapBar(); return; }
+    geocoding = true; renderMapBar();
+    geocodeNext(queue);
   }
   function geocodeNext(queue){
     if(!queue.length){ geocoding = false; renderMapBar(); drawPins(true); return; }
