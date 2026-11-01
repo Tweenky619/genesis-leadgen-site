@@ -660,14 +660,14 @@
           </div>
         </div>
 
-        <div class="form-section-title">Project</div>
+        <div class="form-section-title">Core Products</div>
         <div class="field">
           <div class="interest-group" id="interestGroup">
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Roof">Roof</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Fascia/Trim Boards">Fascia/Trim Boards</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Paint/Stucco">Paint/Stucco</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">Windows</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">High-Performance Windows</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other&nbsp;<span style="font-weight:600;opacity:.7">(non-core)</span></label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
           <div id="projNotes"></div>
@@ -2082,7 +2082,7 @@
     Array.prototype.forEach.call(box.querySelectorAll("textarea"), function(t){ projDraft[t.getAttribute("data-proj")] = t.value; });
     var picked = getCheckedInterests();
     box.innerHTML = picked.map(function(name){
-      var label = name === "Other" ? ("Other" + (document.getElementById("f_other_project").value.trim() ? " \u2014 " + document.getElementById("f_other_project").value.trim() : "")) : name;
+      var label = name === "Windows" ? "High-Performance Windows" : name === "Other" ? ("Other" + (document.getElementById("f_other_project").value.trim() ? " \u2014 " + document.getElementById("f_other_project").value.trim() : "")) : name;
       return '<div class="pn"><label>' + esc(label) + ' details</label><textarea data-proj="' + esc(name) + '" placeholder="' + esc(PROJ_HINTS[name] || "Details\u2026") + '">' + esc(projDraft[name] || "") + '</textarea></div>';
     }).join("");
   }
