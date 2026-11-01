@@ -62,7 +62,7 @@
     font-weight:700;
     letter-spacing:0.2px;
   }
-  header.topbar .logo{display:block;height:44px;width:auto;max-width:100%;}
+  header.topbar .logo{display:block;height:44px;width:auto;max-width:100%;object-fit:contain;object-position:left center;}
   header.topbar .subtitle{
     font-size:12px;
     color:var(--text-muted);
@@ -74,8 +74,8 @@
     background:var(--brand-light);
     border:none;
     color:var(--brand);
-    width:34px;
-    height:34px;
+    width:32px;
+    height:32px;
     border-radius:10px;
     font-size:18px;
     display:flex;
@@ -371,7 +371,8 @@
   .header-actions{
     display:flex;
     align-items:center;
-    gap:8px;
+    gap:6px;
+    flex:none;
   }
 
   /* Export fallback modal */
@@ -586,6 +587,41 @@
   .lm-pop button.mv{background:#e9ebee;color:#152535;}
   .lm-move{flex-basis:100%;background:#fff1d6;color:#8a5a00;border-radius:10px;padding:10px 12px;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .lm-busy{background:#e6eefc;color:#1d4f8a;border-radius:10px;padding:8px 12px;font-weight:700;}
+  .pr-tabs{padding:0 0 10px;}
+  .pr-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .pr-modes button{padding:11px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-weight:800;font-size:14px;color:var(--text);}
+  .pr-modes button.on{border-color:var(--brand);background:var(--brand);color:#fff;}
+  .pr-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;}
+  .pr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .pr-prod{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);}
+  .pr-dots{display:flex;gap:5px;}
+  .pr-dots i{width:9px;height:9px;border-radius:50%;background:#e1e4e8;}
+  .pr-dots i.done{background:#0b6b3a;} .pr-dots i.now{background:var(--brand);}
+  .pr-step{font-size:18px;font-weight:800;margin-bottom:10px;}
+  .pr-who{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin:12px 0 4px;}
+  .pr-line{font-size:17px;line-height:1.5;color:var(--text);background:#f6f8f7;border-radius:10px;padding:12px;}
+  .pr-hidden{color:var(--text-muted);font-style:italic;text-align:center;}
+  .pr-ho{background:#fff8f5;border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:15px;margin-bottom:6px;}
+  .pr-obj{font-size:17px;}
+  .pr-cue{background:#fff1d6;color:#8a5a00;border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;margin-bottom:8px;}
+  .pr-btn{display:block;width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;background:var(--brand);color:#fff;font-weight:800;font-size:16px;}
+  .pr-btn.alt{background:#e9ebee;color:var(--text);}
+  .pr-score{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .pr-score span{grid-column:1 / -1;font-size:12px;font-weight:700;color:var(--text-muted);text-align:center;}
+  .pr-score button{padding:13px;border-radius:12px;border:2px solid var(--border);background:var(--card);font-weight:800;font-size:15px;}
+  .pr-score .ok{border-color:#bfe0cc;color:#0b6b3a;} .pr-score .no{border-color:#f3c5bf;color:#a8321f;}
+  .pr-tip{margin-top:12px;font-size:13px;color:var(--text-muted);background:#f3f5f7;border-radius:8px;padding:8px 10px;}
+  .pr-slick{margin:6px 0 4px;}
+  .pr-slick-img svg{width:100%;height:auto;display:block;border-radius:10px;border:1px solid var(--border);}
+  .pr-slick-own{margin-top:8px;}
+  .pr-slick-add{display:block;margin-top:8px;text-align:center;padding:9px;border:2px dashed var(--border);border-radius:10px;font-weight:700;font-size:13px;color:var(--brand);cursor:pointer;text-transform:none;letter-spacing:normal;}
+  .pr-rb{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px;color:var(--text-muted);font-weight:700;font-size:14px;}
+  .pr-rb.open{border-color:#bfe0cc;background:#f3faf6;color:#0b6b3a;}
+  .pr-rb p{margin:6px 0 0;color:var(--text);font-weight:500;font-size:15px;line-height:1.45;}
+  .pr-done{text-align:center;}
+  .pr-big{font-size:44px;font-weight:800;color:#0b6b3a;margin-top:6px;}
+  .pr-sub{font-size:13px;color:var(--text-muted);line-height:1.45;}
+  .pr-start p{margin:6px 0;}
 </style>
 </head>
 <body>
@@ -598,6 +634,7 @@
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
+      <button class="icon-btn" id="practiceBtn" title="Practice">&#127919;</button>
       <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
       <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
       <input type="file" id="importInput" accept=".csv,text/csv" hidden>
@@ -846,6 +883,12 @@
         <button class="btn btn-secondary" id="editBtn">Edit</button>
         <button class="btn btn-danger" id="deleteBtn">Delete</button>
       </div>
+    </section>
+
+    <!-- PRACTICE VIEW -->
+    <section class="view" id="view-practice">
+      <div class="back-row" id="backFromPracticeBtn">&larr; All Leads</div>
+      <div id="practiceBody"></div>
     </section>
 
     <!-- MAP VIEW -->
@@ -2329,9 +2372,14 @@
     openDetail(b.getAttribute("data-open-lead"));
   }, true);
 
+  window.App = { showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
+  document.getElementById("practiceBtn").addEventListener("click", function(){ if(window.openPractice){ window.openPractice(); } });
+  document.getElementById("backFromPracticeBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
+
   load();
   renderList();
 })();
 </script>
+<script src="practice.js?v=2"></script>
 </body>
 </html>
