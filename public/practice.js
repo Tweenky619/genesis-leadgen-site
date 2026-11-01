@@ -190,6 +190,8 @@
   }
 
 
+  // Practice only the Question -> Education phase (no opener / close)
+  function runSteps(product){ return PITCHES[product].filter(function(x){ return x.type === "q"; }); }
   function startRun(){
     var product = st.product === "Mix" ? pick(PRODUCTS) : st.product;
     st.run = { product: product, i: 0, phase: "say", revealed: st.mode === "learn", score: 0, total: 0, reply: null, scored: {} };
@@ -197,14 +199,14 @@
   }
 
   function stepCard(){
-    var r = st.run, steps = PITCHES[r.product], s = steps[r.i];
+    var r = st.run, steps = runSteps(r.product), s = steps[r.i];
     var hidden = !r.revealed;
     var lineTxt = r.phase === "say" ? s.say : s.follow;
-    var who = r.phase === "say" ? "You say" : "You follow up";
+    var who = r.phase === "say" ? "You ask" : "You educate";
     var progress = steps.map(function(_, k){ return '<i class="' + (k < r.i ? "done" : k === r.i ? "now" : "") + '"></i>'; }).join("");
     var html = '<div class="pr-card">' +
       '<div class="pr-top"><span class="pr-prod">' + esc(r.product) + '</span><span class="pr-dots">' + progress + '</span></div>' +
-      '<div class="pr-step">' + esc(s.label) + (r.phase === "follow" ? " · follow-up" : "") + '</div>';
+      '<div class="pr-step">' + esc(s.label) + (r.phase === "follow" ? " · Education" : "") + '</div>';
     if(r.phase === "follow" && r.reply){
       html += '<div class="pr-ho"><b>🏠 Homeowner:</b> “' + esc(r.reply) + '”</div>';
     }
@@ -254,8 +256,8 @@
 
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : st.product;
-    return '<div class="pr-card pr-start"><div class="pr-step">Pitch 1 · ' + esc(p) + '</div>' +
-      '<p class="pr-sub">Opener → 3 question/education loops → close. The homeowner answers each question so you can practice reacting.</p>' +
+    return '<div class="pr-card pr-start"><div class="pr-step">Question → Education · ' + esc(p) + '</div>' +
+      '<p class="pr-sub">3 Question → Education loops. You ask, the homeowner answers, you educate.</p>' +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
       '<div class="pr-sub" style="margin-top:10px">' + repsThisWeek() + ' practice reps this week</div></div>';
@@ -272,7 +274,7 @@
   }
 
   function advance(){
-    var r = st.run, steps = PITCHES[r.product], s = steps[r.i];
+    var r = st.run, steps = runSteps(r.product), s = steps[r.i];
     if(r.phase === "say" && s.follow){
       r.phase = "follow"; r.reply = pick(s.replies); r.revealed = st.mode === "learn";
     } else if(r.i < steps.length - 1){
