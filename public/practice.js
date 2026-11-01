@@ -53,7 +53,7 @@
     Roof: [
       { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some wear on your roof. Quick question — how long have you owned the home?",
         replies: ["About 12 years.", "We bought it in 2008.", "Going on 15 years.", "Since 2010."],
-        follow: "That tracks — around that age is usually when the roof starts showing it.", tip: "Compliment, reason, specific concern, easy question." },
+        follow: "Yeah, I figured — around that age is usually when the roof starts showing it.", tip: "Compliment, reason, specific concern, easy question." },
       { type: "q", label: "Question 1", say: "Have you noticed the fiberglass showing on the shingles — right there?", cue: "Point to the worn spot.", slick: true,
         replies: ["No, I never really look up there.", "I think I've seen that.", "Is that bad?", "What am I looking at?"],
         follow: "That's the protective layer wearing off. Once it's gone, moisture gets under the shingle — that's how you get wood rot, termites, even mold.", tip: "Let them look. Silence does the work." },
@@ -68,7 +68,7 @@
     "Paint/Stucco": [
       { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some cracking in the stucco. Quick question — how long have you owned the home?",
         replies: ["Almost 15 years.", "Since 2012.", "About 10 years.", "We bought it in 2009."],
-        follow: "Okay — that's about when stucco starts letting go.", tip: "Point toward the wall as you say \"cracking\"." },
+        follow: "Okay, so that's about right — that's usually when stucco starts letting go.", tip: "Point toward the wall as you say \"cracking\"." },
       { type: "q", label: "Question 1", say: "Have you noticed these cracks here — by the window and the garage?", cue: "Point to the crack.", slick: true,
         replies: ["Those have been there forever.", "I thought that was normal.", "Is that serious?", "No, I hadn't noticed."],
         follow: "A lot of people think so. Those hairline cracks let water get behind the stucco — and behind it is wood framing. That's where the rot starts, where you can't see it.", tip: "\"Where you can't see it\" — the hidden problem is the hook." },
@@ -98,7 +98,7 @@
     Windows: [
       { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed your windows look like they might be original. Quick question — how long have you owned the home?",
         replies: ["Since the 90s.", "About 20 years.", "Going on 25 years.", "Since 2001."],
-        follow: "That tracks — a lot of homes around here still have the windows they were built with.", tip: "Point at the window frame." },
+        follow: "Makes sense — a lot of homes around here still have their original windows.", tip: "Point at the window frame." },
       { type: "q", label: "Question 1", say: "Do you ever notice fog or condensation between the panes?", cue: "Point to the cloudy window.", slick: true,
         replies: ["Yeah, that one's always cloudy.", "In the mornings sometimes.", "Never paid attention.", "No."],
         follow: "That usually means the seal's gone — that's where the outside air and moisture get in.", tip: "One fogged window is your slick — find it before you knock." },
