@@ -54,15 +54,22 @@
       { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some wear on your roof. Quick question — how long have you owned the home?",
         replies: ["About 12 years.", "We bought it in 2008.", "Going on 15 years.", "Since 2010."],
         follow: "Yeah, I figured — around that age is usually when the roof starts showing it.", tip: "Compliment, reason, specific concern, easy question." },
-      { type: "q", label: "Question 1", say: "Have you noticed the fiberglass showing on the shingles — right there?", cue: "Point to the worn spot.", slick: true,
-        replies: ["No, I never really look up there.", "I think I've seen that.", "Is that bad?", "What am I looking at?"],
-        follow: "That's the protective layer wearing off. Once it's gone, moisture gets under the shingle — that's how you get wood rot, termites, even mold.", tip: "Let them look. Silence does the work." },
-      { type: "q", label: "Question 2", say: "When's the last time you popped your head in the attic?",
-        replies: ["Never.", "Maybe a year ago — it looked fine.", "I don't even know how to get up there.", "Last month, putting away decorations."],
-        follow: "Any stains or leaks up there? … Glad it hasn't happened yet! Catching it now is the cheap fix — once water reaches the decking, that's a much bigger bill. And attics are hot, dark and damp — exactly where mold likes to start.", tip: "No diagnosing. \"Can lead to\" — never \"you have\"." },
-      { type: "q", label: "Question 3", say: "Have you noticed little granules in your gutters or by the downspouts?",
-        replies: ["Yeah, like black sand?", "I haven't checked.", "The gardener mentioned something.", "No."],
-        follow: "Those granules are the roof's sunscreen. When they wash off, the San Diego sun bakes the shingles and they crack and curl a lot faster.", tip: "Tie it to the local climate — it makes it real." },
+      { type: "q", label: "Question 1", say: "Have you noticed the missing shingles — right there?", cue: "Point to the bare spots.", slick: true,
+        slickImg: "slicks/roof-missing-shingles.jpg", slickCap: "Missing shingles",
+        replies: ["No, I can't see the roof from here.", "Oh wow, I didn't know that.", "Is that from the wind?", "How bad is that?"],
+        follow: "Did you know missing shingles allow moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "SoCal formula: point out damage + consequence of damage." },
+      { type: "q", label: "Question 2", say: "Have you noticed the ridge caps up top — see how they're cracked and lifting?", cue: "Point to the peak of the roof.", slick: true,
+        slickImg: "slicks/roof-ridge-caps.jpg", slickCap: "Blown out ridge caps",
+        replies: ["I never look up there.", "Yeah, I see it now.", "What's a ridge cap?", "Is that serious?"],
+        follow: "The ridge caps seal the very top of your roof. Once they blow out, water runs straight down into the attic.", tip: "Show the slick so they know what to look for on their own roof." },
+      { type: "q", label: "Question 3", say: "When's the last time you popped your head in the attic — any water stains on the ceilings?", slick: true,
+        slickImg: "slicks/roof-leaks-attic.jpg", slickCap: "Roof leaks and attic damage",
+        replies: ["Never been up there.", "There's a spot in the hallway.", "Not that I've noticed.", "A while back."],
+        follow: "That's how it starts — a stain on the ceiling, then wet insulation and rotted decking. By the time you see it inside, it's usually been leaking a while.", tip: "Let the slick do the work — they picture their own attic." },
+      { type: "q", label: "Question 4", say: "Have you noticed those dark streaks on the roof?", cue: "Point to the darker patches.", slick: true,
+        slickImg: "slicks/roof-mold.jpg", slickCap: "Toxic mold",
+        replies: ["I thought that was just dirt.", "It's been getting darker.", "Is that mold?", "No."],
+        follow: "That's mold growing on the shingles. It holds moisture right against the roof and breaks it down faster.", tip: "Mold is a risk to point out \u2014 never a diagnosis of anyone in the house." },
       CLOSE
     ],
     "Paint/Stucco": [
@@ -145,9 +152,15 @@
     { obj: "We already have a guy.", steps: [
       ["Agree & empathize", "That's smart — it's good to have someone you trust."],
       ["Open question", "When's the last time he came out and looked at it?"],
-      ["Features & benefits", "Our inspection's free — think of it as a second set of eyes, with a written price to compare."],
+      ["Features & benefits", "We interview and vet hundreds of local contractors so you don't have to \u2014 only 27% get approved into our network, with a 98% customer satisfaction rating. It's a free second opinion, with a written price to compare."],
       ["Tie down", "Can't hurt to have options, right?"],
       ["Close", "Is morning or afternoon better?"] ] },
+    { obj: "We're going to get a few quotes first.", steps: [
+      ["Agree & empathize", "That's smart \u2014 you should never go with the first guy."],
+      ["Open question", "How do you usually decide who to trust?"],
+      ["Features & benefits", "That's exactly what we do for you \u2014 we interview and vet hundreds of local contractors, and only 27% make it into our network. 98% customer satisfaction."],
+      ["Tie down", "Saves you the hours of interviewing, right?"],
+      ["Close", "Morning or afternoon?"] ] },
     { obj: "Just leave a card.", steps: [
       ["Agree & empathize", "Happy to — here you go."],
       ["Open question", "What would make you actually call that number?"],
@@ -184,8 +197,11 @@
     return '<div class="tabs pr-tabs">' + chips + '</div>' + modes;
   }
 
-  function slickBox(product){
-    return '<div class="pr-slick" data-slick="' + esc(product) + '"><div class="pr-slick-img">' + SLICK_SVG[product] + '</div>' +
+  function slickBox(product, step){
+    var visual = step && step.slickImg
+      ? '<img src="' + esc(step.slickImg) + '" alt="' + esc(step.slickCap || "Slick") + '"><div class="pr-slick-cap">' + esc(step.slickCap || "") + '</div>'
+      : SLICK_SVG[product];
+    return '<div class="pr-slick" data-slick="' + esc(product) + '"><div class="pr-slick-img">' + visual + '</div>' +
       '<div class="photo-grid pr-slick-own" id="prSlickOwn"></div>' +
       '<label class="pr-slick-add"><input type="file" accept="image/*" multiple hidden data-slick-add="' + esc(product) + '">➕ Add my own slick photo</label></div>';
   }
@@ -215,7 +231,7 @@
       html += '<div class="pr-ho"><b>🏠 Homeowner:</b> “' + esc(r.reply) + '”</div>';
     }
     if(s.cue && r.phase === "say"){ html += '<div class="pr-cue">👉 ' + esc(s.cue) + '</div>'; }
-    if(s.slick && r.phase === "say"){ html += slickBox(r.product); }
+    if(s.slick && r.phase === "say"){ html += slickBox(r.product, s); }
     html += '<div class="pr-who">' + who + '</div>';
     if(hidden){
       html += '<div class="pr-line pr-hidden">Say it out loud first…</div>' +
