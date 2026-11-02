@@ -44,6 +44,19 @@
   };
 
   // ---------- Pitch 1 scripts (problem only — no product details) ----------
+  var TO_CLOSE = {
+    "Roof": "Good news is, right now it's still the easy fix — before it gets into the wood.",
+    "Paint/Stucco": "Good news is, right now it's still a paint and stucco job — not a framing job.",
+    "Fascia/Trim Boards": "Good news is, right now it's just a few boards — before it gets into the rafters.",
+    "Windows": "Good news is, right now it's just the windows — before the water gets into the wall."
+  };
+  var SOCAL_CLOSE = {
+    type: "close", label: "Close",
+    say: "Here is what I'm going to do… My guys are in the area. I'm going to put you at the top of my list for a free inspection tomorrow — what time works best for you and your spouse — morning or afternoon? … 2 or 6?",
+    replies: ["Afternoon works.", "Morning's better for us.", "My husband gets home around 5.", "6 is good."],
+    follow: "Perfect — I'll lock that in so you're both home. Excuse me — my name is Art, and you are? And how do I spell your last name?",
+    tip: "Close, then go straight into the info script. Don't stop talking after they pick a time."
+  };
   var CLOSE = {
     type: "close", label: "Close",
     say: "Here's what I'll do for you — I'll put you on my priority list. My inspector will come out, take measurements and pictures, and leave you an exact price in writing for whenever you're ready. Is morning or afternoon better — 10 or 2?",
@@ -51,9 +64,9 @@
   };
   var PITCHES = {
     Roof: [
-      { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some wear on your roof. Quick question — how long have you owned the home?",
+      { type: "open", label: "Intro", say: "Good morning! Beautiful home — the reason I stopped by was I noticed some missing shingles and exposed fiberglass on your roof. Quick question — how long have you owned the home?",
         replies: ["About 12 years.", "We bought it in 2008.", "Going on 15 years.", "Since 2010."],
-        follow: "Yeah, I figured — around that age is usually when the roof starts showing it.", tip: "Compliment, reason, specific concern, easy question." },
+        follow: "Yeah, I figured — around that age is usually when the roof starts showing it. Let me show you what I'm seeing — do you mind stepping out real quick?", tip: "Transition: answer, connect it to the damage, then get them out to look. 'Step out real quick' moves them toward the damage." },
       { type: "q", label: "Question 1", say: "Have you noticed the fiberglass showing on the shingles — right there?", cue: "Point to the worn, shiny spots.", slick: true,
         slickImg: "slicks/roof-dead-shingles.jpg", slickCap: "Exposed fiberglass = dead shingles",
         replies: ["No, I never really look up there.", "I think I've seen that.", "Is that bad?", "What am I looking at?"],
@@ -77,9 +90,9 @@
       CLOSE
     ],
     "Paint/Stucco": [
-      { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some cracking in the stucco. Quick question — how long have you owned the home?",
+      { type: "open", label: "Intro", say: "Good morning! Beautiful home — the reason I stopped by was I noticed chipping and peeling on your stucco. Quick question — how long have you owned the home?",
         replies: ["Almost 15 years.", "Since 2012.", "About 10 years.", "We bought it in 2009."],
-        follow: "Okay, so that's about right — that's usually when stucco starts letting go.", tip: "Point toward the wall as you say \"cracking\"." },
+        follow: "Okay, so that's about right — that's usually when stucco starts letting go. Come take a look at this real quick — right over here.", tip: "Transition: walk them to the wall. Once they're standing at the damage, the questions sell themselves." },
       { type: "q", label: "Question 1", say: "Have you noticed this damage getting worse?", cue: "Point to the chipping and peeling.",
         replies: ["Yeah, it's spreading.", "It's been like that a while.", "I haven't really paid attention.", "Is it bad?"],
         follow: "Did you know chipping and peeling allows moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "SoCal script: point out damage + consequence of damage." },
@@ -101,9 +114,9 @@
       CLOSE
     ],
     "Fascia/Trim Boards": [
-      { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed some damage on the trim up by the roofline. Quick question — how long have you owned the home?",
+      { type: "open", label: "Intro", say: "Good morning! Beautiful home — the reason I stopped by was I noticed the paint peeling and some wood rot on your fascia boards. Quick question — how long have you owned the home?",
         replies: ["About 10 years.", "Since 2014.", "Almost 20 years.", "It was my parents' house — 30 years."],
-        follow: "Gotcha — that's usually when the wood starts going.", tip: "Look up and point — get their eyes on the roofline." },
+        follow: "Gotcha — that's usually when the wood starts going. Step out real quick — look right up there at the roofline.", tip: "Transition: get their eyes up on the roofline before you ask anything." },
       { type: "q", label: "Question 1", say: "Have you noticed the paint peeling on the fascia boards up there?", cue: "Point to the peeling section at the roofline.", slick: true,
         slickImg: "slicks/house-framing.jpg", slickCap: "#5 Rafters/eaves \u2014 wood rot, termites, peeling paint, mold",
         replies: ["Yeah, it's been like that.", "I never look up there.", "Is that a big deal?", "No."],
@@ -118,9 +131,9 @@
       CLOSE
     ],
     Windows: [
-      { type: "open", label: "Opener", say: "Hi! I'm Art with SoCal — beautiful home! The reason I stopped by, I noticed your windows look like they might be original. Quick question — how long have you owned the home?",
+      { type: "open", label: "Intro", say: "Good morning! Beautiful home — the reason I stopped by was I noticed a couple of your windows are fogged up. Quick question — how long have you owned the home?",
         replies: ["Since the 90s.", "About 20 years.", "Going on 25 years.", "Since 2001."],
-        follow: "Makes sense — a lot of homes around here still have their original windows.", tip: "Point at the window frame." },
+        follow: "Makes sense — a lot of homes around here still have their original windows. Let me show you — see this one right here?", tip: "Transition: point at the foggiest window so they see it with you." },
       { type: "q", label: "Question 1", say: "Do you ever notice fog or condensation between the panes?", cue: "Point to the cloudy window.", slick: true,
         slickImg: "slicks/windows-9-signs.jpg", slickCap: "9 signs it's time to explore window replacement",
         replies: ["Yeah, that one's always cloudy.", "In the mornings sometimes.", "Never paid attention.", "No."],
@@ -229,7 +242,32 @@
 
 
   // Practice only the Question -> Education phase (no opener / close)
-  function runSteps(product){ return PITCHES[product].filter(function(x){ return x.type === "q"; }); }
+  // Full flow: Intro -> transition -> Q/E x3 -> transition -> Close -> transition to info
+  function runSteps(product){
+    var all = PITCHES[product];
+    var intro = all.filter(function(x){ return x.type === "open"; })[0];
+    var qs = all.filter(function(x){ return x.type === "q" && x.follow; }).slice(0, 3);
+    var toClose = { type: "trans", label: "Transition \u2192 Close", say: TO_CLOSE[product], tip: "Bridge from the damage to the fix \u2014 it's still the cheap stage. Then close." };
+    return [intro].concat(qs, [toClose, SOCAL_CLOSE]);
+  }
+  function phaseBar(s){
+    var cur = s.type === "open" ? 0 : s.type === "q" ? 1 : 2;
+    return ["Intro", "Question \u2192 Education", "Close"].map(function(n, i){ return '<span class="' + (i < cur ? "done" : i === cur ? "now" : "") + '">' + n + '</span>'; }).join("");
+  }
+  function stepTitle(s, phase){
+    if(s.type === "open") return phase === "follow" ? "Transition \u2192 Phase 2" : "Phase 1 \u00b7 Intro";
+    if(s.type === "q") return "Phase 2 \u00b7 " + s.label.replace("Question", phase === "follow" ? "Education" : "Question");
+    if(s.type === "trans") return s.label;
+    if(s.type === "close") return phase === "follow" ? "Transition \u2192 Info" : "Phase 3 \u00b7 Close";
+    return s.label;
+  }
+  function whoLabel(s, phase){
+    if(s.type === "open") return phase === "follow" ? "You transition" : "You say";
+    if(s.type === "q") return phase === "follow" ? "You educate" : "You ask";
+    if(s.type === "trans") return "You transition";
+    if(s.type === "close") return phase === "follow" ? "You transition" : "You close";
+    return "You say";
+  }
   function startRun(){
     var product = st.product === "Mix" ? pick(PRODUCTS) : st.product;
     st.run = { product: product, i: 0, phase: "say", revealed: st.mode === "learn", score: 0, total: 0, reply: null, scored: {} };
@@ -240,11 +278,12 @@
     var r = st.run, steps = runSteps(r.product), s = steps[r.i];
     var hidden = !r.revealed;
     var lineTxt = r.phase === "say" ? s.say : s.follow;
-    var who = r.phase === "say" ? "You ask" : "You educate";
+    var who = whoLabel(s, r.phase);
     var progress = steps.map(function(_, k){ return '<i class="' + (k < r.i ? "done" : k === r.i ? "now" : "") + '"></i>'; }).join("");
     var html = '<div class="pr-card">' +
       '<div class="pr-top"><span class="pr-prod">' + esc(r.product) + '</span><span class="pr-dots">' + progress + '</span></div>' +
-      '<div class="pr-step">' + esc(s.label) + (r.phase === "follow" ? " · Education" : "") + '</div>';
+      '<div class="pr-phase">' + phaseBar(s) + '</div>' +
+      '<div class="pr-step">' + esc(stepTitle(s, r.phase)) + '</div>';
     if(r.phase === "follow" && r.reply){
       html += '<div class="pr-ho"><b>🏠 Homeowner:</b> “' + esc(r.reply) + '”</div>';
     }
@@ -259,7 +298,7 @@
       if(st.mode === "drill" && !r.scored[r.i + r.phase]){
         html += '<div class="pr-score"><span>How did you do?</span><button type="button" class="ok" data-pa="hit">✅ Nailed it</button><button type="button" class="no" data-pa="miss">❌ Missed it</button></div>';
       } else {
-        html += '<button type="button" class="pr-btn" data-pa="next">' + (s.type === "close" && r.phase === "say" ? "Finish" : "Next →") + '</button>';
+        html += '<button type="button" class="pr-btn" data-pa="next">' + (r.i === steps.length - 1 && (r.phase === "follow" || !s.follow) ? "Finish" : "Next →") + '</button>';
       }
       if(s.tip && (r.phase === "follow" || !s.follow)){ html += '<div class="pr-tip">💡 ' + esc(s.tip) + '</div>'; }
     }
@@ -345,8 +384,8 @@
 
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : st.product;
-    return '<div class="pr-card pr-start"><div class="pr-step">Question → Education · ' + esc(p) + '</div>' +
-      '<p class="pr-sub">3 Question → Education loops. You ask, the homeowner answers, you educate.</p>' +
+    return '<div class="pr-card pr-start"><div class="pr-step">Full pitch · ' + esc(p) + '</div>' +
+      '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>' +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
       '<div class="pr-sub" style="margin-top:10px">' + repsThisWeek() + ' practice reps this week</div></div>';
