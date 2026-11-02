@@ -1144,6 +1144,7 @@
   function resetForm(){
     editingId = null;
     document.getElementById("leadForm").reset();
+    lastApptDate = null;
     setOthers([]);
     document.getElementById("dmBox").hidden = false;
     document.getElementById("f_other_project").style.display = "none";
@@ -1254,6 +1255,7 @@
     document.getElementById("f_wear_tear").value = l.wear_tear || "";
     document.getElementById("f_appt_day").value = l.appt_day || "";
     document.getElementById("f_appt_date").value = l.appt_date || "";
+    lastApptDate = l.appt_date || "";
     buildTimeOptions(l.appt_time || "");
     setTimeout(function(){ updateScript(); if(typeof updateInfoScript === "function"){ updateInfoScript(); } }, 0);
     document.getElementById("f_notes").value = l.notes || "";
@@ -1325,7 +1327,7 @@
         item("Wear and Tear", l.wear_tear)) +
 
       section("Appointment",
-        item("Scheduled", apptBits, true)) +
+        item("Scheduled", apptBits + ((l.appt_date || l.appt_day) && !l.appt_time ? " \u2014 time not set (tap Edit to add)" : ""), true)) +
 
       (l.project_notes && Object.keys(l.project_notes).length ? '<div class="form-section-title">Project details</div><div class="detail-grid">' +
         Object.keys(l.project_notes).map(function(k){ return item(k === "Other" ? ((l.interests || []).filter(function(i){ return /^Other:/.test(i); })[0] || "Other") : k, l.project_notes[k], true); }).join("") + '</div>' : '') +
@@ -1342,6 +1344,13 @@
 
   document.getElementById("leadForm").addEventListener("submit", function(e){
     e.preventDefault();
+    onApptDate();
+    if(document.getElementById("f_appt_date").value && !document.getElementById("f_appt_time").value){
+      var h = document.getElementById("schedHint"); var t = document.getElementById("f_appt_time");
+      h.textContent = "Pick a time for the appointment before saving."; h.className = "sched-hint warn";
+      t.scrollIntoView({ block: "center" }); t.focus();
+      return;
+    }
     var firstName = document.getElementById("f_first_name").value.trim();
     var lastName = document.getElementById("f_last_name").value.trim();
     var data = {
@@ -1930,7 +1939,16 @@
     } else { hint.textContent = ""; }
   }
   document.getElementById("f_appt_day").addEventListener("change", function(){ buildTimeOptions(); });
-  document.getElementById("f_appt_date").addEventListener("change", function(e){
+  var lastApptDate = null;
+  function onApptDate(){
+    var el = document.getElementById("f_appt_date");
+    if(el.value === lastApptDate) return;
+    lastApptDate = el.value;
+    applyApptDate({ target: el });
+  }
+  ["input", "change", "blur"].forEach(function(ev){ document.getElementById("f_appt_date").addEventListener(ev, onApptDate); });
+  ["focus", "touchstart", "mousedown"].forEach(function(ev){ document.getElementById("f_appt_time").addEventListener(ev, onApptDate, { passive: true }); });
+  function applyApptDate(e){
     var v = e.target.value; var hint = document.getElementById("schedHint");
     if(!v){ return; }
     var p = v.split("-"); var d = new Date(+p[0], +p[1]-1, +p[2]);
@@ -1943,7 +1961,7 @@
     }
     document.getElementById("f_appt_day").value = name;
     buildTimeOptions();
-  });
+  }
 
   // ---- Close script blanks ----
   function updateScript(){
