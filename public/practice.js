@@ -271,8 +271,16 @@
   var RB_KEY = "socal_my_rebuttals";
   var STEP_NAMES = ["Agree & empathize", "Open question", "Features & benefits", "Tie down", "Close"];
   function myRebuttals(){
-    try { var v = JSON.parse(localStorage.getItem(RB_KEY) || "null"); if(Array.isArray(v)) return v; } catch(e){}
-    return [];
+    var v = null;
+    try { v = JSON.parse(localStorage.getItem(RB_KEY) || "null"); } catch(e){}
+    if(!Array.isArray(v)){ v = []; }
+    var seeded = false; try { seeded = localStorage.getItem("socal_rb_seed_money") === "1"; } catch(e){}
+    if(!seeded && typeof MONEY_HOW !== "undefined"){
+      v.unshift({ obj: "We don\u2019t have the money right now.", steps: MONEY_HOW.map(function(x){ return x[1]; }) });
+      saveRebuttals(v);
+      try { localStorage.setItem("socal_rb_seed_money", "1"); } catch(e){}
+    }
+    return v;
   }
   function saveRebuttals(list){ try { localStorage.setItem(RB_KEY, JSON.stringify(list)); } catch(e){} }
   function drillable(){ return myRebuttals().filter(function(r){ return r.obj && r.steps.some(function(x){ return x && x.trim(); }); }); }
@@ -351,6 +359,12 @@
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“what will this cost me,”</b> it’s a money issue — even if they never say the word money.</div></div>' +
       '<div class="pr-card"><div class="pr-step">💵 Money Issue — how to handle it</div>' +
         MONEY_HOW.map(function(x, k){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>' + esc(x[0]) + '</div>' + (x[1] ? '<div class="pb-ex">“' + esc(x[1]) + '”</div>' + (x[2] ? '<p>' + esc(x[2]) + '</p>' : '') : '<p class="pr-sub">Coming soon</p>') + '</div>'; }).join("") + '</div>' +
+      '<div class="pr-card"><div class="pr-step">👫 Spouse Issue — how to spot it</div>' +
+        '<div class="rbm-sub">Said straight out</div><ul class="rbm-say">' +
+          ["I need to talk to my husband / wife first.", "My spouse handles that.", "I can’t decide without my partner.", "My husband / wife isn’t home.", "We make those decisions together."].map(function(q){ return '<li>“' + esc(q) + '”</li>'; }).join("") + '</ul>' +
+        '<div class="rbm-sub">Hidden — sounds like something else, but it’s the spouse</div><ul class="rbm-say">' +
+          [["Let me run it by them.", "not the decision maker"], ["They’d kill me if I set something up.", "afraid to commit without them"], ["Come back when they’re here.", "wants the spouse in the room"], ["I don’t know their schedule.", "can’t pick a time for both"], ["They’re the one who deals with the house.", "someone else owns the decision"], ["I’m just the renter / my parents own it.", "the real owner isn’t at the door"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“someone else has to say yes,”</b> it’s a spouse issue — even if they never mention the spouse.</div></div>' +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
