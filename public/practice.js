@@ -348,6 +348,13 @@
     ["Tie Down", "Make sense?", "Bridge right off Step 3 \u2014 nod while you ask so they nod with you."],
     ["Close", "My name is Art \u2014 how do I spell your name?", "Same close as the money issue \u2014 straight into the info. It assumes the appointment for when they\u2019re both home."]
   ];
+  var TIMING_HOW = [
+    ["Agree and Empathize", "No worries! We’re not expecting to get hired at the moment.", "You take the pressure off right away — you’re not asking for the job today. Their guard drops because “not right now” is fine with you."],
+    ["Ask a Question", "The only reason I pointed out the roof is that the fiberglass mesh on the shingles shows your roof is at its peak. How old is your roof? No leaks, right?", "You remind them why you stopped — the damage they can see — then ask its age and check for leaks. Their answers tell you how much time they really have. That’s your hotspot."],
+    ["Features and Benefits", "", ""],
+    ["Tie Down", "", ""],
+    ["Close", "", ""]
+  ];
   function howCard(title, list){
     return '<div class="pr-card"><div class="pr-step">' + title + '</div>' +
       list.map(function(x, k){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>' + esc(x[0]) + '</div>' + (x[1] ? '<div class="pb-ex">“' + esc(x[1]) + '”</div>' + (x[2] ? '<p>' + esc(x[2]) + '</p>' : '') : '<p class="pr-sub">Coming soon</p>') + '</div>'; }).join("") + '</div>';
@@ -389,6 +396,7 @@
         '<div class="rbm-sub">Hidden — sounds like something else, but it’s timing</div><ul class="rbm-say">' +
           [["We’re going to do it eventually.", "no urgency yet"], ["It’s not that bad yet.", "doesn’t see why now"], ["We have other projects first.", "it’s not at the top of the list"], ["We just moved in.", "still settling in"], ["We might be selling.", "unsure how long they’ll stay"], ["I’m on my way out / I’m in the middle of something.", "the moment is bad, not the idea"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“not right now,”</b> it’s a timing issue — even if they never say the word time.</div></div>' +
+      howCard("\u23f0 Timing Issue \u2014 how to handle it", TIMING_HOW) +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
