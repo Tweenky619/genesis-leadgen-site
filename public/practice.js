@@ -335,6 +335,17 @@
     ["Tie Down", "Fair enough?", "Bridge straight from Step 3 into it \u2014 nod while you say it so they nod with you. Wait for the \u201cyeah\u201d before you close."],
     ["Close", "My name is Art \u2014 how do I spell your name?", "Real simple. Once they say \u201cfair enough,\u201d you don\u2019t ask for permission \u2014 you go straight into the info. Asking how to spell their name assumes the appointment and starts the lead."]
   ];
+  var SPOUSE_HOW = [
+    ["Agree and Empathize", "As you should! If I was talking to your spouse, I would expect the same answer!", "You agree with them completely — deciding together is the right thing. Saying you’d expect the same from their spouse shows respect for both of them."],
+    ["Ask a Question", "I assume your spouse is working — is your spouse usually here at 3:00 or 4:00 pm?", "You assume the spouse is working and give two times. Either answer tells you when they’re both home — that’s your hotspot for setting the appointment."],
+    ["Features and Benefits", "", ""],
+    ["Tie Down", "", ""],
+    ["Close", "", ""]
+  ];
+  function howCard(title, list){
+    return '<div class="pr-card"><div class="pr-step">' + title + '</div>' +
+      list.map(function(x, k){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>' + esc(x[0]) + '</div>' + (x[1] ? '<div class="pb-ex">“' + esc(x[1]) + '”</div>' + (x[2] ? '<p>' + esc(x[2]) + '</p>' : '') : '<p class="pr-sub">Coming soon</p>') + '</div>'; }).join("") + '</div>';
+  }
   function rbLearn(){
     var S = [
       ["Agree and Empathize", "puts you <b>on their side</b>. Their guard drops because you’re not fighting them. It has to match the issue you identified — generic agreement doesn’t work."],
@@ -365,6 +376,7 @@
         '<div class="rbm-sub">Hidden — sounds like something else, but it’s the spouse</div><ul class="rbm-say">' +
           [["Let me run it by them.", "not the decision maker"], ["They’d kill me if I set something up.", "afraid to commit without them"], ["Come back when they’re here.", "wants the spouse in the room"], ["I don’t know their schedule.", "can’t pick a time for both"], ["They’re the one who deals with the house.", "someone else owns the decision"], ["I’m just the renter / my parents own it.", "the real owner isn’t at the door"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“someone else has to say yes,”</b> it’s a spouse issue — even if they never mention the spouse.</div></div>' +
+      howCard("\ud83d\udc6b Spouse Issue \u2014 how to handle it", SPOUSE_HOW) +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
