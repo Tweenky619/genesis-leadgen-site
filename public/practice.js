@@ -153,56 +153,7 @@
   };
   var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
 
-  var REBUTTALS = [
-    { obj: "Not interested.", steps: [
-      ["Agree & empathize", "I completely get it — nobody's looking for a project today."],
-      ["Open question", "Out of curiosity, what would it take for you to want someone to look at it?"],
-      ["Features & benefits", "That's exactly why the inspection is free — pictures, measurements, and an exact price in writing. No pressure."],
-      ["Tie down", "Doesn't hurt to know where you stand, right?"],
-      ["Close", "Is 10 or 2 better?"] ] },
-    { obj: "We don't have the money right now.", steps: [
-      ["Agree & empathize", "I hear you — honestly, most people I talk to say the same thing."],
-      ["Open question", "If the price made sense, what would you want taken care of first?"],
-      ["Features & benefits", "That's why the inspection's free — you'll have an exact number in writing so you can plan for it."],
-      ["Tie down", "Better to know now than get surprised later, fair enough?"],
-      ["Close", "Morning or afternoon?"] ] },
-    { obj: "I need to talk to my spouse.", steps: [
-      ["Agree & empathize", "Absolutely — you two should decide together."],
-      ["Open question", "What do you think they'd want to know most?"],
-      ["Features & benefits", "That's why we set it for when you're both home — he'll walk you both through it, with the price in writing."],
-      ["Tie down", "That way nobody's guessing, makes sense?"],
-      ["Close", "When are you both home — 10 or 2?"] ] },
-    { obj: "We just had it done.", steps: [
-      ["Agree & empathize", "That's great — sounds like you take care of your home."],
-      ["Open question", "How long ago was that done?"],
-      ["Features & benefits", "A second opinion is free — you'll have a written price to compare."],
-      ["Tie down", "Never hurts to compare, right?"],
-      ["Close", "10 or 2?"] ] },
-    { obj: "We already have a guy.", steps: [
-      ["Agree & empathize", "That's smart — it's good to have someone you trust."],
-      ["Open question", "When's the last time he came out and looked at it?"],
-      ["Features & benefits", "We interview and vet hundreds of local contractors so you don't have to \u2014 only 27% get approved into our network, with a 98% customer satisfaction rating. It's a free second opinion, with a written price to compare."],
-      ["Tie down", "Can't hurt to have options, right?"],
-      ["Close", "Is morning or afternoon better?"] ] },
-    { obj: "We're going to get a few quotes first.", steps: [
-      ["Agree & empathize", "That's smart \u2014 you should never go with the first guy."],
-      ["Open question", "How do you usually decide who to trust?"],
-      ["Features & benefits", "That's exactly what we do for you \u2014 we interview and vet hundreds of local contractors, and only 27% make it into our network. 98% customer satisfaction."],
-      ["Tie down", "Saves you the hours of interviewing, right?"],
-      ["Close", "Morning or afternoon?"] ] },
-    { obj: "Just leave a card.", steps: [
-      ["Agree & empathize", "Happy to — here you go."],
-      ["Open question", "What would make you actually call that number?"],
-      ["Features & benefits", "Honestly, it's easier if my inspector just swings by — 20 minutes, pictures, and a price in writing you can keep."],
-      ["Tie down", "Saves you a phone call, fair?"],
-      ["Close", "10 or 2?"] ] },
-    { obj: "We're thinking of selling.", steps: [
-      ["Agree & empathize", "Congrats — that's exciting."],
-      ["Open question", "What do you think a buyer's inspector is going to say about the roof?"],
-      ["Features & benefits", "Knowing the exact number now lets you decide — fix it, or price it in. Either way you're not surprised."],
-      ["Tie down", "Better to know before they do, right?"],
-      ["Close", "Morning or afternoon?"] ] }
-  ];
+  var REBUTTALS = [];
 
   // ---------- State ----------
   var LOG_KEY = "socal_practice_log";
@@ -321,7 +272,7 @@
   var STEP_NAMES = ["Agree & empathize", "Open question", "Features & benefits", "Tie down", "Close"];
   function myRebuttals(){
     try { var v = JSON.parse(localStorage.getItem(RB_KEY) || "null"); if(Array.isArray(v)) return v; } catch(e){}
-    return REBUTTALS.map(function(r){ return { obj: r.obj, steps: r.steps.map(function(x){ return x[1]; }) }; });
+    return [];
   }
   function saveRebuttals(list){ try { localStorage.setItem(RB_KEY, JSON.stringify(list)); } catch(e){} }
   function drillable(){ return myRebuttals().filter(function(r){ return r.obj && r.steps.some(function(x){ return x && x.trim(); }); }); }
@@ -336,7 +287,6 @@
         '<button type="button" class="rb-del" data-pa="rbdel" data-i="' + i + '">Delete this rebuttal</button></div>';
     }).join("");
     html += '<button type="button" class="pr-btn" data-pa="rbadd">➕ Add a rebuttal</button>' +
-      '<button type="button" class="pr-btn alt" data-pa="rbreset">↺ Restore the starter rebuttals</button>' +
       '<div class="pr-sub rb-saved" id="rbSaved" style="text-align:center;margin-top:8px">✓ Changes save automatically</div>';
     return html;
   }
@@ -353,44 +303,9 @@
     }).join("") + '</div>';
   }
   function rbLearn(){
-    function blk(title, body){ return '<details class="pb-sec"><summary>' + title + '</summary><div class="pb-body">' + body + '</div></details>'; }
-    function step(n, name, what, why, how, say, avoid){
-      return '<div class="rbl-step"><div class="rbl-h"><span>' + n + '</span>' + name + '</div>' +
-        '<p><b>What it is:</b> ' + what + '</p><p><b>Why it works:</b> ' + why + '</p><p><b>How to do it:</b> ' + how + '</p>' +
-        '<div class="pb-ex">' + say + '</div><p class="rbl-avoid">⚠️ ' + avoid + '</p></div>';
-    }
-    return rbBar("learn") + '<div class="pb">' +
-      '<details class="pb-sec" open><summary>🎯 What a rebuttal is for</summary><div class="pb-body">' +
-        '<p class="pb-lead">A rebuttal isn’t arguing. It’s how you <b>keep the conversation going</b> after a “no” so you can find out what’s really going on.</p>' +
-        '<ul class="pb-x"><li><b>The first “no” is almost never real.</b> It’s a reflex — a shield people use with any stranger at the door.</li>' +
-        '<li><b>The rebuttal gets past the shield</b> without pushing, so they relax.</li>' +
-        '<li><b>It uncovers the real objection</b> — money, spouse, timing, trust — which is something you can actually help with.</li>' +
-        '<li><b>It earns a second ask.</b> After the rebuttal, the close feels natural instead of pushy.</li></ul></div></details>' +
-      blk("🧠 Why it works", '<ul class="pb-x">' +
-        '<li><b>People push back when they feel pushed.</b> Agreeing first takes away the fight — you can’t argue with someone who agrees with you.</li>' +
-        '<li><b>People trust what they say more than what they hear.</b> A question gets <i>them</i> talking and telling you the real reason.</li>' +
-        '<li><b>A concern answered with value</b> feels like help, not a pitch.</li>' +
-        '<li><b>Small yeses lead to big yeses.</b> Once they agree to “fair enough?”, saying yes to a time is easy.</li>' +
-        '<li><b>A choice beats a yes/no.</b> “2 or 6?” assumes the appointment — there’s no easy “no” button.</li></ul>') +
-      blk("⚙️ How it works — the 5 steps",
-        step(1, "Agree & empathize", "Agree with how they feel — not that they’re right to say no.", "It drops their guard. They expected a fight and got understanding.", "Calm voice, nod, small smile. Use their words back.", "“I completely get it — nobody’s looking for a project today.”", "Don’t say “but” right after — it erases the agreement. Use “and” or pause.") +
-        step(2, "Ask an open question", "A question they can’t answer with yes or no.", "It gets them talking and reveals the real objection behind the reflex.", "Start with what, how, when, or who. Then stop and listen.", "“Out of curiosity, what would it take for you to want someone to look at it?”", "Don’t skip this step — it’s the one most reps skip, and it’s the one that makes the rest work.") +
-        step(3, "Features & benefits", "Answer their actual concern with what’s in it for them.", "Now you’re solving their problem, not reading a pitch.", "Tie it to what they just told you. Keep it short: free, pictures, exact price in writing.", "“That’s exactly why the inspection is free — pictures, measurements, and an exact price in writing. No pressure.”", "Don’t list everything — answer the one thing they care about.") +
-        step(4, "Tie down", "A short question that gets a small yes.", "It locks in agreement and builds momentum toward the close.", "End your benefit with a quick check, and nod as you say it.", "“Doesn’t hurt to know where you stand, right?” / “Fair enough?”", "Don’t rush past it — wait for the “yeah” or the nod.") +
-        step(5, "Close", "Ask for the appointment again — as a choice.", "Two good options make it easy to say yes to one.", "Same energy as the first close. Then stop talking.", "“Morning or afternoon? … 2 or 6?”", "Don’t fill the silence after you ask. Whoever talks first loses the moment.")) +
-      blk("📏 Rules", '<ul class="pb-x">' +
-        '<li><b>Two rebuttals max.</b> After that, it feels like pressure — leave a card and move on.</li>' +
-        '<li><b>Know a real no.</b> Renters, selling next week, just replaced it — thank them and go to the next door.</li>' +
-        '<li><b>Same tone as the pitch.</b> Calm and friendly. If you get defensive, they get defensive.</li>' +
-        '<li><b>Listen more than you talk.</b> Step 2 is where the rebuttal is won.</li></ul>') +
-      blk("🗣️ Teaching it to a new rep", '<ol class="pb-steps">' +
-        '<li><b>Explain the why first</b> — the first no is a reflex, not a decision.</li>' +
-        '<li><b>Model it</b> — you play the rep, they play the homeowner.</li>' +
-        '<li><b>Flip it</b> — they rebut, you give the objection. Start with “Not interested.”</li>' +
-        '<li><b>Coach one step at a time</b> — most new reps skip step 2. Make them ask the question before anything else.</li>' +
-        '<li><b>Drill it here</b> — use the 🎯 Drill tab until it’s automatic.</li></ol>') +
-    '</div>';
+    return rbBar("learn") + '<div class="pr-card"><div class="pr-step">Your rebuttal method</div><p class="pr-sub">This section is being rebuilt in Art\u2019s own words.</p></div>';
   }
+
   function rebuttalCard(){
     if(st.rbView === "learn"){ return rbLearn(); }
     if(st.rbEdit){ return rbEditor(); }
