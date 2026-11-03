@@ -361,6 +361,13 @@
     ["Tie Down", "Sounds good?", "Bridge right off Step 3 \u2014 nod while you ask so they nod with you."],
     ["Close", "My name is Art \u2014 how do I spell your name?", "Same close as money and spouse \u2014 straight into the info."]
   ];
+  var FLYER_HOW = [
+    ["Agree and Empathize", "That’s exactly what my specialist is doing tomorrow! We’ll leave you a written quote with our info — take dimensions, give you an exact price, and leave our number so you can contact us.", "You agree with what they asked for — then show the inspection IS the info they want, only better: a written quote, real dimensions, an exact price, and your number. Their reason to say no becomes the reason to say yes."],
+    ["Ask a Question", "", ""],
+    ["Features and Benefits", "", ""],
+    ["Tie Down", "", ""],
+    ["Close", "", ""]
+  ];
   function howCard(title, list){
     return '<div class="pr-card"><div class="pr-step">' + title + '</div>' +
       list.map(function(x, k){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>' + esc(x[0]) + '</div>' + (x[1] ? '<div class="pb-ex">“' + esc(x[1]) + '”</div>' + (x[2] ? '<p>' + esc(x[2]) + '</p>' : '') : '<p class="pr-sub">Coming soon</p>') + '</div>'; }).join("") + '</div>';
@@ -409,6 +416,7 @@
         '<div class="rbm-sub">Hidden — sounds like something else, but it’s flyer/info</div><ul class="rbm-say">' +
           [["I’ll call you if I’m interested.", "wants to end the conversation politely"], ["Let me do some research first.", "wants info without committing"], ["Leave it in the mailbox.", "avoiding the face-to-face"], ["How much does it usually cost? Just give me a ballpark.", "wants a number so they can walk away"], ["We’ll reach out when we’re ready.", "putting the ball in their court"], ["I get a lot of these — just leave your info.", "lumping you in with everyone else"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“give me something so you can leave,”</b> it’s a flyer/info issue — a polite way of saying no.</div></div>' +
+      howCard("\ud83d\udcc4 Flyer/Info Issue \u2014 how to handle it", FLYER_HOW) +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
