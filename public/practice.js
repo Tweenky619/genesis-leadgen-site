@@ -292,6 +292,12 @@
       saveRebuttals(v);
       try { localStorage.setItem("socal_rb_seed_timing", "1"); } catch(e){}
     }
+    var seededF = false; try { seededF = localStorage.getItem("socal_rb_seed_flyer") === "1"; } catch(e){}
+    if(!seededF && typeof FLYER_HOW !== "undefined"){
+      v.push({ obj: "Just leave me a flyer.", steps: FLYER_HOW.map(function(x){ return x[1]; }) });
+      saveRebuttals(v);
+      try { localStorage.setItem("socal_rb_seed_flyer", "1"); } catch(e){}
+    }
     return v;
   }
   function saveRebuttals(list){ try { localStorage.setItem(RB_KEY, JSON.stringify(list)); } catch(e){} }
@@ -366,7 +372,7 @@
     ["Ask a Question", "How many quotes do you have in your files for new windows? What manufacturers are you familiar with?", "Two open questions that get them talking about what they already know. If they have zero quotes, they need the inspection. If they name quotes or brands, you learn who you\u2019re up against and what they care about \u2014 that\u2019s your hotspot."],
     ["Features and Benefits", "Our high-performance windows have the best warranty in the window industry. When it comes down to wear and tear on our windows, we back you up with a lifetime warranty on labor and material!", "A flyer can\u2019t back them up \u2014 a warranty can. Feature: lifetime warranty on labor and material. Benefit: wear and tear is covered, so they never pay for it twice."],
     ["Tie Down", "Sounds like the best option, right?", "Bridge right off the warranty \u2014 nod while you ask so they nod with you."],
-    ["Close", "", ""]
+    ["Close", "My name is Art \u2014 how do I spell your name?", "Same close as the other three \u2014 straight into the info."]
   ];
   function howCard(title, list){
     return '<div class="pr-card"><div class="pr-step">' + title + '</div>' +
