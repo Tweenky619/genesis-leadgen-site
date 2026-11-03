@@ -338,8 +338,8 @@
   var SPOUSE_HOW = [
     ["Agree and Empathize", "As you should! If I was talking to your spouse, I would expect the same answer!", "You agree with them completely — deciding together is the right thing. Saying you’d expect the same from their spouse shows respect for both of them."],
     ["Ask a Question", "I assume your spouse is working — is your spouse usually here at 3:00 or 4:00 pm?", "You assume the spouse is working and give two times. Either answer tells you when they’re both home — that’s your hotspot for setting the appointment."],
-    ["Features and Benefits", "", ""],
-    ["Tie Down", "", ""],
+    ["Features and Benefits", "Our initiative is to make sure that when you and your spouse are ready to tackle this project, we\u2019ve answered all of your questions and concerns \u2014 so we can spark an interest, and when you and your spouse are ready, you\u2019ll both make a wiser choice!", "The benefit is for both of them: every question and concern answered, with both of them there, so they make a wiser choice together. It turns \u201cI need to ask my spouse\u201d into the reason to set the inspection when they\u2019re both home."],
+    ["Tie Down", "Make sense?", "Bridge right off Step 3 \u2014 nod while you ask so they nod with you."],
     ["Close", "", ""]
   ];
   function howCard(title, list){
