@@ -206,7 +206,7 @@
 
   // ---------- State ----------
   var LOG_KEY = "socal_practice_log";
-  var st = { product: "Roof", mode: "learn", run: null, rb: null };
+  var st = { product: "Playbook", mode: "learn", run: null, rb: null };
   function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
   function logGet(){ try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]") || []; } catch(e){ return []; } }
   function logAdd(rec){ var l = logGet(); l.push(rec); try { localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(-500))); } catch(e){} }
@@ -217,11 +217,11 @@
   var esc = A.esc;
 
   function header(){
-    var chips = PRODUCTS.concat(["Mix", "Rebuttals", "Progress"]).map(function(p){
-      var lbl = p === "Mix" ? "🎲 Mix" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p;
+    var chips = ["Playbook"].concat(PRODUCTS, ["Mix", "Rebuttals", "Progress"]).map(function(p){
+      var lbl = p === "Mix" ? "🎲 Mix" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
-    var modes = (st.product === "Rebuttals" || st.product === "Progress") ? "" :
+    var modes = (st.product === "Rebuttals" || st.product === "Progress" || st.product === "Playbook") ? "" :
       '<div class="pr-modes"><button type="button" class="' + (st.mode === "learn" ? "on" : "") + '" data-pm="learn">📖 Learn</button><button type="button" class="' + (st.mode === "drill" ? "on" : "") + '" data-pm="drill">🎯 Drill</button></div>';
     return '<div class="tabs pr-tabs">' + chips + '</div>' + modes;
   }
@@ -395,6 +395,7 @@
     var body;
     if(st.product === "Rebuttals"){ body = rebuttalCard(); }
     else if(st.product === "Progress"){ body = progressCards(); }
+    else if(st.product === "Playbook"){ body = window.playbookHtml ? window.playbookHtml() : ""; }
     else if(!st.run){ body = startCard(); }
     else if(st.run.finished){ body = summaryCard(); }
     else { body = stepCard(); }
