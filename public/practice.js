@@ -350,7 +350,7 @@
   ];
   var TIMING_HOW = [
     ["Agree and Empathize", "No worries! We’re not expecting to get hired at the moment.", "You take the pressure off right away — you’re not asking for the job today. Their guard drops because “not right now” is fine with you."],
-    ["Ask a Question", "The only reason I pointed out the roof is that the fiberglass mesh on the shingles shows your roof is at its peak. How old is your roof? No leaks, right?", "You remind them why you stopped — the damage they can see — then ask its age and check for leaks. Their answers tell you how much time they really have. That’s your hotspot."],
+    ["Ask a Question", "The only reason I pointed out the roof is that the fiberglass mesh on the shingles shows your roof is past its peak. How old is your roof? No leaks, right?", "You remind them why you stopped — the damage they can see — then ask its age and check for leaks. Their answers tell you how much time they really have. That’s your hotspot."],
     ["Features and Benefits", "", ""],
     ["Tie Down", "", ""],
     ["Close", "", ""]
