@@ -306,7 +306,13 @@
   var ART_METHOD = {
     what: "Rebuttals are a way to overcome any objection the homeowner throws at you.",
     stepsIntro: "Before handling any of those objections, you need to know the five steps of the rebuttal:",
-    steps: ["Agree and Empathize", "Ask a Question", "Features and Benefits", "Tie Down", "Close"],
+    steps: [
+      { name: "Agree and Empathize", why: "So the homeowner knows we are on their side. It lowers the homeowner\u2019s defenses \u2014 but it has to be relevant to the issue you identified. That way we can transition to Step 2.", key: "Relevant to their issue" },
+      { name: "Ask a Question", why: "Ask a question that is open-ended and relevant. A question helps you gain control of the conversation so you can gather info \u2014 the hotspot. That way the homeowner guides you on what kind of features and benefits will be effective in Step 3.", key: "Find the hotspot" },
+      { name: "Features and Benefits", why: "Homeowners hear features that tell and benefits that sell! We need to be excited, because motions create emotions to inspire desire! Then we bridge it to Step 4.", key: "Features tell, benefits sell \u2014 motions create emotions to inspire desire" },
+      { name: "Tie Down", why: "Makes sure the homeowner acknowledges it \u2014 it makes logical sense why they should allow us to see them. Nod your head while you ask so they follow suit.", key: "Nod so they follow suit" },
+      { name: "Close", why: "With the first four steps done, Step 5 is an easy close \u2014 and we generate the lead!", key: "Easy close = lead generated" }
+    ],
     objections: [
       { n: 1, name: "Money Issue", icon: "💵", notes: [] },
       { n: 2, name: "Spouse Issue", icon: "👫", notes: [] },
@@ -317,7 +323,12 @@
   function rbLearn(){
     return rbBar("learn") + '<div class="pr-card"><div class="pr-step">What rebuttals are</div><p class="rbm-what">' + esc(ART_METHOD.what) + '</p></div>' +
       '<div class="pr-card"><div class="pr-step">The 5 steps of the rebuttal</div><p class="pr-sub" style="margin:0 0 6px">' + esc(ART_METHOD.stepsIntro) + '</p>' +
-      ART_METHOD.steps.map(function(x, i){ return '<div class="rbm-step"><span>' + (i + 1) + '</span>Step ' + (i + 1) + ' \u2014 ' + esc(x) + '</div>'; }).join("") + '</div>' +
+      ART_METHOD.steps.map(function(x, i){ return '<div class="rbm-step"><span>' + (i + 1) + '</span>Step ' + (i + 1) + ' \u2014 ' + esc(x.name) + '</div>'; }).join("") + '</div>' +
+      '<div class="pr-card"><div class="pr-step">Why every step is so important</div>' +
+      ART_METHOD.steps.map(function(x, i){
+        return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x.name) + '</div><p>' + esc(x.why) + '</p><div class="rbm-key">\ud83d\udd11 ' + esc(x.key) + '</div>' +
+          (i < 4 ? '<div class="rbm-next">\u2193 bridges to Step ' + (i + 2) + '</div>' : '') + '</div>';
+      }).join("") + '</div>' +
       '<div class="pr-card"><div class="pr-step">The 4 main objections</div>' +
       ART_METHOD.objections.map(function(o){
         return '<div class="rbm-obj"><div class="rbm-h"><span>' + o.n + '</span>' + o.icon + ' ' + esc(o.name) + '</div>' +
