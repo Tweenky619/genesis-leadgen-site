@@ -383,6 +383,12 @@
           [["Let me run it by them.", "not the decision maker"], ["They’d kill me if I set something up.", "afraid to commit without them"], ["Come back when they’re here.", "wants the spouse in the room"], ["I don’t know their schedule.", "can’t pick a time for both"], ["They’re the one who deals with the house.", "someone else owns the decision"], ["I’m just the renter / my parents own it.", "the real owner isn’t at the door"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“someone else has to say yes,”</b> it’s a spouse issue — even if they never mention the spouse.</div></div>' +
       howCard("\ud83d\udc6b Spouse Issue \u2014 how to handle it", SPOUSE_HOW) +
+      '<div class="pr-card"><div class="pr-step">⏰ Timing Issue — how to spot it</div>' +
+        '<div class="rbm-sub">Said straight out</div><ul class="rbm-say">' +
+          ["Now’s not a good time.", "We’re not ready yet.", "Maybe next year.", "We’re too busy right now.", "Come back in a few months."].map(function(q){ return '<li>“' + esc(q) + '”</li>'; }).join("") + '</ul>' +
+        '<div class="rbm-sub">Hidden — sounds like something else, but it’s timing</div><ul class="rbm-say">' +
+          [["We’re going to do it eventually.", "no urgency yet"], ["It’s not that bad yet.", "doesn’t see why now"], ["We have other projects first.", "it’s not at the top of the list"], ["We just moved in.", "still settling in"], ["We might be selling.", "unsure how long they’ll stay"], ["I’m on my way out / I’m in the middle of something.", "the moment is bad, not the idea"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“not right now,”</b> it’s a timing issue — even if they never say the word time.</div></div>' +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
