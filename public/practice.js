@@ -320,6 +320,13 @@
       { n: 4, name: "Flyer/Info Issue", icon: "📄", notes: [] }
     ]
   };
+  var MONEY_HOW = [
+    ["Agree and Empathize", "It’s ok! It doesn’t stop me from earning your business!", "You agree their money concern is okay — and in the same breath show it’s not the end of the conversation."],
+    ["Ask a Question", "", ""],
+    ["Features and Benefits", "", ""],
+    ["Tie Down", "", ""],
+    ["Close", "", ""]
+  ];
   function rbLearn(){
     var S = [
       ["Agree and Empathize", "puts you <b>on their side</b>. Their guard drops because you’re not fighting them. It has to match the issue you identified — generic agreement doesn’t work."],
@@ -342,6 +349,8 @@
         '<div class="rbm-sub">Hidden — sounds like something else, but it’s money</div><ul class="rbm-say">' +
           [["We’re not ready for something that big.", "scared of the price"], ["We just paid for ___.", "money’s already spent"], ["Maybe after the holidays / tax season.", "timing that’s really money"], ["How much does something like that run?", "price is on their mind"], ["We’ll just patch it ourselves.", "avoiding the cost"], ["We’re saving up for it.", "they don’t have it yet"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“what will this cost me,”</b> it’s a money issue — even if they never say the word money.</div></div>' +
+      '<div class="pr-card"><div class="pr-step">💵 Money Issue — how to handle it</div>' +
+        MONEY_HOW.map(function(x, k){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>' + esc(x[0]) + '</div>' + (x[1] ? '<div class="pb-ex">“' + esc(x[1]) + '”</div>' + (x[2] ? '<p>' + esc(x[2]) + '</p>' : '') : '<p class="pr-sub">Coming soon</p>') + '</div>'; }).join("") + '</div>' +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
