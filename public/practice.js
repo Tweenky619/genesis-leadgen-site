@@ -206,7 +206,7 @@
 
   // ---------- State ----------
   var LOG_KEY = "socal_practice_log";
-  var st = { product: "Playbook", mode: "learn", run: null, rb: null };
+  var st = { product: "Playbook", mode: "learn", run: null, rb: null, rbView: "learn" };
   function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
   function logGet(){ try { return JSON.parse(localStorage.getItem(LOG_KEY) || "[]") || []; } catch(e){ return []; } }
   function logAdd(rec){ var l = logGet(); l.push(rec); try { localStorage.setItem(LOG_KEY, JSON.stringify(l.slice(-500))); } catch(e){} }
@@ -327,7 +327,7 @@
   function drillable(){ return myRebuttals().filter(function(r){ return r.obj && r.steps.some(function(x){ return x && x.trim(); }); }); }
   function rbEditor(){
     var list = myRebuttals();
-    var html = '<div class="rb-bar"><button type="button" class="rb-tab" data-pa="rbdrill">🎯 Drill</button><button type="button" class="rb-tab on">✏️ Edit my rebuttals</button></div>' +
+    var html = rbBar("edit") +
       '<p class="pr-sub" style="margin:0 0 10px">Type what <b>you</b> say. Leave a step blank to skip it. Saved on this phone.</p>';
     html += list.map(function(r, i){
       return '<div class="pr-card rb-ed" data-rbi="' + i + '">' +
@@ -347,10 +347,55 @@
     });
     return list;
   }
+  function rbBar(cur){
+    return '<div class="rb-bar">' + [["learn","🎓 Learn","rblearn"],["drill","🎯 Drill","rbdrill"],["edit","✏️ Edit","rbedit"]].map(function(t){
+      return '<button type="button" class="rb-tab' + (t[0] === cur ? " on" : "") + '"' + (t[0] === cur ? "" : ' data-pa="' + t[2] + '"') + '>' + t[1] + '</button>';
+    }).join("") + '</div>';
+  }
+  function rbLearn(){
+    function blk(title, body){ return '<details class="pb-sec"><summary>' + title + '</summary><div class="pb-body">' + body + '</div></details>'; }
+    function step(n, name, what, why, how, say, avoid){
+      return '<div class="rbl-step"><div class="rbl-h"><span>' + n + '</span>' + name + '</div>' +
+        '<p><b>What it is:</b> ' + what + '</p><p><b>Why it works:</b> ' + why + '</p><p><b>How to do it:</b> ' + how + '</p>' +
+        '<div class="pb-ex">' + say + '</div><p class="rbl-avoid">⚠️ ' + avoid + '</p></div>';
+    }
+    return rbBar("learn") + '<div class="pb">' +
+      '<details class="pb-sec" open><summary>🎯 What a rebuttal is for</summary><div class="pb-body">' +
+        '<p class="pb-lead">A rebuttal isn’t arguing. It’s how you <b>keep the conversation going</b> after a “no” so you can find out what’s really going on.</p>' +
+        '<ul class="pb-x"><li><b>The first “no” is almost never real.</b> It’s a reflex — a shield people use with any stranger at the door.</li>' +
+        '<li><b>The rebuttal gets past the shield</b> without pushing, so they relax.</li>' +
+        '<li><b>It uncovers the real objection</b> — money, spouse, timing, trust — which is something you can actually help with.</li>' +
+        '<li><b>It earns a second ask.</b> After the rebuttal, the close feels natural instead of pushy.</li></ul></div></details>' +
+      blk("🧠 Why it works", '<ul class="pb-x">' +
+        '<li><b>People push back when they feel pushed.</b> Agreeing first takes away the fight — you can’t argue with someone who agrees with you.</li>' +
+        '<li><b>People trust what they say more than what they hear.</b> A question gets <i>them</i> talking and telling you the real reason.</li>' +
+        '<li><b>A concern answered with value</b> feels like help, not a pitch.</li>' +
+        '<li><b>Small yeses lead to big yeses.</b> Once they agree to “fair enough?”, saying yes to a time is easy.</li>' +
+        '<li><b>A choice beats a yes/no.</b> “2 or 6?” assumes the appointment — there’s no easy “no” button.</li></ul>') +
+      blk("⚙️ How it works — the 5 steps",
+        step(1, "Agree & empathize", "Agree with how they feel — not that they’re right to say no.", "It drops their guard. They expected a fight and got understanding.", "Calm voice, nod, small smile. Use their words back.", "“I completely get it — nobody’s looking for a project today.”", "Don’t say “but” right after — it erases the agreement. Use “and” or pause.") +
+        step(2, "Ask an open question", "A question they can’t answer with yes or no.", "It gets them talking and reveals the real objection behind the reflex.", "Start with what, how, when, or who. Then stop and listen.", "“Out of curiosity, what would it take for you to want someone to look at it?”", "Don’t skip this step — it’s the one most reps skip, and it’s the one that makes the rest work.") +
+        step(3, "Features & benefits", "Answer their actual concern with what’s in it for them.", "Now you’re solving their problem, not reading a pitch.", "Tie it to what they just told you. Keep it short: free, pictures, exact price in writing.", "“That’s exactly why the inspection is free — pictures, measurements, and an exact price in writing. No pressure.”", "Don’t list everything — answer the one thing they care about.") +
+        step(4, "Tie down", "A short question that gets a small yes.", "It locks in agreement and builds momentum toward the close.", "End your benefit with a quick check, and nod as you say it.", "“Doesn’t hurt to know where you stand, right?” / “Fair enough?”", "Don’t rush past it — wait for the “yeah” or the nod.") +
+        step(5, "Close", "Ask for the appointment again — as a choice.", "Two good options make it easy to say yes to one.", "Same energy as the first close. Then stop talking.", "“Morning or afternoon? … 2 or 6?”", "Don’t fill the silence after you ask. Whoever talks first loses the moment.")) +
+      blk("📏 Rules", '<ul class="pb-x">' +
+        '<li><b>Two rebuttals max.</b> After that, it feels like pressure — leave a card and move on.</li>' +
+        '<li><b>Know a real no.</b> Renters, selling next week, just replaced it — thank them and go to the next door.</li>' +
+        '<li><b>Same tone as the pitch.</b> Calm and friendly. If you get defensive, they get defensive.</li>' +
+        '<li><b>Listen more than you talk.</b> Step 2 is where the rebuttal is won.</li></ul>') +
+      blk("🗣️ Teaching it to a new rep", '<ol class="pb-steps">' +
+        '<li><b>Explain the why first</b> — the first no is a reflex, not a decision.</li>' +
+        '<li><b>Model it</b> — you play the rep, they play the homeowner.</li>' +
+        '<li><b>Flip it</b> — they rebut, you give the objection. Start with “Not interested.”</li>' +
+        '<li><b>Coach one step at a time</b> — most new reps skip step 2. Make them ask the question before anything else.</li>' +
+        '<li><b>Drill it here</b> — use the 🎯 Drill tab until it’s automatic.</li></ol>') +
+    '</div>';
+  }
   function rebuttalCard(){
+    if(st.rbView === "learn"){ return rbLearn(); }
     if(st.rbEdit){ return rbEditor(); }
     var pool = drillable();
-    var bar = '<div class="rb-bar"><button type="button" class="rb-tab on">🎯 Drill</button><button type="button" class="rb-tab" data-pa="rbedit">✏️ Edit my rebuttals</button></div>';
+    var bar = rbBar("drill");
     if(!pool.length){ return bar + '<div class="pr-card"><div class="pr-sub">No rebuttals yet. Tap <b>✏️ Edit my rebuttals</b> to add yours.</div></div>'; }
     if(!st.rb || pool.indexOf(st.rb.item) === -1 && !pool.some(function(x){ return x.obj === st.rb.item.obj; })){ st.rb = { item: pick(pool), shown: 0, done: st.rb ? st.rb.done : 0 }; }
     var rb = st.rb;
@@ -465,8 +510,9 @@
     else if(a === "next"){ advance(); }
     else if(a === "rbnext"){ st.rb.shown++; var n = st.rb.item.steps.filter(function(x){ return x; }).length; if(st.rb.shown === n){ st.rb.done++; logAdd({ ts: Date.now(), product: "Rebuttals", mode: "drill" }); } render(); }
     else if(a === "rbnew"){ var d = st.rb.done, pool = drillable(), cur = st.rb.item; var next = pool.length > 1 ? pick(pool.filter(function(x){ return x.obj !== cur.obj; })) : pick(pool); st.rb = { item: next, shown: 0, done: d }; render(); }
-    else if(a === "rbedit"){ st.rbEdit = true; render(); }
-    else if(a === "rbdrill"){ saveRebuttals(collectEditor()); st.rbEdit = false; st.rb = null; render(); }
+    else if(a === "rbedit"){ st.rbView = "edit"; st.rbEdit = true; render(); }
+    else if(a === "rbdrill"){ if(st.rbEdit){ saveRebuttals(collectEditor()); } st.rbView = "drill"; st.rbEdit = false; st.rb = null; render(); }
+    else if(a === "rblearn"){ if(st.rbEdit){ saveRebuttals(collectEditor()); } st.rbView = "learn"; st.rbEdit = false; render(); }
     else if(a === "rbadd"){ var l = collectEditor(); l.push({ obj: "", steps: ["", "", "", "", ""] }); saveRebuttals(l); render(); var eds = root.querySelectorAll(".rb-ed"); var last = eds[eds.length - 1]; if(last){ last.scrollIntoView({ block: "start" }); last.querySelector(".rb-obj").focus(); } }
     else if(a === "rbdel"){ var l2 = collectEditor(); l2.splice(+t.getAttribute("data-i"), 1); saveRebuttals(l2); render(); }
     else if(a === "rbreset"){ try { localStorage.removeItem(RB_KEY); } catch(e){} render(); }
