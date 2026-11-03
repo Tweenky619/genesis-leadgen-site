@@ -321,19 +321,24 @@
     ]
   };
   function rbLearn(){
-    return rbBar("learn") + '<div class="pr-card"><div class="pr-step">What rebuttals are</div><p class="rbm-what">' + esc(ART_METHOD.what) + '</p></div>' +
-      '<div class="pr-card"><div class="pr-step">The 5 steps of the rebuttal</div><p class="pr-sub" style="margin:0 0 6px">' + esc(ART_METHOD.stepsIntro) + '</p>' +
-      ART_METHOD.steps.map(function(x, i){ return '<div class="rbm-step"><span>' + (i + 1) + '</span>Step ' + (i + 1) + ' \u2014 ' + esc(x.name) + '</div>'; }).join("") + '</div>' +
-      '<div class="pr-card"><div class="pr-step">Why every step is so important</div>' +
-      ART_METHOD.steps.map(function(x, i){
-        return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x.name) + '</div><p>' + esc(x.why) + '</p><div class="rbm-key">\ud83d\udd11 ' + esc(x.key) + '</div>' +
-          (i < 4 ? '<div class="rbm-next">\u2193 bridges to Step ' + (i + 2) + '</div>' : '') + '</div>';
-      }).join("") + '</div>' +
-      '<div class="pr-card"><div class="pr-step">The 4 main objections</div>' +
-      ART_METHOD.objections.map(function(o){
-        return '<div class="rbm-obj"><div class="rbm-h"><span>' + o.n + '</span>' + o.icon + ' ' + esc(o.name) + '</div>' +
-          (o.notes.length ? '<ul>' + o.notes.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' : '') + '</div>';
-      }).join("") + '</div>';
+    var S = [
+      ["Agree and Empathize", "puts you <b>on their side</b>. Their guard drops because you’re not fighting them. It has to match the issue you identified — generic agreement doesn’t work."],
+      ["Ask a Question", "puts you <b>back in control</b>. It’s open-ended and relevant, so they talk and you find the <b>hotspot</b> — the thing they actually care about. They’re telling you what to say next."],
+      ["Features and Benefits", "is where you use that hotspot. Features explain, but <b>benefits are what sell</b>. Your energy matters here — <b>if you’re excited, they feel it</b>, and that’s what creates desire."],
+      ["Tie Down", "gets them to agree it makes sense to let you come out. You <b>nod while you ask</b> so they nod with you. It’s a small yes that leads to the big one."],
+      ["Close", "is easy at that point. If the first four steps were done right, the close is just the natural next step — and <b>you generate the lead.</b>"]
+    ];
+    var O = [["💵","Money"],["👫","Spouse"],["⏰","Timing"],["📄","“Just leave a flyer / send me info”"]];
+    return rbBar("learn") +
+      '<div class="pr-card"><div class="pr-step">1. What rebuttals are</div><p class="rbm-what">A rebuttal is your tool for overcoming whatever objection the homeowner throws at you. You don’t accept the first objection as the end of the conversation — you have a way through it.</p></div>' +
+      '<div class="pr-card"><div class="pr-step">2. The four objections you’ll hear</div><p class="rbm-p">Almost everything falls into one of four buckets:</p>' +
+        O.map(function(o, i){ return '<div class="rbm-step"><span class="dk">' + (i + 1) + '</span>' + o[0] + ' ' + o[1] + '</div>'; }).join("") +
+        '<p class="rbm-p" style="margin-top:10px">Your first job is to <b>identify which one it is</b> — because everything after that depends on it.</p></div>' +
+      '<div class="pr-card"><div class="pr-step">3. The five steps are one chain</div><p class="rbm-p">Each step sets up the next:</p>' +
+        S.map(function(x, i){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x[0]) + '</div><p>' + x[1] + '</p>' + (i < 4 ? '<div class="rbm-next">↓ sets up Step ' + (i + 2) + '</div>' : '') + '</div>'; }).join("") + '</div>' +
+      '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
+        '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
+        '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
   }
 
   function rebuttalCard(){
