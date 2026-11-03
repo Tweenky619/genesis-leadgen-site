@@ -628,6 +628,15 @@
   .pr-big{font-size:44px;font-weight:800;color:#0b6b3a;margin-top:6px;}
   .pr-sub{font-size:13px;color:var(--text-muted);line-height:1.45;}
   .pr-start p{margin:6px 0;}
+  .rb-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+  .rb-tab{padding:11px;border-radius:10px;border:2px solid var(--border);background:var(--card);font-weight:800;font-size:14px;color:var(--text);}
+  .rb-tab.on{border-color:var(--brand);background:var(--brand);color:#fff;}
+  .rb-ed{margin-bottom:12px;}
+  .rb-l{display:block;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin:10px 0 4px;}
+  .rb-ed input,.rb-ed textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;color:var(--text);background:var(--card);}
+  .rb-ed textarea{min-height:56px;resize:vertical;}
+  .rb-ed input.rb-obj{font-weight:700;background:#fff8f5;}
+  .rb-del{margin-top:10px;width:100%;padding:9px;border:none;border-radius:10px;background:#fdecea;color:var(--danger);font-weight:700;}
   .pb-sec{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;}
   .pb-sec summary{padding:14px;font-weight:800;font-size:15.5px;cursor:pointer;list-style:none;}
   .pb-sec summary::-webkit-details-marker{display:none;}
@@ -2461,6 +2470,6 @@
 })();
 </script>
 <script src="playbook.js?v=1"></script>
-<script src="practice.js?v=12"></script>
+<script src="practice.js?v=13"></script>
 </body>
 </html>

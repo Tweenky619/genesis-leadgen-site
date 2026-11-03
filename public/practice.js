@@ -316,20 +316,57 @@
       '</div>';
   }
 
+  // ---------- My rebuttals (editable, saved on this phone) ----------
+  var RB_KEY = "socal_my_rebuttals";
+  var STEP_NAMES = ["Agree & empathize", "Open question", "Features & benefits", "Tie down", "Close"];
+  function myRebuttals(){
+    try { var v = JSON.parse(localStorage.getItem(RB_KEY) || "null"); if(Array.isArray(v)) return v; } catch(e){}
+    return REBUTTALS.map(function(r){ return { obj: r.obj, steps: r.steps.map(function(x){ return x[1]; }) }; });
+  }
+  function saveRebuttals(list){ try { localStorage.setItem(RB_KEY, JSON.stringify(list)); } catch(e){} }
+  function drillable(){ return myRebuttals().filter(function(r){ return r.obj && r.steps.some(function(x){ return x && x.trim(); }); }); }
+  function rbEditor(){
+    var list = myRebuttals();
+    var html = '<div class="rb-bar"><button type="button" class="rb-tab" data-pa="rbdrill">🎯 Drill</button><button type="button" class="rb-tab on">✏️ Edit my rebuttals</button></div>' +
+      '<p class="pr-sub" style="margin:0 0 10px">Type what <b>you</b> say. Leave a step blank to skip it. Saved on this phone.</p>';
+    html += list.map(function(r, i){
+      return '<div class="pr-card rb-ed" data-rbi="' + i + '">' +
+        '<label class="rb-l">🏠 Homeowner says</label><input class="rb-obj" value="' + esc(r.obj || "") + '" placeholder="e.g. Not interested">' +
+        STEP_NAMES.map(function(n, k){ return '<label class="rb-l">' + (k + 1) + '. ' + esc(n) + '</label><textarea class="rb-step" data-k="' + k + '" placeholder="What you say…">' + esc(r.steps[k] || "") + '</textarea>'; }).join("") +
+        '<button type="button" class="rb-del" data-pa="rbdel" data-i="' + i + '">Delete this rebuttal</button></div>';
+    }).join("");
+    html += '<button type="button" class="pr-btn" data-pa="rbadd">➕ Add a rebuttal</button>' +
+      '<button type="button" class="pr-btn alt" data-pa="rbreset">↺ Restore the starter rebuttals</button>' +
+      '<div class="pr-sub rb-saved" id="rbSaved" style="text-align:center;margin-top:8px">✓ Changes save automatically</div>';
+    return html;
+  }
+  function collectEditor(){
+    var list = [];
+    Array.prototype.forEach.call(root.querySelectorAll(".rb-ed"), function(c){
+      list.push({ obj: c.querySelector(".rb-obj").value.trim(), steps: Array.prototype.map.call(c.querySelectorAll(".rb-step"), function(t){ return t.value.trim(); }) });
+    });
+    return list;
+  }
   function rebuttalCard(){
-    if(!st.rb){ st.rb = { item: pick(REBUTTALS), shown: 0, done: 0 }; }
+    if(st.rbEdit){ return rbEditor(); }
+    var pool = drillable();
+    var bar = '<div class="rb-bar"><button type="button" class="rb-tab on">🎯 Drill</button><button type="button" class="rb-tab" data-pa="rbedit">✏️ Edit my rebuttals</button></div>';
+    if(!pool.length){ return bar + '<div class="pr-card"><div class="pr-sub">No rebuttals yet. Tap <b>✏️ Edit my rebuttals</b> to add yours.</div></div>'; }
+    if(!st.rb || pool.indexOf(st.rb.item) === -1 && !pool.some(function(x){ return x.obj === st.rb.item.obj; })){ st.rb = { item: pick(pool), shown: 0, done: st.rb ? st.rb.done : 0 }; }
     var rb = st.rb;
-    var html = '<div class="pr-card"><div class="pr-step">Rebuttal drill · 5 steps</div>' +
+    var steps = rb.item.steps.map(function(t, k){ return [STEP_NAMES[k], t]; }).filter(function(x){ return x[1]; });
+    var html = bar + '<div class="pr-card"><div class="pr-step">Rebuttal drill · ' + steps.length + ' steps</div>' +
       '<div class="pr-ho pr-obj"><b>🏠 Homeowner:</b> “' + esc(rb.item.obj) + '”</div>';
-    rb.item.steps.forEach(function(s, k){
+    steps.forEach(function(s, k){
       var open = k < rb.shown;
       html += '<div class="pr-rb' + (open ? " open" : "") + '"><span>' + (k + 1) + '. ' + esc(s[0]) + '</span>' + (open ? '<p>“' + esc(s[1]) + '”</p>' : '') + '</div>';
     });
-    if(rb.shown < 5){ html += '<button type="button" class="pr-btn" data-pa="rbnext">Say step ' + (rb.shown + 1) + ', then reveal</button>'; }
+    if(rb.shown < steps.length){ html += '<button type="button" class="pr-btn" data-pa="rbnext">Say step ' + (rb.shown + 1) + ', then reveal</button>'; }
     else { html += '<button type="button" class="pr-btn" data-pa="rbnew">🎲 Next objection</button>'; }
-    html += '<div class="pr-sub" style="margin-top:10px">' + rb.done + ' objections handled this session</div></div>';
+    html += '<div class="pr-sub" style="margin-top:10px">' + rb.done + ' objections handled this session · ' + pool.length + ' in your list</div></div>';
     return html;
   }
+
 
 
   // ---------- Damage progression diagrams (original) ----------
@@ -426,8 +463,16 @@
     else if(a === "reveal"){ st.run.revealed = true; render(); }
     else if(a === "hit" || a === "miss"){ var r = st.run; r.total++; if(a === "hit"){ r.score++; } r.scored[r.i + r.phase] = true; advance(); }
     else if(a === "next"){ advance(); }
-    else if(a === "rbnext"){ st.rb.shown++; if(st.rb.shown === 5){ st.rb.done++; logAdd({ ts: Date.now(), product: "Rebuttals", mode: "drill" }); } render(); }
-    else if(a === "rbnew"){ var d = st.rb.done; st.rb = { item: pick(REBUTTALS), shown: 0, done: d }; render(); }
+    else if(a === "rbnext"){ st.rb.shown++; var n = st.rb.item.steps.filter(function(x){ return x; }).length; if(st.rb.shown === n){ st.rb.done++; logAdd({ ts: Date.now(), product: "Rebuttals", mode: "drill" }); } render(); }
+    else if(a === "rbnew"){ var d = st.rb.done, pool = drillable(), cur = st.rb.item; var next = pool.length > 1 ? pick(pool.filter(function(x){ return x.obj !== cur.obj; })) : pick(pool); st.rb = { item: next, shown: 0, done: d }; render(); }
+    else if(a === "rbedit"){ st.rbEdit = true; render(); }
+    else if(a === "rbdrill"){ saveRebuttals(collectEditor()); st.rbEdit = false; st.rb = null; render(); }
+    else if(a === "rbadd"){ var l = collectEditor(); l.push({ obj: "", steps: ["", "", "", "", ""] }); saveRebuttals(l); render(); var eds = root.querySelectorAll(".rb-ed"); var last = eds[eds.length - 1]; if(last){ last.scrollIntoView({ block: "start" }); last.querySelector(".rb-obj").focus(); } }
+    else if(a === "rbdel"){ var l2 = collectEditor(); l2.splice(+t.getAttribute("data-i"), 1); saveRebuttals(l2); render(); }
+    else if(a === "rbreset"){ try { localStorage.removeItem(RB_KEY); } catch(e){} render(); }
+  });
+  root.addEventListener("input", function(e){
+    if(st.product === "Rebuttals" && st.rbEdit && e.target.closest(".rb-ed")){ saveRebuttals(collectEditor()); }
   });
   root.addEventListener("change", function(e){
     var inp = e.target.closest("[data-slick-add]"); if(!inp || !A.photoPut) return;
