@@ -403,6 +403,12 @@
           [["We’re going to do it eventually.", "no urgency yet"], ["It’s not that bad yet.", "doesn’t see why now"], ["We have other projects first.", "it’s not at the top of the list"], ["We just moved in.", "still settling in"], ["We might be selling.", "unsure how long they’ll stay"], ["I’m on my way out / I’m in the middle of something.", "the moment is bad, not the idea"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“not right now,”</b> it’s a timing issue — even if they never say the word time.</div></div>' +
       howCard("\u23f0 Timing Issue \u2014 how to handle it", TIMING_HOW) +
+      '<div class="pr-card"><div class="pr-step">📄 Flyer/Info Issue — how to spot it</div>' +
+        '<div class="rbm-sub">Said straight out</div><ul class="rbm-say">' +
+          ["Just leave me a flyer.", "Do you have a card?", "Can you email me some info?", "Send me something and I’ll look at it.", "I’ll check out your website."].map(function(q){ return '<li>“' + esc(q) + '”</li>'; }).join("") + '</ul>' +
+        '<div class="rbm-sub">Hidden — sounds like something else, but it’s flyer/info</div><ul class="rbm-say">' +
+          [["I’ll call you if I’m interested.", "wants to end the conversation politely"], ["Let me do some research first.", "wants info without committing"], ["Leave it in the mailbox.", "avoiding the face-to-face"], ["How much does it usually cost? Just give me a ballpark.", "wants a number so they can walk away"], ["We’ll reach out when we’re ready.", "putting the ball in their court"], ["I get a lot of these — just leave your info.", "lumping you in with everyone else"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“give me something so you can leave,”</b> it’s a flyer/info issue — a polite way of saying no.</div></div>' +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
