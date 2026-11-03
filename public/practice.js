@@ -351,7 +351,7 @@
   var TIMING_HOW = [
     ["Agree and Empathize", "No worries! We’re not expecting to get hired at the moment.", "You take the pressure off right away — you’re not asking for the job today. Their guard drops because “not right now” is fine with you."],
     ["Ask a Question", "The only reason I pointed out the roof is that the fiberglass mesh on the shingles shows your roof is past its peak. How old is your roof? No leaks, right?", "You remind them why you stopped — the damage they can see — then ask its age and check for leaks. Their answers tell you how much time they really have. That’s your hotspot."],
-    ["Features and Benefits", "", ""],
+    ["Features and Benefits", "Most proactive homeowners look into different options before they make their selection. Since your roof has no leaks, you\u2019re able to look at what would be your best selection \u2014 material, warranty, and peace of mind!", "You flip \u201cnot right now\u201d into the best time to look: no leaks means no emergency, so they can shop smart instead of rushing. Calling them proactive makes looking now feel like the smart move. Features: material and warranty. Benefit: peace of mind."],
     ["Tie Down", "", ""],
     ["Close", "", ""]
   ];
