@@ -322,7 +322,7 @@
   };
   var MONEY_HOW = [
     ["Agree and Empathize", "It’s ok! It doesn’t stop me from earning your business!", "You agree their money concern is okay — and in the same breath show it’s not the end of the conversation."],
-    ["Ask a Question", "", ""],
+    ["Ask a Question", "With the blemishes that I show on the stucco, my assumption is that you last had it done 2 or 3 years ago?", "You tie the question to the damage they just saw and make a low guess on purpose. They correct you with the real answer (\u201cNo, it\u2019s been more like 10 years\u201d) \u2014 and now they\u2019ve told you themselves how overdue it is. That\u2019s your hotspot."],
     ["Features and Benefits", "", ""],
     ["Tie Down", "", ""],
     ["Close", "", ""]
