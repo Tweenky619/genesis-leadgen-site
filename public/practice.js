@@ -305,6 +305,8 @@
   // Art's rebuttal method (his words)
   var ART_METHOD = {
     what: "Rebuttals are a way to overcome any objection the homeowner throws at you.",
+    stepsIntro: "Before handling any of those objections, you need to know the five steps of the rebuttal:",
+    steps: ["Agree and Empathize", "Ask a Question", "Features and Benefits", "Tie Down", "Close"],
     objections: [
       { n: 1, name: "Money Issue", icon: "💵", notes: [] },
       { n: 2, name: "Spouse Issue", icon: "👫", notes: [] },
@@ -314,6 +316,8 @@
   };
   function rbLearn(){
     return rbBar("learn") + '<div class="pr-card"><div class="pr-step">What rebuttals are</div><p class="rbm-what">' + esc(ART_METHOD.what) + '</p></div>' +
+      '<div class="pr-card"><div class="pr-step">The 5 steps of the rebuttal</div><p class="pr-sub" style="margin:0 0 6px">' + esc(ART_METHOD.stepsIntro) + '</p>' +
+      ART_METHOD.steps.map(function(x, i){ return '<div class="rbm-step"><span>' + (i + 1) + '</span>Step ' + (i + 1) + ' \u2014 ' + esc(x) + '</div>'; }).join("") + '</div>' +
       '<div class="pr-card"><div class="pr-step">The 4 main objections</div>' +
       ART_METHOD.objections.map(function(o){
         return '<div class="rbm-obj"><div class="rbm-h"><span>' + o.n + '</span>' + o.icon + ' ' + esc(o.name) + '</div>' +
