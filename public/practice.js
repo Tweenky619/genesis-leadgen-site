@@ -363,7 +363,7 @@
   ];
   var FLYER_HOW = [
     ["Agree and Empathize", "That’s exactly what my specialist is doing tomorrow! We’ll leave you a written quote with our info — take dimensions, give you an exact price, and leave our number so you can contact us.", "You agree with what they asked for — then show the inspection IS the info they want, only better: a written quote, real dimensions, an exact price, and your number. Their reason to say no becomes the reason to say yes."],
-    ["Ask a Question", "", ""],
+    ["Ask a Question", "How many quotes do you have in your files for new windows? What manufacturers are you familiar with?", "Two open questions that get them talking about what they already know. If they have zero quotes, they need the inspection. If they name quotes or brands, you learn who you\u2019re up against and what they care about \u2014 that\u2019s your hotspot."],
     ["Features and Benefits", "", ""],
     ["Tie Down", "", ""],
     ["Close", "", ""]
