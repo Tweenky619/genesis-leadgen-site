@@ -286,6 +286,12 @@
       saveRebuttals(v);
       try { localStorage.setItem("socal_rb_seed_spouse", "1"); } catch(e){}
     }
+    var seededT = false; try { seededT = localStorage.getItem("socal_rb_seed_timing") === "1"; } catch(e){}
+    if(!seededT && typeof TIMING_HOW !== "undefined"){
+      v.push({ obj: "Now\u2019s not a good time.", steps: TIMING_HOW.map(function(x){ return x[1]; }) });
+      saveRebuttals(v);
+      try { localStorage.setItem("socal_rb_seed_timing", "1"); } catch(e){}
+    }
     return v;
   }
   function saveRebuttals(list){ try { localStorage.setItem(RB_KEY, JSON.stringify(list)); } catch(e){} }
@@ -353,7 +359,7 @@
     ["Ask a Question", "The only reason I pointed out the roof is that the fiberglass mesh on the shingles shows your roof is past its peak. How old is your roof? No leaks, right?", "You remind them why you stopped — the damage they can see — then ask its age and check for leaks. Their answers tell you how much time they really have. That’s your hotspot."],
     ["Features and Benefits", "Most proactive homeowners look into different options before they make their selection. Since your roof has no leaks, you\u2019re able to look at what would be your best selection \u2014 material, warranty, and peace of mind!", "You flip \u201cnot right now\u201d into the best time to look: no leaks means no emergency, so they can shop smart instead of rushing. Calling them proactive makes looking now feel like the smart move. Features: material and warranty. Benefit: peace of mind."],
     ["Tie Down", "Sounds good?", "Bridge right off Step 3 \u2014 nod while you ask so they nod with you."],
-    ["Close", "", ""]
+    ["Close", "My name is Art \u2014 how do I spell your name?", "Same close as money and spouse \u2014 straight into the info."]
   ];
   function howCard(title, list){
     return '<div class="pr-card"><div class="pr-step">' + title + '</div>' +
