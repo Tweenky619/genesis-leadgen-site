@@ -302,8 +302,23 @@
       return '<button type="button" class="rb-tab' + (t[0] === cur ? " on" : "") + '"' + (t[0] === cur ? "" : ' data-pa="' + t[2] + '"') + '>' + t[1] + '</button>';
     }).join("") + '</div>';
   }
+  // Art's rebuttal method (his words)
+  var ART_METHOD = {
+    what: "Rebuttals are a way to overcome any objection the homeowner throws at you.",
+    objections: [
+      { n: 1, name: "Money Issue", icon: "💵", notes: [] },
+      { n: 2, name: "Spouse Issue", icon: "👫", notes: [] },
+      { n: 3, name: "Timing Issue", icon: "⏰", notes: [] },
+      { n: 4, name: "Flyer/Info Issue", icon: "📄", notes: [] }
+    ]
+  };
   function rbLearn(){
-    return rbBar("learn") + '<div class="pr-card"><div class="pr-step">Your rebuttal method</div><p class="pr-sub">This section is being rebuilt in Art\u2019s own words.</p></div>';
+    return rbBar("learn") + '<div class="pr-card"><div class="pr-step">What rebuttals are</div><p class="rbm-what">' + esc(ART_METHOD.what) + '</p></div>' +
+      '<div class="pr-card"><div class="pr-step">The 4 main objections</div>' +
+      ART_METHOD.objections.map(function(o){
+        return '<div class="rbm-obj"><div class="rbm-h"><span>' + o.n + '</span>' + o.icon + ' ' + esc(o.name) + '</div>' +
+          (o.notes.length ? '<ul>' + o.notes.map(function(x){ return '<li>' + esc(x) + '</li>'; }).join("") + '</ul>' : '') + '</div>';
+      }).join("") + '</div>';
   }
 
   function rebuttalCard(){
