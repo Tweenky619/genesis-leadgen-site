@@ -336,6 +336,12 @@
         '<p class="rbm-p" style="margin-top:10px">Your first job is to <b>identify which one it is</b> — because everything after that depends on it.</p></div>' +
       '<div class="pr-card"><div class="pr-step">3. The five steps are one chain</div><p class="rbm-p">Each step sets up the next:</p>' +
         S.map(function(x, i){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x[0]) + '</div><p>' + x[1] + '</p>' + (i < 4 ? '<div class="rbm-next">↓ sets up Step ' + (i + 2) + '</div>' : '') + '</div>'; }).join("") + '</div>' +
+      '<div class="pr-card"><div class="pr-step">💵 Money Issue — how to spot it</div>' +
+        '<div class="rbm-sub">Said straight out</div><ul class="rbm-say">' +
+          ["We don’t have the money right now.", "We can’t afford that.", "That’s too expensive.", "We’re on a budget.", "Money’s tight right now."].map(function(q){ return '<li>“' + esc(q) + '”</li>'; }).join("") + '</ul>' +
+        '<div class="rbm-sub">Hidden — sounds like something else, but it’s money</div><ul class="rbm-say">' +
+          [["We’re not ready for something that big.", "scared of the price"], ["We just paid for ___.", "money’s already spent"], ["Maybe after the holidays / tax season.", "timing that’s really money"], ["How much does something like that run?", "price is on their mind"], ["We’ll just patch it ourselves.", "avoiding the cost"], ["We’re saving up for it.", "they don’t have it yet"]].map(function(q){ return '<li>“' + esc(q[0]) + '” <span>— ' + esc(q[1]) + '</span></li>'; }).join("") + '</ul>' +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 If what’s stopping them comes down to <b>“what will this cost me,”</b> it’s a money issue — even if they never say the word money.</div></div>' +
       '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">A rebuttal isn’t a comeback — it’s a sequence:</p>' +
         '<div class="rbm-flow">Lower their guard → find what matters to them → sell that → get agreement → close</div>' +
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
