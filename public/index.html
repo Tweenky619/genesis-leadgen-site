@@ -529,6 +529,8 @@
   label.sole{display:flex;align-items:center;gap:10px;margin:2px 0 10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:15px;font-weight:700;color:var(--text);text-transform:none;letter-spacing:normal;cursor:pointer;}
   label.sole input{width:20px;height:20px;accent-color:#0b6b3a;margin:0;}
   #dmBox[hidden]{display:none;}
+  .fu-dispatch .rr-text{display:block;text-align:center;text-decoration:none;margin-bottom:8px;padding:13px;border-radius:10px;background:#1d4f8a;color:#fff;font-weight:800;font-size:15px;}
+  .fu-dispatch .rr-text.sent{background:#e6eefc;color:#1d4f8a;}
   .fu-dispatch .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
   .fu-dispatch .row3 button{padding:12px 4px;border-radius:10px;font-weight:700;font-size:13.5px;border:2px solid var(--border);background:var(--card);color:var(--text);display:flex;align-items:center;justify-content:center;min-height:52px;}
   .fu-dispatch .row3 button.ok{background:#fff;color:#0b6b3a;border-color:#bfe0cc;}
@@ -1118,6 +1120,7 @@
     if(!isOpen(l) || !l.next_followup) return "";
     var t = todayISO();
     if(l.next_followup < t) return '<div class="due over">Overdue \u00b7 ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
+    if(statusOf(l) === "Rep Reset" && !l.rr_text_sent && l.next_followup <= t) return '<div class="due today">\ud83d\udcac Send reconfirm text today</div>';
     if(l.next_followup === t) return '<div class="due today">Follow up today</div>';
     return '<div class="due later">Next: ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
   }
@@ -1752,13 +1755,30 @@
       (st === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(amt) + '"></div>' : '') +
       '</div>';
   }
+  function repResetText(l){
+    var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
+    var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
+    var p = (l.appt_date || "").split("-"), dayName = p.length === 3 ? DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()] : "";
+    var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
+    return "Hi" + (first ? " " + first : "") + ", this is Art with SoCal Contractor Exchange. " +
+      "Just a heads-up \u2014 we\u2019ll be reaching out to reconfirm the visit our rep reset with you for " +
+      dateTxt + (l.appt_time ? " at " + l.appt_time : "") + ". " +
+      "Please keep an eye out for our call so we can lock it in. Thank you!";
+  }
+  function repResetTextBtn(l){
+    if(statusOf(l) !== "Rep Reset" || !l.phone) return "";
+    var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(repResetText(l));
+    return '<a class="rr-text' + (l.rr_text_sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
+      (l.rr_text_sent ? "\u2705 Reconfirm text sent \u2014 send again" : "\ud83d\udcac Send reconfirm text") + '</a>';
+  }
   var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
     var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
-    return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div><div class="row3">' +
+    return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div>' + repResetTextBtn(l) + '<div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
       '<button type="button" class="blow' + on("Blow Out") + '" data-fu="blowout">\ud83d\udca5 Blow out</button>' +
       '<button type="button" class="na-btn' + on("Confirm NA") + '" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button>' +
@@ -1778,6 +1798,12 @@
     if(!b) return;
     var l = currentLead(); if(!l) return;
     var a = b.getAttribute("data-fu");
+    if(a === "rrtext"){
+      addLog(l, "Reconfirm text sent");
+      l.rr_text_sent = true; l.next_followup = "";
+      setTimeout(refreshDetail, 400);
+      return;
+    }
     if(a === "logdel"){
       var i = +b.getAttribute("data-i"), entry = (l.log || [])[i];
       if(!entry) return;
@@ -1813,7 +1839,10 @@
       var rd = document.getElementById("rrDate").value, rt = document.getElementById("rrTime").value;
       if(!rd || !rt){ var hh = document.getElementById("rrHint"); hh.textContent = "Pick the new date and time."; hh.className = "sched-hint warn"; return; }
       var rp = rd.split("-"); l.appt_day = DAYS[new Date(+rp[0], +rp[1]-1, +rp[2]).getDay()];
-      l.appt_date = rd; l.appt_time = rt; l.status = "Rep Reset"; l.next_followup = "";
+      l.appt_date = rd; l.appt_time = rt; l.status = "Rep Reset";
+      var dbf = new Date(+rp[0], +rp[1]-1, +rp[2] - 1); dbf.setMinutes(dbf.getMinutes() - dbf.getTimezoneOffset());
+      var dbISO = dbf.toISOString().slice(0,10);
+      l.next_followup = dbISO < todayISO() ? todayISO() : dbISO; l.rr_text_sent = false;
       addLog(l, "Rep reset for " + fmtIsoDate(rd) + " " + rt);
     }
     else if(a === "noshow"){ l.status = "No Show"; l.next_followup = addDaysISO(1); addLog(l, "No show"); }
