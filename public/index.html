@@ -1365,7 +1365,8 @@
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
-        (l.sole_owner ? item("Decision maker", (l.owner_status || "Sole owner") + " \u2014 decides alone") : item(l.dm_relation || "Spouse", l.spouse)) +
+        (l.owner_status && l.owner_status !== "Sole owner" && !l.sole_owner ? item("Homeowner", l.owner_status) : "") +
+        (l.sole_owner ? item("Decision maker", (l.owner_status || "Sole owner") + " \u2014 decides alone") : (l.spouse ? item(l.dm_relation || "Spouse", l.spouse) : "")) +
         (l.sole_owner ? "" : (l.others || []).map(function(o){ return item(o.rel, o.name); }).join("")) +
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
@@ -1425,7 +1426,7 @@
       last_name: lastName,
       homeowner_name: fullName(firstName, lastName),
       spouse: document.getElementById("f_spouse").value.trim(),
-      sole_owner: !!ownerStatus,
+      sole_owner: ownerStatus === "Sole owner" || (!!ownerStatus && !hasHelpers()),
       owner_status: ownerStatus,
       dm_relation: document.getElementById("f_dm_rel").value,
       project_notes: getProjNotes(),
@@ -2216,11 +2217,25 @@
   document.getElementById("dmExtra").addEventListener("change", function(){ updateScript(); });
   document.getElementById("f_dm_rel").addEventListener("change", function(){ updateScript(); });
   var ownerStatus = "";
+  function hasHelpers(){
+    return !!document.getElementById("f_spouse").value.trim() || getOthers().some(function(o){ return o.name; });
+  }
+  function syncSole(){
+    document.getElementById("f_sole_owner").checked = ownerStatus === "Sole owner" || (!!ownerStatus && !hasHelpers());
+    updateScript();
+  }
+  document.getElementById("dmBox").addEventListener("input", function(){ if(ownerStatus){ syncSole(); } });
   function setOwnerStatus(v){
     ownerStatus = v || "";
     Array.prototype.forEach.call(document.querySelectorAll("#ownerStatus .own-chip"), function(b){ b.classList.toggle("on", b.getAttribute("data-own") === ownerStatus); });
-    var cb = document.getElementById("f_sole_owner"); cb.checked = !!ownerStatus;
-    document.getElementById("dmBox").hidden = !!ownerStatus;
+    var widowed = ownerStatus === "Widow" || ownerStatus === "Widower";
+    document.getElementById("dmBox").hidden = ownerStatus === "Sole owner";
+    var rel = document.getElementById("f_dm_rel");
+    Array.prototype.forEach.call(rel.options, function(o){ if(o.text === "Spouse"){ o.hidden = widowed; o.disabled = widowed; } });
+    if(widowed && rel.value === "Spouse"){ rel.value = "Son"; }
+    if(!widowed && !document.getElementById("f_spouse").value.trim() && rel.value === "Son" && !getOthers().some(function(o){ return o.name; })){ rel.value = "Spouse"; }
+    document.getElementById("f_spouse").placeholder = widowed ? "Who helps decide? (blank = no one)" : "Name";
+    syncSole();
     updateScript();
   }
   document.getElementById("ownerStatus").addEventListener("click", function(e){
