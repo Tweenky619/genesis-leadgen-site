@@ -704,6 +704,9 @@
   .pg-links b{display:block;margin-bottom:4px;color:var(--text);}
   .pg-links a{display:block;padding:8px 10px;margin-top:6px;border:1px solid var(--border);border-radius:8px;color:#1d4f8a;text-decoration:none;font-weight:600;background:#fff;}
   .pg-say{margin-top:8px;background:#fff8f5;border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.45;}
+  .own-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:2px 0 10px;}
+  .own-chip{padding:11px 4px;border:2px solid var(--border);border-radius:10px;background:var(--card);font-weight:700;font-size:14px;color:var(--text);}
+  .own-chip.on{border-color:var(--brand);background:var(--brand);color:#fff;}
 </style>
 </head>
 <body>
@@ -760,7 +763,12 @@
         </div>
         <div class="field">
           <label>Decision makers <span class="opt">(who helps decide on money)</span></label>
-          <label class="sole"><input type="checkbox" id="f_sole_owner"> Sole owner &mdash; decides alone</label>
+          <input type="checkbox" id="f_sole_owner" hidden>
+          <div class="own-row" id="ownerStatus">
+            <button type="button" class="own-chip" data-own="Sole owner">&#128100; Sole owner</button>
+            <button type="button" class="own-chip" data-own="Widow">&#128105; Widow</button>
+            <button type="button" class="own-chip" data-own="Widower">&#128104; Widower</button>
+          </div>
           <div id="dmBox">
           <div class="dm-row"><select id="f_dm_rel" class="dm-rel"><option>Spouse</option><option>Partner</option><option>Parent</option><option>Son</option><option>Daughter</option><option>Sibling</option><option>Co-owner</option><option>Relative</option><option>Other</option></select><input type="text" id="f_spouse" placeholder="Name"></div>
           <div id="dmExtra"></div>
@@ -1206,6 +1214,7 @@
     lastApptDate = null;
     setOthers([]);
     document.getElementById("dmBox").hidden = false;
+    if(typeof setOwnerStatus === "function"){ setOwnerStatus(""); }
     document.getElementById("f_other_project").style.display = "none";
     setProjNotes({});
     buildTimeOptions("");
@@ -1286,8 +1295,7 @@
     document.getElementById("f_last_name").value = l.last_name || "";
     document.getElementById("f_spouse").value = l.spouse || "";
     document.getElementById("f_dm_rel").value = l.dm_relation || "Spouse";
-    document.getElementById("f_sole_owner").checked = !!l.sole_owner;
-    document.getElementById("dmBox").hidden = !!l.sole_owner;
+    setOwnerStatus(l.owner_status || (l.sole_owner ? "Sole owner" : ""));
     setOthers(l.others || []);
     document.getElementById("f_address").value = l.address || "";
     document.getElementById("f_zip").value = l.zip || "";
@@ -1357,7 +1365,7 @@
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
-        (l.sole_owner ? item("Decision maker", "Sole owner") : item(l.dm_relation || "Spouse", l.spouse)) +
+        (l.sole_owner ? item("Decision maker", (l.owner_status || "Sole owner") + " \u2014 decides alone") : item(l.dm_relation || "Spouse", l.spouse)) +
         (l.sole_owner ? "" : (l.others || []).map(function(o){ return item(o.rel, o.name); }).join("")) +
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
@@ -1417,7 +1425,8 @@
       last_name: lastName,
       homeowner_name: fullName(firstName, lastName),
       spouse: document.getElementById("f_spouse").value.trim(),
-      sole_owner: document.getElementById("f_sole_owner").checked,
+      sole_owner: !!ownerStatus,
+      owner_status: ownerStatus,
       dm_relation: document.getElementById("f_dm_rel").value,
       project_notes: getProjNotes(),
       others: getOthers().filter(function(o){ return o.name; }),
@@ -1501,6 +1510,7 @@
     ["last_name", "Last Name"],
     ["spouse", "Spouse"],
     ["sole_owner", "Sole Owner"],
+    ["owner_status", "Owner Status"],
     ["dm_relation", "Decision Maker Relation"],
     ["others", "Other Decision Makers"],
     ["address", "Address"],
@@ -2205,9 +2215,18 @@
   document.getElementById("dmExtra").addEventListener("input", function(){ updateScript(); });
   document.getElementById("dmExtra").addEventListener("change", function(){ updateScript(); });
   document.getElementById("f_dm_rel").addEventListener("change", function(){ updateScript(); });
-  document.getElementById("f_sole_owner").addEventListener("change", function(e){
-    document.getElementById("dmBox").hidden = e.target.checked;
+  var ownerStatus = "";
+  function setOwnerStatus(v){
+    ownerStatus = v || "";
+    Array.prototype.forEach.call(document.querySelectorAll("#ownerStatus .own-chip"), function(b){ b.classList.toggle("on", b.getAttribute("data-own") === ownerStatus); });
+    var cb = document.getElementById("f_sole_owner"); cb.checked = !!ownerStatus;
+    document.getElementById("dmBox").hidden = !!ownerStatus;
     updateScript();
+  }
+  document.getElementById("ownerStatus").addEventListener("click", function(e){
+    var b = e.target.closest(".own-chip"); if(!b) return;
+    var v = b.getAttribute("data-own");
+    setOwnerStatus(ownerStatus === v ? "" : v);
   });
 
   // ---- Roll to another day ----
