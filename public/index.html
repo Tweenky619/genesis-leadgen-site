@@ -529,6 +529,9 @@
   label.sole{display:flex;align-items:center;gap:10px;margin:2px 0 10px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);font-size:15px;font-weight:700;color:var(--text);text-transform:none;letter-spacing:normal;cursor:pointer;}
   label.sole input{width:20px;height:20px;accent-color:#0b6b3a;margin:0;}
   #dmBox[hidden]{display:none;}
+  .fu-dispatch .rr-copy{margin-bottom:8px;}
+  .fu-dispatch .rr-copy textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:14.5px;line-height:1.4;background:#fff;color:var(--text);resize:vertical;}
+  .fu-dispatch .rr-copy button{width:100%;margin-top:6px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
   .fu-dispatch .rr-text{display:block;text-align:center;text-decoration:none;margin-bottom:8px;padding:13px;border-radius:10px;background:#1d4f8a;color:#fff;font-weight:800;font-size:15px;}
   .fu-dispatch .rr-text.sent{background:#e6eefc;color:#1d4f8a;}
   .fu-dispatch .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
@@ -1759,18 +1762,22 @@
     var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
     var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
     var p = (l.appt_date || "").split("-"), dayName = p.length === 3 ? DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()] : "";
+    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
+    var projTxt = pr.length ? " about your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
     return "Hi" + (first ? " " + first : "") + ", this is Art with SoCal Contractor Exchange. " +
-      "Just a heads-up \u2014 we\u2019ll be reaching out to reconfirm the visit our rep reset with you for " +
+      "Just a heads-up \u2014 we\u2019ll be reaching out to reconfirm the visit our rep reset with you" + projTxt + " for " +
       dateTxt + (l.appt_time ? " at " + l.appt_time : "") + ". " +
       "Please keep an eye out for our call so we can lock it in. Thank you!";
   }
   function repResetTextBtn(l){
     if(statusOf(l) !== "Rep Reset" || !l.phone) return "";
     var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(repResetText(l));
-    return '<a class="rr-text' + (l.rr_text_sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
-      (l.rr_text_sent ? "\u2705 Reconfirm text sent \u2014 send again" : "\ud83d\udcac Send reconfirm text") + '</a>';
+    return '<div class="rr-copy"><textarea id="rrMsg" rows="8">' + esc(repResetText(l)) + '</textarea>' +
+      '<button type="button" data-fu="rrcopy" id="rrCopyBtn">\ud83d\udccb Copy text</button></div>' +
+      '<a class="rr-text' + (l.rr_text_sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
+      (l.rr_text_sent ? "\u2705 Reconfirm text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
   var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
@@ -1798,6 +1805,13 @@
     if(!b) return;
     var l = currentLead(); if(!l) return;
     var a = b.getAttribute("data-fu");
+    if(a === "rrcopy"){
+      var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : repResetText(l);
+      function done(){ b.textContent = "\u2705 Copied \u2014 paste it in your text"; if(!l.rr_text_sent){ l.rr_text_sent = true; l.next_followup = ""; addLog(l, "Reconfirm text copied"); save(); } setTimeout(function(){ b.textContent = "\ud83d\udccb Copy text"; }, 2500); }
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){ ta.select(); document.execCommand("copy"); done(); }); }
+      else { ta.focus(); ta.select(); ta.setSelectionRange(0, 99999); document.execCommand("copy"); done(); }
+      return;
+    }
     if(a === "rrtext"){
       addLog(l, "Reconfirm text sent");
       l.rr_text_sent = true; l.next_followup = "";
