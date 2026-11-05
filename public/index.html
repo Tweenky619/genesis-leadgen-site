@@ -1295,7 +1295,7 @@
     document.getElementById("f_last_name").value = l.last_name || "";
     document.getElementById("f_spouse").value = l.spouse || "";
     document.getElementById("f_dm_rel").value = l.dm_relation || "Spouse";
-    setOwnerStatus(l.owner_status || (l.sole_owner ? "Sole owner" : ""));
+    setOwnerState(l.sole_owner === true && l.owner_status !== "Widow" && l.owner_status !== "Widower" ? true : !!l.is_sole_owner, l.owner_status);
     setOthers(l.others || []);
     document.getElementById("f_address").value = l.address || "";
     document.getElementById("f_zip").value = l.zip || "";
@@ -1365,8 +1365,8 @@
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div></div>' +
 
       section("Contact Info",
-        (l.owner_status && l.owner_status !== "Sole owner" && !l.sole_owner ? item("Homeowner", l.owner_status) : "") +
-        (l.sole_owner ? item("Decision maker", (l.owner_status || "Sole owner") + " \u2014 decides alone") : (l.spouse ? item(l.dm_relation || "Spouse", l.spouse) : "")) +
+        (function(){ var t = [l.is_sole_owner || (l.sole_owner && !/^Widow/.test(l.owner_status || "")) ? "Sole owner" : "", /^Widow/.test(l.owner_status || "") ? l.owner_status : ""].filter(Boolean).join(" \u00b7 "); return t ? item("Homeowner", t) : ""; })() +
+        (l.sole_owner ? item("Decision maker", "Decides alone") : (l.spouse ? item(l.dm_relation || "Spouse", l.spouse) : "")) +
         (l.sole_owner ? "" : (l.others || []).map(function(o){ return item(o.rel, o.name); }).join("")) +
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
@@ -1426,7 +1426,8 @@
       last_name: lastName,
       homeowner_name: fullName(firstName, lastName),
       spouse: document.getElementById("f_spouse").value.trim(),
-      sole_owner: ownerStatus === "Sole owner" || (!!ownerStatus && !hasHelpers()),
+      sole_owner: decidesAlone(),
+      is_sole_owner: soleOn,
       owner_status: ownerStatus,
       dm_relation: document.getElementById("f_dm_rel").value,
       project_notes: getProjNotes(),
@@ -1510,8 +1511,9 @@
     ["first_name", "First Name"],
     ["last_name", "Last Name"],
     ["spouse", "Spouse"],
-    ["sole_owner", "Sole Owner"],
-    ["owner_status", "Owner Status"],
+    ["sole_owner", "Decides Alone"],
+    ["is_sole_owner", "Owns Alone"],
+    ["owner_status", "Widow/Widower"],
     ["dm_relation", "Decision Maker Relation"],
     ["others", "Other Decision Makers"],
     ["address", "Address"],
@@ -1567,6 +1569,7 @@
         else if(key === "project_notes"){ val = Object.keys(l.project_notes || {}).map(function(k){ return k + ": " + l.project_notes[k]; }).join(" | "); }
         else if(key === "status"){ val = statusOf(l); }
         else if(key === "sole_owner"){ val = l.sole_owner ? "Yes" : ""; }
+        else if(key === "is_sole_owner"){ val = l.is_sole_owner ? "Yes" : ""; }
         else if(key === "others"){ val = (l.others || []).map(function(o){ return o.rel + ": " + o.name; }).join("; "); }
         else if(key === "log"){ val = (l.log || []).map(function(e){ return fmtDate(e.ts) + ": " + e.text; }).join(" | "); }
         else { val = l[key]; }
@@ -2091,6 +2094,7 @@
     var head = rows[0].map(function(h){ return h.trim().toLowerCase(); });
     var byLabel = {};
     CSV_FIELDS.forEach(function(f){ byLabel[f[1].toLowerCase()] = f[0]; });
+    byLabel["sole owner"] = "sole_owner"; byLabel["owner status"] = "owner_status";
     var seen = {};
     leads.forEach(function(l){ seen[[l.first_name, l.last_name, l.address].join("|").toLowerCase()] = 1; });
     var added = 0, skipped = 0;
@@ -2105,6 +2109,7 @@
       l.created_at = isNaN(ts) ? Date.now() : ts;
       l.interests = l.interests ? l.interests.split(/;\s*/).filter(Boolean) : [];
       l.sole_owner = /^y/i.test(l.sole_owner || "");
+      l.is_sole_owner = /^y/i.test(l.is_sole_owner || "");
       var pnStr = l.project_notes || ""; l.project_notes = {};
       String(pnStr).split(" | ").forEach(function(x){ var m = /^([^:]+):\s*([\s\S]*)$/.exec(x); if(m && m[2]){ l.project_notes[m[1]] = m[2]; } });
       l.others = l.others ? String(l.others).split(/;\s*/).filter(Boolean).map(function(x){ var m = x.match(/^([^:]+):\s*(.*)$/); return m ? { rel: m[1], name: m[2] } : { rel: "Other", name: x }; }) : [];
@@ -2216,32 +2221,39 @@
   document.getElementById("dmExtra").addEventListener("input", function(){ updateScript(); });
   document.getElementById("dmExtra").addEventListener("change", function(){ updateScript(); });
   document.getElementById("f_dm_rel").addEventListener("change", function(){ updateScript(); });
-  var ownerStatus = "";
+  var ownerStatus = "", soleOn = false;
   function hasHelpers(){
     return !!document.getElementById("f_spouse").value.trim() || getOthers().some(function(o){ return o.name; });
   }
+  function decidesAlone(){ return (soleOn || !!ownerStatus) && !hasHelpers(); }
   function syncSole(){
-    document.getElementById("f_sole_owner").checked = ownerStatus === "Sole owner" || (!!ownerStatus && !hasHelpers());
+    document.getElementById("f_sole_owner").checked = decidesAlone();
     updateScript();
   }
-  document.getElementById("dmBox").addEventListener("input", function(){ if(ownerStatus){ syncSole(); } });
-  function setOwnerStatus(v){
-    ownerStatus = v || "";
-    Array.prototype.forEach.call(document.querySelectorAll("#ownerStatus .own-chip"), function(b){ b.classList.toggle("on", b.getAttribute("data-own") === ownerStatus); });
-    var widowed = ownerStatus === "Widow" || ownerStatus === "Widower";
-    document.getElementById("dmBox").hidden = ownerStatus === "Sole owner";
+  document.getElementById("dmBox").addEventListener("input", syncSole);
+  document.getElementById("dmBox").addEventListener("change", syncSole);
+  function setOwnerState(sole, status){
+    soleOn = !!sole;
+    ownerStatus = (status === "Widow" || status === "Widower") ? status : "";
+    Array.prototype.forEach.call(document.querySelectorAll("#ownerStatus .own-chip"), function(b){
+      var v = b.getAttribute("data-own");
+      b.classList.toggle("on", v === "Sole owner" ? soleOn : v === ownerStatus);
+    });
+    var widowed = !!ownerStatus;
+    document.getElementById("dmBox").hidden = false;
     var rel = document.getElementById("f_dm_rel");
     Array.prototype.forEach.call(rel.options, function(o){ if(o.text === "Spouse"){ o.hidden = widowed; o.disabled = widowed; } });
     if(widowed && rel.value === "Spouse"){ rel.value = "Son"; }
-    if(!widowed && !document.getElementById("f_spouse").value.trim() && rel.value === "Son" && !getOthers().some(function(o){ return o.name; })){ rel.value = "Spouse"; }
-    document.getElementById("f_spouse").placeholder = widowed ? "Who helps decide? (blank = no one)" : "Name";
+    if(!widowed && !document.getElementById("f_spouse").value.trim() && rel.value === "Son"){ rel.value = "Spouse"; }
+    document.getElementById("f_spouse").placeholder = (widowed || soleOn) ? "Who helps decide? (blank = no one)" : "Name";
     syncSole();
-    updateScript();
   }
+  function setOwnerStatus(v){ setOwnerState(v === "Sole owner", v); }
   document.getElementById("ownerStatus").addEventListener("click", function(e){
     var b = e.target.closest(".own-chip"); if(!b) return;
     var v = b.getAttribute("data-own");
-    setOwnerStatus(ownerStatus === v ? "" : v);
+    if(v === "Sole owner"){ setOwnerState(!soleOn, ownerStatus); }
+    else { setOwnerState(soleOn, ownerStatus === v ? "" : v); }
   });
 
   // ---- Roll to another day ----
