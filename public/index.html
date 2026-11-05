@@ -1771,13 +1771,28 @@
       dateTxt + (l.appt_time ? " at " + l.appt_time : "") + ". " +
       "Please keep an eye out for our call so we can lock it in. Thank you!";
   }
+  var OFFICE_PHONE = "(619) 393-5297";
+  function naText(l){
+    var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
+    var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
+    var p = (l.appt_date || "").split("-"), dayName = p.length === 3 ? DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()] : "";
+    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
+    var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
+    var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
+    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with SoCal Contractor Exchange. " +
+      "Our office tried calling to confirm your appointment" + projTxt + (dateTxt ? " " + (when ? "" : "on ") + dateTxt : "") + (l.appt_time ? " at " + l.appt_time : "") + ". " +
+      "Friendly reminder: we\u2019ll be calling from " + OFFICE_PHONE + " \u2014 please save the number and pick up when we call so we can lock in your visit. Thank you!";
+  }
   function repResetTextBtn(l){
-    if(statusOf(l) !== "Rep Reset" || !l.phone) return "";
-    var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(repResetText(l));
-    return '<div class="rr-copy"><textarea id="rrMsg" rows="8">' + esc(repResetText(l)) + '</textarea>' +
+    var st = statusOf(l);
+    if((st !== "Rep Reset" && st !== "Confirm NA") || !l.phone) return "";
+    var na = st === "Confirm NA", msg = na ? naText(l) : repResetText(l), sent = na ? l.na_text_sent : l.rr_text_sent;
+    var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(msg);
+    return '<div class="rr-copy"><textarea id="rrMsg" rows="10">' + esc(msg) + '</textarea>' +
       '<button type="button" data-fu="rrcopy" id="rrCopyBtn">\ud83d\udccb Copy text</button></div>' +
-      '<a class="rr-text' + (l.rr_text_sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
-      (l.rr_text_sent ? "\u2705 Reconfirm text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
+      '<a class="rr-text' + (sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
+      (sent ? "\u2705 " + (na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
   var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
@@ -1806,13 +1821,18 @@
     var l = currentLead(); if(!l) return;
     var a = b.getAttribute("data-fu");
     if(a === "rrcopy"){
-      var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : repResetText(l);
-      function done(){ b.textContent = "\u2705 Copied \u2014 paste it in your text"; if(!l.rr_text_sent){ l.rr_text_sent = true; l.next_followup = ""; addLog(l, "Reconfirm text copied"); save(); } setTimeout(function(){ b.textContent = "\ud83d\udccb Copy text"; }, 2500); }
+      var isNA = statusOf(l) === "Confirm NA";
+      var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : (isNA ? naText(l) : repResetText(l));
+      function done(){ b.textContent = "\u2705 Copied \u2014 paste it in your text";
+        if(isNA){ if(!l.na_text_sent){ l.na_text_sent = true; addLog(l, "NA reminder text copied"); save(); } }
+        else if(!l.rr_text_sent){ l.rr_text_sent = true; l.next_followup = ""; addLog(l, "Reconfirm text copied"); save(); }
+        setTimeout(function(){ b.textContent = "\ud83d\udccb Copy text"; }, 2500); }
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){ ta.select(); document.execCommand("copy"); done(); }); }
       else { ta.focus(); ta.select(); ta.setSelectionRange(0, 99999); document.execCommand("copy"); done(); }
       return;
     }
     if(a === "rrtext"){
+      if(statusOf(l) === "Confirm NA"){ addLog(l, "NA reminder text sent"); l.na_text_sent = true; setTimeout(refreshDetail, 400); return; }
       addLog(l, "Reconfirm text sent");
       l.rr_text_sent = true; l.next_followup = "";
       setTimeout(refreshDetail, 400);
@@ -1880,7 +1900,7 @@
     }
     else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
     else if(a === "confirmed"){ l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
-    else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); addLog(l, "No answer on confirmation"); }
+    else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); l.na_text_sent = false; addLog(l, "No answer on confirmation"); }
     else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
     refreshDetail();
   });
