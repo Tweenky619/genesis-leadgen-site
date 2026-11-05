@@ -468,6 +468,9 @@
   .fu-note button{flex:none;border:none;border-radius:8px;padding:0 14px;font-weight:700;background:var(--brand);color:#fff;}
   .fu-log{margin-top:10px;font-size:13px;}
   .fu-log div{padding:6px 0;border-top:1px solid var(--border);}
+  .fu-log .log-row{display:flex;align-items:center;gap:8px;}
+  .fu-log .log-row span{flex:1;}
+  .fu-log .log-del{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:#b3261e;font-size:14px;font-weight:700;line-height:1;}
   .fu-log b{color:var(--text-muted);font-weight:600;margin-right:6px;}
   .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .photo-grid:empty{display:none;}
@@ -1715,8 +1718,8 @@
   function buildFollowUp(l){
     var st = statusOf(l);
     var opts = STATUSES.map(function(x){ return '<option' + (x[0]===st?' selected':'') + '>' + x[0] + '</option>'; }).join("");
-    var log = (l.log || []).map(function(e){
-      return '<div><b>' + esc(fmtDate(e.ts)) + '</b>' + esc(e.text) + '</div>';
+    var log = (l.log || []).map(function(e, i){
+      return '<div class="log-row"><span><b>' + esc(fmtDate(e.ts)) + '</b>' + esc(e.text) + '</span><button type="button" class="log-del" data-fu="logdel" data-i="' + i + '" aria-label="Delete entry">\u2715</button></div>';
     }).join("");
     return '<div class="fu-box"><h3>Follow-up</h3>' +
       '<div class="fu-grid">' +
@@ -1775,6 +1778,25 @@
     if(!b) return;
     var l = currentLead(); if(!l) return;
     var a = b.getAttribute("data-fu");
+    if(a === "logdel"){
+      var i = +b.getAttribute("data-i"), entry = (l.log || [])[i];
+      if(!entry) return;
+      if(!confirm("Delete this entry?\n\n" + fmtDate(entry.ts) + "  " + entry.text)) return;
+      l.log.splice(i, 1);
+      // If this entry set the current status, step the status back
+      var curType = STATUS_TYPE[statusOf(l)], delType = null;
+      EVENT_RULES.forEach(function(r){ if(!delType && r[0].test(entry.text)){ delType = r[1]; } });
+      if(delType && delType === curType){
+        var prev = "";
+        for(var k = 0; k < l.log.length && !prev; k++){
+          EVENT_RULES.forEach(function(r){ if(!prev && r[0].test(l.log[k].text)){ Object.keys(STATUS_TYPE).forEach(function(nm){ if(!prev && STATUS_TYPE[nm] === r[1]){ prev = nm; } }); } });
+        }
+        l.status = prev || (l.appt_date || l.appt_time ? "Appt Set" : "New");
+        if(delType === "sold"){ l.sale_amount = ""; }
+      }
+      refreshDetail();
+      return;
+    }
     if(a === "noanswer"){ l.status = "No Answer"; l.next_followup = addDaysISO(1); addLog(l, "No answer"); }
     else if(a === "talked"){ l.status = "Contacted"; l.next_followup = addDaysISO(3); addLog(l, "Talked"); }
     else if(a === "reset"){ l.status = "Reset"; l.next_followup = ""; addLog(l, "Reset \u2014 rescheduling appointment"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 80); return; }
