@@ -568,6 +568,8 @@
   .st-h{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--brand-dark);margin:18px 0 8px;}
   .st-h:first-child{margin-top:4px;}
   .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .tap{cursor:pointer;}
+  .st-card.tap:active,.st-rate.tap:active,.st-money.tap:active{transform:scale(.97);}
   .st-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
   .st-card .n{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
   .st-card .l{font-size:11.5px;font-weight:700;color:var(--text-muted);margin-top:4px;}
@@ -1192,7 +1194,18 @@
       var tot = filtered.reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
       banner = '<div class="sold-total"><span>' + filtered.length + ' deal' + (filtered.length===1?'':'s') + ' sold</span>' + esc(fmtMoney(tot)) + '</div>';
     }
-    container.innerHTML = banner + filtered.map(function(l){
+    container.innerHTML = banner + filtered.map(leadRowHtml).join("");
+    bindLeadRows(container, false);
+  }
+  function bindLeadRows(container, fromStats){
+    Array.prototype.forEach.call(container.querySelectorAll(".lead-row"), function(el){
+      el.addEventListener("click", function(){
+        if(!fromStats){ statDrill = null; }
+        openDetail(el.getAttribute("data-id"));
+      });
+    });
+  }
+  function leadRowHtml(l){
       var tagLine = (l.interests && l.interests.length) ? esc(l.interests.join(" · ")) : "";
       return (
         '<div class="lead-row" data-id="' + l.id + '">' +
@@ -1208,13 +1221,6 @@
           '</div>' +
         '</div>'
       );
-    }).join("");
-
-    Array.prototype.forEach.call(container.querySelectorAll(".lead-row"), function(el){
-      el.addEventListener("click", function(){
-        openDetail(el.getAttribute("data-id"));
-      });
-    });
   }
 
   function resetForm(){
@@ -1670,6 +1676,7 @@
   document.getElementById("cancelFormBtn2").addEventListener("click", cancelForm);
   document.getElementById("backFromDetailBtn").addEventListener("click", function(){
     viewingId = null;
+    if(statDrill){ showView("view-stats"); renderStats(); return; }
     showView("view-list");
     renderList();
   });
@@ -2430,23 +2437,26 @@
   }
   function computeStats(k){
     var from = periodStart(k), c = { leads:0, appts:0, confirmed:0, blowout:0, na:0, sold:0, miss:0, noshow:0, ctc:0, nomr:0, rolled:0, represet:0, money:0 };
+    var L = c.lists = {};
+    function add(key, l){ (L[key] = L[key] || []).push(l); }
     leads.forEach(function(l){
       var made = l.created_at || 0;
-      if(made >= from){ c.leads++; if(apptSetAtDoor(l)){ c.appts++; } }
+      if(made >= from){ c.leads++; add("leads", l); if(apptSetAtDoor(l)){ c.appts++; add("appts", l); } }
       var ev = leadEvents(l);
       Object.keys(ev).forEach(function(type){
         if(type === "sold") return;
-        if(ev[type].some(function(ts){ return ts >= from; })){ c[type]++; }
+        if(ev[type].some(function(ts){ return ts >= from; })){ c[type]++; add(type, l); }
       });
       // A sale is any lead marked Sold, dated by its appointment day (the day it was sold)
       if(statusOf(l) === "Sold" && saleDate(l, ev) >= from){
-        c.sold++; c.money += Number(l.sale_amount) || 0;
+        c.sold++; c.money += Number(l.sale_amount) || 0; add("sold", l);
       }
     });
     return c;
   }
   function pct(a, b){ return b ? Math.round(a * 100 / b) + "%" : "\u2014"; }
-  function card(n, label, cls){ if(n === 0){ cls = ""; } return '<div class="st-card' + (cls ? " " + cls : "") + '"><div class="n">' + n + '</div><div class="l">' + label + '</div></div>'; }
+  function card(n, label, cls, key){ if(n === 0){ cls = ""; } return '<div class="st-card' + (cls ? " " + cls : "") + (key && n ? " tap" : "") + '"' + (key ? ' data-k="' + key + '" data-t="' + esc(label.replace(/<[^>]*>/g, "")) + '"' : '') + '><div class="n">' + n + '</div><div class="l">' + label + '</div></div>'; }
+  var statDrill = null;
   function bar(parts){
     var tot = parts.reduce(function(a, p){ return a + p[0]; }, 0) || 1;
     return '<div class="st-bar">' + parts.map(function(p){ return '<i style="width:' + (p[0] * 100 / tot) + '%;background:' + p[1] + '"></i>'; }).join("") + '</div>';
@@ -2461,27 +2471,45 @@
     var notRan = c.noshow + c.ctc + c.nomr;
     var html =
       '<div class="st-h">At the door</div><div class="st-grid">' +
-        card(c.leads, "Leads") + card(c.appts, "Appts set") + card(pct(c.appts, c.leads), "Set rate") +
+        card(c.leads, "Leads", "", "leads") + card(c.appts, "Appts set", "", "appts") + card(pct(c.appts, c.leads), "Set rate", "", "appts") +
       '</div>' +
       '<div class="st-h">Confirmations</div><div class="st-grid">' +
-        card(c.confirmed, "\u2705 Confirmed", "good") + card(c.blowout, "\ud83d\udca5 Blow outs", "bad") + card(c.na, "\ud83d\udeab NA", "bad") +
+        card(c.confirmed, "\u2705 Confirmed", "good", "confirmed") + card(c.blowout, "\ud83d\udca5 Blow outs", "bad", "blowout") + card(c.na, "\ud83d\udeab NA", "bad", "na") +
       '</div>' +
-      '<div class="st-rate"><div class="top">Confirm rate<span>' + pct(c.confirmed, confTot) + '</span></div>' +
+      '<div class="st-rate tap" data-k="confirmed,blowout,na" data-t="Confirmation calls"><div class="top">Confirm rate<span>' + pct(c.confirmed, confTot) + '</span></div>' +
         '<div class="sub">' + c.confirmed + ' of ' + confTot + ' confirmation calls' + (c.rolled ? ' \u00b7 ' + c.rolled + ' rolled' : '') + '</div>' +
         bar([[c.confirmed, "#0b6b3a"], [c.blowout, "#2b2b2b"], [c.na, "#d93025"]]) + '</div>' +
       '<div class="st-h">Appointments</div><div class="st-grid">' +
-        card(c.sold, "\ud83d\udcb0 Sold", "good") + card(c.miss, "\u274c Pitch miss", "bad") + card(c.represet, "\ud83d\udd01 Rep reset") +
-        card(c.noshow, "\ud83d\udeaa No show", "bad") + card(c.ctc, "\ud83d\udcf5 Call to cancel", "bad") + card(c.nomr, "\ud83d\udc64 No Mr./Mrs.", "bad") +
+        card(c.sold, "\ud83d\udcb0 Sold", "good", "sold") + card(c.miss, "\u274c Pitch miss", "bad", "miss") + card(c.represet, "\ud83d\udd01 Rep reset", "", "represet") +
+        card(c.noshow, "\ud83d\udeaa No show", "bad", "noshow") + card(c.ctc, "\ud83d\udcf5 Call to cancel", "bad", "ctc") + card(c.nomr, "\ud83d\udc64 No Mr./Mrs.", "bad", "nomr") +
       '</div>' +
-      '<div class="st-rate"><div class="top">Close rate<span>' + pct(c.sold, ran) + '</span></div>' +
+      '<div class="st-rate tap" data-k="sold,miss" data-t="Pitched"><div class="top">Close rate<span>' + pct(c.sold, ran) + '</span></div>' +
         '<div class="sub">' + c.sold + ' sold of ' + ran + ' pitched' + (notRan ? ' \u00b7 ' + notRan + ' didn\u2019t run' : '') + '</div>' +
         bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
-      '<div class="st-money"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
+      '<div class="st-money tap" data-k="sold" data-t="Sold"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
         '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>';
-    document.getElementById("statsBody").innerHTML = html;
+    var body = document.getElementById("statsBody");
+    if(statDrill){
+      var keys = statDrill.k.split(","), seen = {}, list = [];
+      keys.forEach(function(key){ (c.lists[key] || []).forEach(function(l){ if(!seen[l.id]){ seen[l.id] = 1; list.push(l); } }); });
+      list.sort(function(a, b){ return b.created_at - a.created_at; });
+      var per = STAT_PERIODS.filter(function(x){ return x[0] === statPeriod; })[0];
+      body.innerHTML = '<div class="back-row" id="statDrillBack">&larr; Back to stats</div>' +
+        '<div class="st-h">' + esc(statDrill.t) + ' \u00b7 ' + esc(per ? per[1] : "") + ' (' + list.length + ')</div>' +
+        (list.length ? list.map(leadRowHtml).join("") : '<div class="empty-state"><p>No leads for this.</p></div>');
+      bindLeadRows(body, true);
+      document.getElementById("statDrillBack").addEventListener("click", function(){ statDrill = null; renderStats(); window.scrollTo(0, 0); });
+      return;
+    }
+    body.innerHTML = html;
   }
-  document.getElementById("statsBtn").addEventListener("click", function(){ renderStats(); showView("view-stats"); });
-  document.getElementById("backFromStatsBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
+  document.getElementById("statsBody").addEventListener("click", function(e){
+    var t = e.target.closest(".tap[data-k]"); if(!t || statDrill) return;
+    statDrill = { k: t.getAttribute("data-k"), t: t.getAttribute("data-t") };
+    renderStats(); window.scrollTo(0, 0);
+  });
+  document.getElementById("statsBtn").addEventListener("click", function(){ statDrill = null; renderStats(); showView("view-stats"); });
+  document.getElementById("backFromStatsBtn").addEventListener("click", function(){ statDrill = null; showView("view-list"); renderList(); });
   document.getElementById("statsPeriods").addEventListener("click", function(e){
     var b = e.target.closest("[data-period]"); if(!b) return;
     statPeriod = b.getAttribute("data-period"); renderStats();
