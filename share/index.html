@@ -1775,12 +1775,12 @@
     var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
     var p = (l.appt_date || "").split("-"), dayName = p.length === 3 ? DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()] : "";
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
-    var projTxt = pr.length ? " about your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
+    var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
     return "Hi" + (first ? " " + first : "") + ", this is " + (repFirst() || "___") + " with SoCal Contractor Exchange. " +
-      "Just a heads-up \u2014 we\u2019ll be reaching out to reconfirm the visit our rep reset with you" + projTxt + " for " +
-      dateTxt + (l.appt_time ? " at " + l.appt_time : "") + ". " +
+      "Just a heads-up \u2014 we\u2019ll be reaching out to reconfirm the visit our rep reset with you, or you can thumbs up here or say \u201cgood to go\u201d so we know we\u2019re fine to go out " +
+      dateTxt + (l.appt_time ? " at " + l.appt_time : "") + projTxt + ". " +
       "Please keep an eye out for our call so we can lock it in. Thank you!";
   }
   var OFFICE_PHONE = "(619) 393-5297";
