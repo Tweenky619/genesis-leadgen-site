@@ -2120,6 +2120,8 @@
   var SCHEDULE = { Monday:[10,19], Tuesday:[13,19], Wednesday:[10,19], Thursday:[10,19], Friday:[10,18], Saturday:[10,17] };
   var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   function hourLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":00 " + ap; }
+  function halfLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":30 " + ap; }
+  function slotsFor(win){ var o = []; for(var h = win[0]; h <= win[1]; h++){ o.push(hourLabel(h)); if(h < win[1]){ o.push(halfLabel(h)); } } return o; }
   function buildTimeOptions(keep){
     var day = document.getElementById("f_appt_day").value;
     var sel = document.getElementById("f_appt_time");
@@ -2127,7 +2129,7 @@
     var cur = keep !== undefined ? keep : sel.value;
     var win = SCHEDULE[day];
     var opts = [];
-    if(win){ for(var h = win[0]; h <= win[1]; h++){ opts.push(hourLabel(h)); } }
+    if(win){ opts = slotsFor(win); }
     var html = '<option value="">' + (win ? "Select time" : "Pick a date first") + '</option>' +
       opts.map(function(t){ return '<option' + (t === cur ? ' selected' : '') + '>' + t + '</option>'; }).join("");
     if(cur && opts.indexOf(cur) === -1){ html += '<option selected>' + esc(cur) + '</option>'; }
@@ -2391,7 +2393,7 @@
     if(!d){ sel.innerHTML = '<option value="">Pick a date first</option>'; return; }
     var p = d.split("-"); var name = DAYS[new Date(+p[0], +p[1]-1, +p[2]).getDay()]; var win = SCHEDULE[name];
     if(!win){ sel.innerHTML = '<option value="">No appointments</option>'; hint.textContent = name + " \u2014 no appointments that day"; hint.className = "sched-hint warn"; return; }
-    var opts = []; for(var h = win[0]; h <= win[1]; h++){ opts.push(hourLabel(h)); }
+    var opts = slotsFor(win);
     sel.innerHTML = '<option value="">Select time</option>' + opts.map(function(t){ return '<option' + (t === keep ? ' selected' : '') + '>' + t + '</option>'; }).join("");
     hint.textContent = name + " hours: " + hourLabel(win[0]).replace(":00","") + " \u2013 " + hourLabel(win[1]).replace(":00","");
   }
