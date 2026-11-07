@@ -474,6 +474,7 @@
   .fu-log b{color:var(--text-muted);font-weight:600;margin-right:6px;}
   .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .photo-grid:empty{display:none;}
+  .share-photos{width:100%;margin-top:10px;padding:12px;border-radius:10px;border:2px solid var(--brand);background:var(--card);color:var(--brand);font-weight:800;font-size:15px;}
   .photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;cursor:pointer;background:#e9ebee;}
   .photo-add{display:block;margin-top:10px;text-align:center;padding:13px;border:2px dashed var(--border);border-radius:12px;background:var(--card);font-weight:700;color:var(--brand);cursor:pointer;}
   .photo-add:active{background:var(--brand-light);}
@@ -485,6 +486,7 @@
   .viewer-bar button{flex:1;padding:13px;border:none;border-radius:12px;font-weight:700;font-size:15px;}
   #viewerDelete{background:#fdecea;color:var(--danger);}
   #viewerClose{background:#fff;color:var(--text);}
+  #viewerShare{background:var(--brand);color:#fff;}
   .fu-sale{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px;border-radius:10px;background:#e6f4ec;}
   .fu-sale label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#0b6b3a;flex:none;}
   .fu-sale .dollar{font-weight:800;color:#0b6b3a;}
@@ -1026,6 +1028,7 @@
 <div class="viewer" id="photoViewer" hidden>
   <img id="viewerImg" alt="Lead photo">
   <div class="viewer-bar">
+    <button type="button" id="viewerShare">&#128228; Share</button>
     <button type="button" id="viewerDelete">Delete photo</button>
     <button type="button" id="viewerClose">Close</button>
   </div>
@@ -1372,7 +1375,7 @@
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
-      '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div></div>' +
+      '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
 
       section("Contact Info",
         (function(){ var t = [l.is_sole_owner || (l.sole_owner && !/^Widow/.test(l.owner_status || "")) ? "Sole owner" : "", /^Widow/.test(l.owner_status || "") ? l.owner_status : ""].filter(Boolean).join(" \u00b7 "); return t ? item("Homeowner", t) : ""; })() +
@@ -1984,7 +1987,25 @@
       img.src = url;
     });
   }
-  var shownUrls = {};
+  var shownUrls = {}, shownBlobs = {};
+  function photoFiles(list, l){
+    var base = ((l && (l.homeowner_name || l.address)) || "lead").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "lead";
+    return list.map(function(p, i){ return new File([p.blob], base + "-" + (i + 1) + ".jpg", { type: "image/jpeg" }); });
+  }
+  function sharePhotoList(list){
+    var l = leads.filter(function(x){ return x.id === viewingId; })[0];
+    if(!list || !list.length) return;
+    var files = photoFiles(list, l);
+    var text = l ? [l.homeowner_name, l.address].filter(Boolean).join(" \u2014 ") : "";
+    if(navigator.canShare && navigator.canShare({ files: files })){
+      navigator.share({ files: files, title: "Photos of concern areas", text: text }).catch(function(){});
+      return;
+    }
+    files.forEach(function(f){
+      var a = document.createElement("a"); a.href = URL.createObjectURL(f); a.download = f.name;
+      document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    });
+  }
   function renderPhotos(leadId, gridId, wrapId){
     var grid = document.getElementById(gridId);
     if(!grid) return;
@@ -1994,6 +2015,7 @@
     grid.setAttribute("data-lead", leadId);
     photosFor(leadId).then(function(list){
       if(grid.getAttribute("data-lead") !== leadId) return;
+      shownBlobs[gridId] = list;
       grid.innerHTML = list.map(function(p){
         var u = URL.createObjectURL(p.blob); shownUrls[gridId].push(u);
         return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo">';
@@ -2036,6 +2058,14 @@
     openViewer(im.getAttribute("data-photo"), im.src, grid.id);
   });
   document.getElementById("viewerClose").addEventListener("click", closeViewer);
+  document.getElementById("viewerShare").addEventListener("click", function(){
+    if(!viewing) return;
+    var one = (shownBlobs[viewing.grid] || []).filter(function(p){ return p.id === viewing.id; });
+    sharePhotoList(one);
+  });
+  document.addEventListener("click", function(e){
+    if(e.target.closest && e.target.closest("#sharePhotosBtn")){ sharePhotoList(shownBlobs.detailPhotos); }
+  });
   document.getElementById("viewerDelete").addEventListener("click", function(){
     if(!viewing) return;
     var v = viewing;
