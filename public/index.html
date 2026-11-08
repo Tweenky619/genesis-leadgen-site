@@ -571,6 +571,13 @@
   .st-h:first-child{margin-top:4px;}
   .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .tap{cursor:pointer;}
+  .st-pts{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:14px 16px;margin-bottom:16px;}
+  .st-pts .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+  .st-pts .big{font-size:32px;font-weight:900;}
+  .st-pts .big span{font-size:15px;font-weight:700;color:var(--muted);}
+  .st-pts .tier{font-weight:800;color:var(--brand);}
+  .st-pts .pay{font-weight:700;margin-top:4px;}
+  .st-pts .sub{font-size:13px;color:var(--muted);margin-top:4px;}
   .st-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--card);}
   .st-nav span{flex:1;text-align:center;font-weight:800;font-size:15px;}
   .st-nav button{width:44px;height:40px;border:none;border-radius:10px;background:#eef0f3;font-size:24px;font-weight:700;line-height:1;color:var(--text);}
@@ -2484,6 +2491,21 @@
     if(ev.sold && ev.sold.length){ return Math.max.apply(null, ev.sold); }
     return l.created_at || 0;
   }
+  // Pay points: 1 per sit (pitch miss), 2 per sale
+  function pointsHtml(c){
+    var sits = c.sold + c.miss, pts = c.miss + c.sold * 2, tier, pay;
+    if(pts >= 10){ tier = "10+ points"; pay = "$500 + $50/sit after 3 sits" + (sits > 3 ? " = " + fmtMoney(500 + 50 * (sits - 3)) : " = $500"); }
+    else if(pts >= 7){ tier = "7 points"; pay = "$35/hr + 2% of sales (" + fmtMoney(Math.round(c.money * 0.02)) + ")"; }
+    else if(pts >= 3){ tier = "3 points"; pay = "$30/hr + 1% of sales (" + fmtMoney(Math.round(c.money * 0.01)) + ")"; }
+    else { tier = "Under 3 points"; pay = (3 - pts) + " more point" + (3 - pts === 1 ? "" : "s") + " to reach $30/hr + 1%"; }
+    var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to $500 + $50/sit" : "";
+    var bonus = Math.floor(c.money / 100000) * 1500;
+    return '<div class="st-h">Pay points</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
+      '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
+      '<div class="pay">' + esc(pay) + '</div>' +
+      '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
+      '<div class="sub">$100k bonus: ' + esc(fmtMoney(c.money % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
+  }
   function computeStats(k){
     var rng = periodRange(k, statOffset), to = rng[1];
     function inR(ts){ return ts >= rng[0] && ts < to; }
@@ -2541,7 +2563,8 @@
         '<div class="sub">' + c.sold + ' sold of ' + ran + ' pitched' + (notRan ? ' \u00b7 ' + notRan + ' didn\u2019t run' : '') + '</div>' +
         bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
       '<div class="st-money tap" data-k="sold" data-t="Sold"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
-        '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>';
+        '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>' +
+      pointsHtml(c);
     var body = document.getElementById("statsBody");
     if(statDrill){
       var keys = statDrill.k.split(","), seen = {}, list = [];
