@@ -577,6 +577,9 @@
   .st-pts .big span{font-size:15px;font-weight:700;color:var(--muted);}
   .st-pts .tier{font-weight:800;color:var(--brand);}
   .st-pts .pay{font-weight:700;margin-top:4px;}
+  .st-pts .est{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:15px;}
+  .st-pts .est b{font-size:18px;color:#0b6b3a;}
+  .st-pts .est span{font-size:12.5px;color:var(--muted);}
   .st-pts .sub{font-size:13px;color:var(--muted);margin-top:4px;}
   .st-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--card);}
   .st-nav span{flex:1;text-align:center;font-weight:800;font-size:15px;}
@@ -2492,17 +2495,21 @@
     return l.created_at || 0;
   }
   // Pay points: 1 per sit (pitch miss), 2 per sale
+  // Mon\u2013Fri 10\u20136 and Sat 10\u20135, each minus a 30-min unpaid lunch: 5\u00d77.5 + 6.5 = 44 hrs
+  var WEEK_HOURS = 44;
   function pointsHtml(c){
-    var sits = c.sold + c.miss, pts = c.miss + c.sold * 2, tier, pay;
+    var sits = c.sold + c.miss, pts = c.miss + c.sold * 2, tier, pay, rate = 0, comm = 0;
     if(pts >= 10){ tier = "10+ points"; pay = "$500 + $50/sit after 3 sits" + (sits > 3 ? " = " + fmtMoney(500 + 50 * (sits - 3)) : " = $500"); }
-    else if(pts >= 7){ tier = "7 points"; pay = "$35/hr + 2% of sales (" + fmtMoney(Math.round(c.money * 0.02)) + ")"; }
-    else if(pts >= 3){ tier = "3 points"; pay = "$30/hr + 1% of sales (" + fmtMoney(Math.round(c.money * 0.01)) + ")"; }
+    else if(pts >= 7){ tier = "7 points"; rate = 35; comm = Math.round(c.money * 0.02); pay = "$35/hr + 2% of sales (" + fmtMoney(comm) + ")"; }
+    else if(pts >= 3){ tier = "3 points"; rate = 30; comm = Math.round(c.money * 0.01); pay = "$30/hr + 1% of sales (" + fmtMoney(comm) + ")"; }
     else { tier = "Under 3 points"; pay = (3 - pts) + " more point" + (3 - pts === 1 ? "" : "s") + " to reach $30/hr + 1%"; }
     var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to $500 + $50/sit" : "";
     var bonus = Math.floor(c.money / 100000) * 1500;
     return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
+      (rate ? '<div class="est">Est. week: <b>' + esc(fmtMoney(WEEK_HOURS * rate + comm)) + '</b> <span>(' + WEEK_HOURS + ' hrs \u00d7 $' + rate + ' = ' + esc(fmtMoney(WEEK_HOURS * rate)) + ' + ' + esc(fmtMoney(comm)) + ')</span></div>' +
+        '<div class="sub">If the 4 hrs over 40 pay overtime (1.5\u00d7): ' + esc(fmtMoney(40 * rate + (WEEK_HOURS - 40) * rate * 1.5 + comm)) + '</div>' : '') +
       '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
       '<div class="sub">$100k bonus: ' + esc(fmtMoney(c.money % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
   }
