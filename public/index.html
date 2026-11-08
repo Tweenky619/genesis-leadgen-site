@@ -571,6 +571,10 @@
   .st-h:first-child{margin-top:4px;}
   .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .tap{cursor:pointer;}
+  .st-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--card);}
+  .st-nav span{flex:1;text-align:center;font-weight:800;font-size:15px;}
+  .st-nav button{width:44px;height:40px;border:none;border-radius:10px;background:#eef0f3;font-size:24px;font-weight:700;line-height:1;color:var(--text);}
+  .st-nav button:disabled{opacity:.3;}
   .st-card.tap:active,.st-rate.tap:active,.st-money.tap:active{transform:scale(.97);}
   .st-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center;}
   .st-card .n{font-size:24px;font-weight:800;color:var(--text);line-height:1.1;}
@@ -1018,6 +1022,7 @@
     <section class="view" id="view-stats">
       <div class="back-row" id="backFromStatsBtn">&larr; All Leads</div>
       <div class="tabs" id="statsPeriods"></div>
+      <div id="statsNav"></div>
       <div id="statsBody"></div>
     </section>
 
@@ -2425,14 +2430,26 @@
   });
 
   // ---- Stats ----
-  var STAT_PERIODS = [["today","Today"],["week","This week"],["month","This month"],["all","All time"]];
-  var statPeriod = "week";
-  function periodStart(k){
+  var STAT_PERIODS = [["today","Day"],["week","Week"],["month","Month"],["all","All time"]];
+  var statPeriod = "week", statOffset = 0;
+  // Range [from, to) for the chosen period, shifted back by statOffset periods
+  function periodRange(k, off){
+    off = off || 0;
     var d = new Date(); d.setHours(0,0,0,0);
-    if(k === "today") return d.getTime();
-    if(k === "week"){ d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); }
-    if(k === "month"){ d.setDate(1); return d.getTime(); }
-    return 0;
+    if(k === "today"){ d.setDate(d.getDate() - off); var e = new Date(d); e.setDate(e.getDate() + 1); return [d.getTime(), e.getTime()]; }
+    if(k === "week"){ d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 7 * off); var e2 = new Date(d); e2.setDate(e2.getDate() + 7); return [d.getTime(), e2.getTime()]; }
+    if(k === "month"){ d.setDate(1); d.setMonth(d.getMonth() - off); var e3 = new Date(d); e3.setMonth(e3.getMonth() + 1); return [d.getTime(), e3.getTime()]; }
+    return [0, Infinity];
+  }
+  function periodStart(k){ return periodRange(k, 0)[0]; }
+  function periodLabel(k, off){
+    var r = periodRange(k, off), a = new Date(r[0]);
+    var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    if(k === "today"){ return off === 0 ? "Today" : off === 1 ? "Yesterday" : DAYS[a.getDay()] + ", " + MON[a.getMonth()] + " " + a.getDate(); }
+    if(k === "week"){ var z = new Date(r[1] - 864e5); return (off === 0 ? "This week \u00b7 " : off === 1 ? "Last week \u00b7 " : "") + MON[a.getMonth()] + " " + a.getDate() + " \u2013 " + (z.getMonth() !== a.getMonth() ? MON[z.getMonth()] + " " : "") + z.getDate(); }
+    if(k === "month"){ return MONL[a.getMonth()] + " " + a.getFullYear(); }
+    return "All time";
   }
   var EVENT_RULES = [
     [/^Dispatch confirmed appointment/, "confirmed"],
@@ -2468,19 +2485,21 @@
     return l.created_at || 0;
   }
   function computeStats(k){
+    var rng = periodRange(k, statOffset), to = rng[1];
+    function inR(ts){ return ts >= rng[0] && ts < to; }
     var from = periodStart(k), c = { leads:0, appts:0, confirmed:0, blowout:0, na:0, sold:0, miss:0, noshow:0, ctc:0, nomr:0, rolled:0, represet:0, money:0 };
     var L = c.lists = {};
     function add(key, l){ (L[key] = L[key] || []).push(l); }
     leads.forEach(function(l){
       var made = l.created_at || 0;
-      if(made >= from){ c.leads++; add("leads", l); if(apptSetAtDoor(l)){ c.appts++; add("appts", l); } }
+      if(inR(made)){ c.leads++; add("leads", l); if(apptSetAtDoor(l)){ c.appts++; add("appts", l); } }
       var ev = leadEvents(l);
       Object.keys(ev).forEach(function(type){
         if(type === "sold") return;
-        if(ev[type].some(function(ts){ return ts >= from; })){ c[type]++; add(type, l); }
+        if(ev[type].some(inR)){ c[type]++; add(type, l); }
       });
       // A sale is any lead marked Sold, dated by its appointment day (the day it was sold)
-      if(statusOf(l) === "Sold" && saleDate(l, ev) >= from){
+      if(statusOf(l) === "Sold" && inR(saleDate(l, ev))){
         c.sold++; c.money += Number(l.sale_amount) || 0; add("sold", l);
       }
     });
@@ -2497,6 +2516,9 @@
     document.getElementById("statsPeriods").innerHTML = STAT_PERIODS.map(function(p){
       return '<button type="button" class="tab' + (p[0] === statPeriod ? ' active' : '') + '" data-period="' + p[0] + '">' + p[1] + '</button>';
     }).join("");
+    document.getElementById("statsNav").innerHTML = (statPeriod === "all" ? "" :
+      '<div class="st-nav"><button type="button" data-shift="1" aria-label="Previous">&lsaquo;</button><span>' + esc(periodLabel(statPeriod, statOffset)) + '</span>' +
+      '<button type="button" data-shift="-1" aria-label="Next"' + (statOffset === 0 ? ' disabled' : '') + '>&rsaquo;</button></div>');
     var c = computeStats(statPeriod);
     var confTot = c.confirmed + c.blowout + c.na;
     var ran = c.sold + c.miss;
@@ -2525,7 +2547,7 @@
       var keys = statDrill.k.split(","), seen = {}, list = [];
       keys.forEach(function(key){ (c.lists[key] || []).forEach(function(l){ if(!seen[l.id]){ seen[l.id] = 1; list.push(l); } }); });
       list.sort(function(a, b){ return b.created_at - a.created_at; });
-      var per = STAT_PERIODS.filter(function(x){ return x[0] === statPeriod; })[0];
+      var per = [0, periodLabel(statPeriod, statOffset)];
       body.innerHTML = '<div class="back-row" id="statDrillBack">&larr; Back to stats</div>' +
         '<div class="st-h">' + esc(statDrill.t) + ' \u00b7 ' + esc(per ? per[1] : "") + ' (' + list.length + ')</div>' +
         (list.length ? list.map(leadRowHtml).join("") : '<div class="empty-state"><p>No leads for this.</p></div>');
@@ -2542,9 +2564,15 @@
   });
   document.getElementById("statsBtn").addEventListener("click", function(){ statDrill = null; renderStats(); showView("view-stats"); });
   document.getElementById("backFromStatsBtn").addEventListener("click", function(){ statDrill = null; showView("view-list"); renderList(); });
+  document.getElementById("statsNav").addEventListener("click", function(e){
+    var sh = e.target.closest("[data-shift]");
+    if(sh){ if(sh.disabled) return; statOffset = Math.max(0, statOffset + (+sh.getAttribute("data-shift"))); statDrill = null; renderStats(); }
+  });
   document.getElementById("statsPeriods").addEventListener("click", function(e){
+    var sh = e.target.closest("[data-shift]");
+    if(sh){ if(sh.disabled) return; statOffset = Math.max(0, statOffset + (+sh.getAttribute("data-shift"))); statDrill = null; renderStats(); return; }
     var b = e.target.closest("[data-period]"); if(!b) return;
-    statPeriod = b.getAttribute("data-period"); renderStats();
+    statPeriod = b.getAttribute("data-period"); statOffset = 0; statDrill = null; renderStats();
   });
 
   // ---- Backup sheet ----
