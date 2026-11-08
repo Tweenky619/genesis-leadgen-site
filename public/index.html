@@ -2500,7 +2500,7 @@
     else { tier = "Under 3 points"; pay = (3 - pts) + " more point" + (3 - pts === 1 ? "" : "s") + " to reach $30/hr + 1%"; }
     var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to $500 + $50/sit" : "";
     var bonus = Math.floor(c.money / 100000) * 1500;
-    return '<div class="st-h">Pay points</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
+    return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
       '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
@@ -2564,7 +2564,7 @@
         bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
       '<div class="st-money tap" data-k="sold" data-t="Sold"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
         '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>' +
-      pointsHtml(c);
+      (statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>');
     var body = document.getElementById("statsBody");
     if(statDrill){
       var keys = statDrill.k.split(","), seen = {}, list = [];
