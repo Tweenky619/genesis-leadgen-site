@@ -2518,10 +2518,13 @@
     return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
-      (rate ? (function(){ var hrs = weekHours(), base = hrs * rate, ot = Math.max(0, hrs - 40);
-        return '<div class="est">Est. week: <b>' + esc(fmtMoney(Math.round(base + comm))) + '</b> <span>(' + hrs + ' hrs \u00d7 $' + rate + ' = ' + esc(fmtMoney(Math.round(base))) + (comm ? ' + ' + esc(fmtMoney(comm)) : '') + ')</span></div>' +
-        '<div class="hrs">Hours worked this week <input type="number" inputmode="decimal" step="0.5" min="0" max="80" id="weekHoursInput" value="' + hrs + '"></div>' +
-        (ot ? '<div class="sub">If the ' + ot + ' hrs over 40 pay overtime (1.5\u00d7): ' + esc(fmtMoney(Math.round(40 * rate + ot * rate * 1.5 + comm))) + '</div>' : ''); })() : '') +
+      (rate ? (function(){ var hrs = weekHours(), reg = Math.min(hrs, 40), ot = Math.max(0, hrs - 40);
+        var regPay = reg * rate, otPay = ot * rate * 1.5, total = Math.round(regPay + otPay + comm);
+        return '<div class="est">Est. week: <b>' + esc(fmtMoney(total)) + '</b></div>' +
+        '<div class="sub">' + reg + ' hrs \u00d7 $' + rate + ' = ' + esc(fmtMoney(Math.round(regPay))) +
+          (ot ? ' \u00b7 ' + ot + ' OT hrs \u00d7 $' + (rate * 1.5).toFixed(2).replace(/\.00$/, "") + ' = ' + esc(fmtMoney(Math.round(otPay))) : '') +
+          (comm ? ' \u00b7 commission ' + esc(fmtMoney(comm)) : '') + '</div>' +
+        '<div class="hrs">Hours worked this week <input type="number" inputmode="decimal" step="0.5" min="0" max="80" id="weekHoursInput" value="' + hrs + '"></div>'; })() : '') +
       '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
       '<div class="sub">$100k bonus: ' + esc(fmtMoney(c.money % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
   }
