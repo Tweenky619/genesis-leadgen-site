@@ -168,11 +168,11 @@
   var esc = A.esc;
 
   function header(){
-    var chips = ["Playbook"].concat(PRODUCTS, ["Mix", "Rebuttals", "Progress"]).map(function(p){
-      var lbl = p === "Mix" ? "🎲 Mix" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
+    var chips = ["Playbook"].concat(PRODUCTS, ["Mix", "QE", "Rebuttals", "Progress"]).map(function(p){
+      var lbl = p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
-    var modes = (st.product === "Rebuttals" || st.product === "Progress" || st.product === "Playbook") ? "" :
+    var modes = (st.product === "Rebuttals" || st.product === "QE" || st.product === "Progress" || st.product === "Playbook") ? "" :
       '<div class="pr-modes"><button type="button" class="' + (st.mode === "learn" ? "on" : "") + '" data-pm="learn">📖 Learn</button><button type="button" class="' + (st.mode === "drill" ? "on" : "") + '" data-pm="drill">🎯 Drill</button></div>';
     return '<div class="tabs pr-tabs">' + chips + '</div>' + modes;
   }
@@ -428,6 +428,76 @@
         '<p class="rbm-p">Skip a step and the chain breaks.</p></div>';
   }
 
+  // ---------- Question -> Education, broken down like the rebuttal system ----------
+  var QE_STEPS = [
+    ["Point", "Get their eyes on the damage <b>before you say a word</b>. Turn toward it and point. If they don’t see it, nothing you say next lands."],
+    ["Ask the Question", "“Have you noticed ___?” makes them <b>discover it themselves</b>. What they find on their own, they believe — and their answer tells you how much they already know."],
+    ["Show the Slick", "The slick shows them <b>what it looks like when it gets worse</b>. Now they know what they’re looking at on their own house — and you look like the expert."],
+    ["Educate", "Say what it is, what it <b>lets in</b>, and what that <b>leads to</b>: moisture → dry rot, termites, and toxic mold. That’s SoCal’s formula: <b>point out damage + consequence of damage.</b>"],
+    ["Bridge", "React to what they said, then lead into the next question. Each loop goes deeper — <b>what they see → what’s hidden → how it reaches them</b>. After the last loop, the cost of waiting bridges you into the close."]
+  ];
+  var QE_SPOT = {
+    "Roof": ["Shiny spots where the fiberglass shows through", "Missing shingles or bare patches", "Ridge caps cracked or lifting at the peak", "Dark streaks across the shingles", "Water stains on the ceilings inside"],
+    "Paint/Stucco": ["Chipping and peeling paint", "White, powdery stains near the bottom of the wall", "Cracks running sideways down low or straight up", "Stains on the inside of the wall"],
+    "Fascia/Trim Boards": ["Paint peeling at the roofline", "Dark, soft-looking corners and joints", "Gaps where birds, bees or rodents get in"],
+    "Windows": ["Fog or condensation between the panes", "Rooms that run hot in the afternoon or drafty at night", "Windows hard to open or locks that stick", "Water stains or soft spots around the frames"]
+  };
+  var QE_ICON = { "Roof": "🏠", "Paint/Stucco": "🧱", "Fascia/Trim Boards": "🪵", "Windows": "🪟" };
+  function qeLoops(product){ return PITCHES[product].filter(function(x){ return x.type === "q" && x.follow; }); }
+  function qeBar(cur){
+    return '<div class="rb-bar">' + [["learn","🎓 Learn","qelearn"],["drill","🎯 Drill","qedrill"]].map(function(t){
+      return '<button type="button" class="rb-tab' + (t[0] === cur ? " on" : "") + '"' + (t[0] === cur ? "" : ' data-pa="' + t[2] + '"') + '>' + t[1] + '</button>';
+    }).join("") + '</div>';
+  }
+  function qeLearn(){
+    var html = qeBar("learn") +
+      '<div class="pr-card"><div class="pr-step">1. What Question → Education is</div><p class="rbm-what">It’s how you get the homeowner to <b>see</b> the damage and <b>understand</b> what it turns into — so the inspection makes sense before you ever ask for it. You don’t tell them they have a problem. You ask, they find it, and you explain it.</p></div>' +
+      '<div class="pr-card"><div class="pr-step">2. The four core products</div><p class="rbm-p">Every house you knock has at least one:</p>' +
+        PRODUCTS.map(function(pr, i){ return '<div class="rbm-step"><span class="dk">' + (i + 1) + '</span>' + QE_ICON[pr] + ' ' + esc(pr) + '</div>'; }).join("") +
+        '<p class="rbm-p" style="margin-top:10px">Your first job is to <b>spot the damage</b> before you knock — because your intro and every question after it depend on it.</p></div>' +
+      '<div class="pr-card"><div class="pr-step">3. The five steps are one chain</div><p class="rbm-p">Each step sets up the next:</p>' +
+        QE_STEPS.map(function(x, i){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x[0]) + '</div><p>' + x[1] + '</p>' + (i < 4 ? '<div class="rbm-next">↓ sets up Step ' + (i + 2) + '</div>' : '') + '</div>'; }).join("") + '</div>';
+    PRODUCTS.forEach(function(pr){
+      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' — how to spot it</div><ul class="rbm-say">' +
+          QE_SPOT[pr].map(function(q){ return '<li>' + esc(q) + '</li>'; }).join("") + '</ul>' +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 Only ask about damage you can <b>actually point to</b>. No visible damage? Skip that loop.</div></div>';
+      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' — how to handle it</div>' +
+        qeLoops(pr).map(function(q, k){
+          return '<div class="rbm-why qe-loop"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>Loop ' + (k + 1) + '</div>' +
+            (q.cue ? '<div class="qe-row"><b>Point</b><span>' + esc(q.cue) + '</span></div>' : '') +
+            '<div class="qe-row"><b>Ask</b><div class="pb-ex">“' + esc(q.say) + '”</div></div>' +
+            (q.slickCap ? '<div class="qe-row"><b>Slick</b><span>' + esc([].concat(q.slickCap).join(" + ")) + '</span></div>' : '') +
+            '<div class="qe-row"><b>Educate</b><div class="pb-ex">“' + esc(q.follow) + '”</div></div>' +
+            (q.tip ? '<p>' + esc(q.tip) + '</p>' : '') + '</div>';
+        }).join("") +
+        '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div><p>The cost of waiting: it’s still the cheap fix right now. Then go straight into the close.</p></div></div>';
+    });
+    html += '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">Question → Education isn’t a speech — it’s a loop you run three times:</p>' +
+      '<div class="rbm-flow">Point → Ask → Show → Educate → Bridge</div>' +
+      '<p class="rbm-p">Loop 1: what they see. Loop 2: what’s hidden. Loop 3: how it reaches them. Skip a step and the chain breaks.</p></div>';
+    return html;
+  }
+  function qeDrill(){
+    if(!st.qe){ var pr = pick(PRODUCTS), lp = pick(qeLoops(pr)); st.qe = { product: pr, loop: lp, shown: 0, done: st.qeDone || 0 }; }
+    var q = st.qe, lp2 = q.loop;
+    var steps = [["Point", lp2.cue || "Point to the damage and wait for their eyes to follow."], ["Ask", "“" + lp2.say + "”"]];
+    if(lp2.slickCap){ steps.push(["Show the slick", [].concat(lp2.slickCap).join(" + ")]); }
+    steps.push(["Educate", "“" + lp2.follow + "”"]);
+    steps.push(["Bridge", "React to their answer — then go to the next question (or the close)."]);
+    var html = qeBar("drill") + '<div class="pr-card"><div class="pr-step">Q→E drill · ' + QE_ICON[q.product] + ' ' + esc(q.product) + '</div>' +
+      '<div class="pr-ho pr-obj"><b>🏠 You see:</b> ' + esc(lp2.slickCap ? [].concat(lp2.slickCap)[0] : lp2.label) + '</div>';
+    steps.forEach(function(sv, k){
+      var open = k < q.shown;
+      html += '<div class="pr-rb' + (open ? " open" : "") + '"><span>' + (k + 1) + '. ' + esc(sv[0]) + '</span>' + (open ? '<p>' + esc(sv[1]) + '</p>' : '') + '</div>';
+    });
+    if(q.shown < steps.length){ html += '<button type="button" class="pr-btn" data-pa="qenext">Say step ' + (q.shown + 1) + ', then reveal</button>'; }
+    else { html += '<button type="button" class="pr-btn" data-pa="qenew">🎲 Next damage</button>'; }
+    html += '<div class="pr-sub" style="margin-top:10px">' + (q.done || 0) + ' loops run this session</div></div>';
+    q.total = steps.length;
+    return html;
+  }
+  function qeCard(){ return st.qeView === "drill" ? qeDrill() : qeLearn(); }
+
   function rebuttalCard(){
     if(st.rbView === "learn"){ return rbLearn(); }
     if(st.rbEdit){ return rbEditor(); }
@@ -513,6 +583,7 @@
   function render(){
     var body;
     if(st.product === "Rebuttals"){ body = rebuttalCard(); }
+    else if(st.product === "QE"){ body = qeCard(); }
     else if(st.product === "Progress"){ body = progressCards(); }
     else if(st.product === "Playbook"){ body = window.playbookHtml ? window.playbookHtml() : ""; }
     else if(!st.run){ body = startCard(); }
@@ -547,6 +618,10 @@
     else if(a === "next"){ advance(); }
     else if(a === "rbnext"){ st.rb.shown++; var n = st.rb.item.steps.filter(function(x){ return x; }).length; if(st.rb.shown === n){ st.rb.done++; logAdd({ ts: Date.now(), product: "Rebuttals", mode: "drill" }); } render(); }
     else if(a === "rbnew"){ var d = st.rb.done, pool = drillable(), cur = st.rb.item; var next = pool.length > 1 ? pick(pool.filter(function(x){ return x.obj !== cur.obj; })) : pick(pool); st.rb = { item: next, shown: 0, done: d }; render(); }
+    else if(a === "qelearn"){ st.qeView = "learn"; render(); window.scrollTo(0, 0); }
+    else if(a === "qedrill"){ st.qeView = "drill"; st.qe = null; render(); window.scrollTo(0, 0); }
+    else if(a === "qenext"){ st.qe.shown++; if(st.qe.shown === st.qe.total){ st.qeDone = (st.qeDone || 0) + 1; st.qe.done = st.qeDone; logAdd({ ts: Date.now(), product: "QE", mode: "drill" }); } render(); }
+    else if(a === "qenew"){ var cur = st.qe.loop, pr2 = pick(PRODUCTS), pool = qeLoops(pr2).filter(function(x){ return x !== cur; }); st.qe = { product: pr2, loop: pick(pool.length ? pool : qeLoops(pr2)), shown: 0, done: st.qeDone || 0 }; render(); }
     else if(a === "rbedit"){ st.rbView = "edit"; st.rbEdit = true; render(); }
     else if(a === "rbdrill"){ if(st.rbEdit){ saveRebuttals(collectEditor()); } st.rbView = "drill"; st.rbEdit = false; st.rb = null; render(); }
     else if(a === "rblearn"){ if(st.rbEdit){ saveRebuttals(collectEditor()); } st.rbView = "learn"; st.rbEdit = false; render(); }
