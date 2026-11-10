@@ -472,8 +472,8 @@
         }).join("") +
         '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div>' +
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
-          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(CLOSE.say) + '”</div></div>' +
-          '<p>The cost of waiting: it’s still the cheap fix right now — so you put them on your priority list for an inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
+          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(SOCAL_CLOSE.say) + '”</div></div>' +
+          '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
     });
     html += '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">Question → Education isn’t a speech — it’s a loop you run three times:</p>' +
       '<div class="rbm-flow">Point → Ask → Show → Educate → Bridge</div>' +
