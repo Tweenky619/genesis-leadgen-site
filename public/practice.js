@@ -442,6 +442,8 @@
     "Fascia/Trim Boards": ["Paint peeling at the roofline", "Dark, soft-looking corners and joints", "Gaps where birds, bees or rodents get in"],
     "Windows": ["Fog or condensation between the panes", "Rooms that run hot in the afternoon or drafty at night", "Windows hard to open or locks that stick", "Water stains or soft spots around the frames"]
   };
+  var QE_BANK = {"Roof": {"see": ["Have you noticed the fiberglass showing on the shingles — right there?", "Have you noticed the missing shingles — right there?", "See how the edges on these shingles are curling up?", "Have you noticed the dark streaks on the roof?", "Have you noticed any shingles sliding or out of line — right there?", "See the nails popping up through the shingles?", "Have you noticed the moss or growth along the north side?", "See how the roof dips a little in that section?"], "hidden": ["Have you noticed the ridge caps up top — how they’re cracked and lifting?", "See the rust around that vent pipe, where the metal meets the shingles?", "Have you found granules in your gutters or by the downspouts?", "Have you noticed the flashing around the chimney — how it’s pulling away?", "Have you had any shingles blow into the yard after a windy day?", "Has anyone ever patched this roof before?", "Do you know if there are two layers of shingles up there?"], "reach": ["When’s the last time you popped your head in the attic?", "Any water stains on the ceilings?", "How old is the roof — is it the original?", "Have you noticed any light coming through the boards in the attic?", "Does the attic smell musty when you go up there?", "Have you noticed your upstairs running hotter than the rest of the house?", "Have you checked if your homeowners insurance asks about the roof’s age?"]}, "Paint/Stucco": {"see": ["Have you noticed this chipping and peeling getting worse?", "Have you noticed these cracks — how this one runs sideways and this one runs straight up?", "Have you noticed these little bubbles in the paint?", "Have you noticed the color fading on the sunny side?", "Have you noticed the paint coming off on your hand when you touch it?", "See the hairline cracks around the window corners?", "Have you noticed these spots where it looks like it was patched before?", "See how the stucco is pulling away from the trim right here?"], "hidden": ["Have you seen this white, powdery stuff anywhere else on the home?", "Have you noticed the sprinklers hitting the wall — see how it’s darker at the bottom?", "Can I show you something? (rub the wall, show the chalk) See that?", "Have you noticed the bottom edge, where the stucco meets the ground?", "Have you noticed any hollow-sounding spots when you tap the wall?", "Have you seen any mud tubes along the bottom of the wall?", "Do the cracks get bigger after it rains?"], "reach": ["Have you noticed any water stains on the other side of this wall?", "Does anyone in the home have any respiratory issues?", "If you were to paint the exterior, would you change the color?", "Have you noticed any musty smell in the rooms on this side?", "When’s the last time the house was painted — do you remember?", "Are you planning to stay in the home a while, or thinking of selling?", "Has the HOA ever sent you a notice about the exterior?"]}, "Fascia/Trim Boards": {"see": ["Have you noticed the paint peeling on the boards up at the roofline?", "See how it’s darker and soft-looking at that corner?", "Have you noticed the bottom of the garage trim — how it’s chipping?", "Have you noticed the paint bubbling on the trim around the doors?", "See the cracks along the window trim right there?", "Have you noticed how the corner boards are splitting?", "See the nail heads rusting through the paint?"], "hidden": ["See how the gutter is pulling away from the house right there?", "Have you noticed any gaps up there where the boards meet?", "Do the gutters overflow when it rains?", "Have you noticed water stains under the eaves?", "Have you noticed any wood dust or droppings on the ground under the eaves?", "Do the gutters drip behind the gutter instead of through it?", "Have you noticed the soffit vents clogged or broken?"], "reach": ["Have you noticed any birds, bees, or rodents getting in up there?", "Ever hear anything moving around in the attic?", "Have you had termites before?", "Have you ever had to clean out a nest up there?", "Has anyone ever replaced boards up there before?", "When’s the last time the trim was painted?", "Have you noticed the paint peeling on the garage door frame?"]}, "Windows": {"see": ["Do you ever notice fog or condensation between the panes?", "Have you noticed the caulking around this window — see how it’s cracked?", "Are these the original aluminum windows?", "Have you noticed the rubber seal around the glass drying out or cracking?", "See the gap where the frame meets the wall right there?", "Have you noticed the screens torn or bent?"], "hidden": ["Are any of them hard to open or close, or do the locks stick?", "Do you notice drafts or whistling when the wind picks up?", "Have you noticed water dripping onto the sills in the mornings?", "Do you see condensation on the inside of the glass in the mornings?", "Have you noticed mold or black spots along the bottom of the frame?", "Do any of the windows rattle when a truck goes by?"], "reach": ["Does this side of the house get hot in the afternoon, or drafty at night?", "How’s your electric bill in the summer — does the AC run all day?", "Have you noticed any water stains or soft spots around the frames?", "Do you hear a lot of street noise inside?", "Do you keep the blinds closed to block the heat?", "Is your furniture or carpet fading near the windows?", "Is there a room you avoid in the afternoon because it’s too hot?", "Can you feel cold air standing by the glass at night?", "Do you feel safe with these locks when you’re away?", "Have you looked at what new windows could save on your energy bill?"]}};
+  var QE_LOOPS = [["see", "Loop 1 \u00b7 What they see"], ["hidden", "Loop 2 \u00b7 What\u2019s hidden"], ["reach", "Loop 3 \u00b7 How it reaches them"]];
   var QE_ICON = { "Roof": "🏠", "Paint/Stucco": "🧱", "Fascia/Trim Boards": "🪵", "Windows": "🪟" };
   function qeLoops(product){ return PITCHES[product].filter(function(x){ return x.type === "q" && x.follow; }); }
   function qeBar(cur){
@@ -474,6 +476,9 @@
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
           '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(SOCAL_CLOSE.say) + '”</div></div>' +
           '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
+      html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' \u2014 more questions to ask</span></summary>' +
+        QE_LOOPS.map(function(L){ return '<div class="rbm-sub">' + esc(L[1]) + '</div><ul class="rbm-say">' + QE_BANK[pr][L[0]].map(function(q){ return '<li>\u201c' + esc(q) + '\u201d</li>'; }).join("") + '</ul>'; }).join("") +
+        '<div class="rbm-key" style="display:block;margin-top:8px">🔑 Point first, ask one, then stop. Follow every question with the education: what it <b>lets in</b> and what that <b>leads to</b>.</div></details>';
     });
     html += '<div class="pr-card rbm-big"><div class="pr-step">💡 The big idea</div><p class="rbm-p">Question → Education isn’t a speech — it’s a loop you run three times:</p>' +
       '<div class="rbm-flow">Point → Ask → Show → Educate → Bridge</div>' +
@@ -499,7 +504,22 @@
     q.total = steps.length;
     return html;
   }
-  function qeCard(){ return st.qeView === "drill" ? qeDrill() : qeLearn(); }
+  function qeQuick(){
+    if(!st.qq){ var pr = pick(PRODUCTS), L = pick(QE_LOOPS); st.qq = { product: pr, loop: L, q: pick(QE_BANK[pr][L[0]]), shown: false, done: st.qqDone || 0 }; }
+    var q = st.qq;
+    return '<div class="pr-card"><div class="pr-step">Question bank \u00b7 ' + QE_ICON[q.product] + ' ' + esc(q.product) + '</div>' +
+      '<div class="pr-ho pr-obj"><b>🎯 ' + esc(q.loop[1]) + '</b><br>Come up with a question out loud \u2014 then the education line that goes with it.</div>' +
+      (q.shown ? '<div class="pr-rb open"><span>One you could ask</span><p>\u201c' + esc(q.q) + '\u201d</p></div><button type="button" class="pr-btn" data-pa="qqnew">🎲 Next</button>'
+               : '<button type="button" class="pr-btn" data-pa="qqshow">Say yours, then reveal</button>') +
+      '<div class="pr-sub" style="margin-top:10px">' + (q.done || 0) + ' questions this session</div></div>';
+  }
+  function qeCard(){
+    if(st.qeView !== "drill") return qeLearn();
+    var kind = st.qeKind || "loop";
+    var sw = '<div class="pr-modes"><button type="button" class="' + (kind === "loop" ? "on" : "") + '" data-pa="qekloop">🔁 Full loop</button><button type="button" class="' + (kind === "bank" ? "on" : "") + '" data-pa="qekbank">❓ Question bank</button></div>';
+    if(kind === "bank"){ return qeBar("drill") + sw + qeQuick(); }
+    return qeDrill().replace('</div>', '</div>' + sw);
+  }
 
   function rebuttalCard(){
     if(st.rbView === "learn"){ return rbLearn(); }
@@ -623,6 +643,10 @@
     else if(a === "rbnew"){ var d = st.rb.done, pool = drillable(), cur = st.rb.item; var next = pool.length > 1 ? pick(pool.filter(function(x){ return x.obj !== cur.obj; })) : pick(pool); st.rb = { item: next, shown: 0, done: d }; render(); }
     else if(a === "qelearn"){ st.qeView = "learn"; render(); window.scrollTo(0, 0); }
     else if(a === "qedrill"){ st.qeView = "drill"; st.qe = null; render(); window.scrollTo(0, 0); }
+    else if(a === "qekloop"){ st.qeKind = "loop"; render(); }
+    else if(a === "qekbank"){ st.qeKind = "bank"; st.qq = null; render(); }
+    else if(a === "qqshow"){ st.qq.shown = true; st.qqDone = (st.qqDone || 0) + 1; st.qq.done = st.qqDone; logAdd({ ts: Date.now(), product: "QE", mode: "bank" }); render(); }
+    else if(a === "qqnew"){ st.qq = null; render(); }
     else if(a === "qenext"){ st.qe.shown++; if(st.qe.shown === st.qe.total){ st.qeDone = (st.qeDone || 0) + 1; st.qe.done = st.qeDone; logAdd({ ts: Date.now(), product: "QE", mode: "drill" }); } render(); }
     else if(a === "qenew"){ var cur = st.qe.loop, pr2 = pick(PRODUCTS), pool = qeLoops(pr2).filter(function(x){ return x !== cur; }); st.qe = { product: pr2, loop: pick(pool.length ? pool : qeLoops(pr2)), shown: 0, done: st.qeDone || 0 }; render(); }
     else if(a === "rbedit"){ st.rbView = "edit"; st.rbEdit = true; render(); }

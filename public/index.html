@@ -668,6 +668,10 @@
   .rbm-step span{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;display:flex;align-items:center;justify-content:center;}
   .rbm-why{border-top:1px solid var(--border);padding:12px 0 4px;}
   .rbm-why p{margin:6px 0;font-size:15px;line-height:1.5;}
+  details.qe-bank summary{list-style:none;cursor:pointer;}
+  details.qe-bank summary::-webkit-details-marker{display:none;}
+  details.qe-bank summary .pr-step::after{content:" \25BE";color:var(--text-muted);}
+  details.qe-bank[open] summary .pr-step::after{content:" \25B4";}
   .qe-row{display:flex;gap:10px;align-items:flex-start;margin:6px 0;}
   .qe-row>b{flex:none;width:64px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:#9a4a33;padding-top:4px;}
   .qe-row>span{font-size:14.5px;line-height:1.45;}
@@ -2795,6 +2799,6 @@
 })();
 </script>
 <script src="playbook.js?v=1"></script>
-<script src="practice.js?v=45"></script>
+<script src="practice.js?v=46"></script>
 </body>
 </html>
