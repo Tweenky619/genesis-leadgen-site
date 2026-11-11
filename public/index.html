@@ -2655,7 +2655,7 @@
     }
   });
   function pointsHtml(c){
-    var sits = c.sold + c.miss, pts = c.miss + c.sold * 2, tier, pay, rate = 0, comm = 0;
+    var cx = c.cxl || 0, sits = c.sold + cx + c.miss, pts = c.miss + (c.sold + cx) * 2, tier, pay, rate = 0, comm = 0;
     if(pts >= 10){ tier = "10+ points"; pay = "$500 + $50/sit after 3 sits" + (sits > 3 ? " = " + fmtMoney(500 + 50 * (sits - 3)) : " = $500"); }
     else if(pts >= 7){ tier = "7 points"; rate = 35; comm = Math.round(c.money * 0.02); pay = "$35/hr + 2% of sales (" + fmtMoney(comm) + ")"; }
     else if(pts >= 3){ tier = "3 points"; rate = 30; comm = Math.round(c.money * 0.01); pay = "$30/hr + 1% of sales (" + fmtMoney(comm) + ")"; }
@@ -2668,7 +2668,7 @@
     leads.forEach(function(l){ if(statusOf(l) === "Sold"){ var d = saleDate(l, leadEvents(l)); if(d >= mStart && d < mEnd){ monthSales += Number(l.sale_amount) || 0; } } });
     var MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     var bonus = Math.floor(monthSales / 100000) * 1500;
-    return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
+    return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,cxl,miss" data-t="Sits">' +
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
       (rate ? (function(){ var hrs = weekHours(), reg = Math.min(hrs, 40), ot = Math.max(0, hrs - 40);
@@ -2678,7 +2678,7 @@
           (ot ? ' \u00b7 ' + ot + ' OT hrs \u00d7 $' + (rate * 1.5).toFixed(2).replace(/\.00$/, "") + ' = ' + esc(fmtMoney(Math.round(otPay))) : '') +
           (comm ? ' \u00b7 commission ' + esc(fmtMoney(comm)) : '') + '</div>' +
         '<div class="hrs">Hours worked this week <input type="number" inputmode="decimal" step="0.5" min="0" max="80" id="weekHoursInput" value="' + hrs + '"></div>'; })() : '') +
-      '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
+      '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + (c.sold + cx) + ' sold \u00d7 2' + (cx ? ', incl. ' + cx + ' cancelled' : '') + ')' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
       '<div class="sub">$100k bonus (' + MONL[ref.getMonth()] + ', resets monthly): ' + esc(fmtMoney(monthSales % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
   }
   function computeStats(k){
@@ -2699,6 +2699,8 @@
       if(statusOf(l) === "Sold" && inR(saleDate(l, ev))){
         c.sold++; c.money += Number(l.sale_amount) || 0; add("sold", l);
       }
+      // Cancelled sales still earn pay points (not commission)
+      if(statusOf(l) === "Cancelled" && inR(saleDate(l, ev))){ c.cxl = (c.cxl || 0) + 1; add("cxl", l); }
     });
     return c;
   }
