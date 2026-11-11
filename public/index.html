@@ -1426,7 +1426,7 @@
       ((l.interests || []).some(function(i){ return /^Other/.test(i); }) ?
         '<div class="qr-box"><div class="lbl">Non-core project \u2014 book it on the QR form</div>' +
         '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
-        '<button type="button" class="qr-copy" data-fu="qrcopy">\ud83d\udccb Copy lead info to paste in the form</button></div>' : '') +
+        '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
