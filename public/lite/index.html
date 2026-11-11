@@ -514,6 +514,12 @@
   details.script .tag{font-size:calc(11px * var(--sfs, 1)) !important;}
   /* Keep fields at 16px on phones so iOS doesn't auto-zoom when you tap them */
   @media (pointer:coarse){ input:not([type=checkbox]):not([type=radio]), select, textarea{font-size:16px !important;} }
+  .qr-form-link{display:block;margin-top:8px;}
+  #f_other_project[style*="display:none"] + .qr-form-link, #f_other_project[style*="display: none"] + .qr-form-link{display:none;}
+  .qr-link{display:block;text-align:center;text-decoration:none;padding:13px;border-radius:10px;background:#1d4f8a;color:#fff;font-weight:800;font-size:15px;}
+  .qr-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#f4f7fc;}
+  .qr-box .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1d4f8a;margin-bottom:8px;}
+  .qr-copy{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
   .sold-total.miss-total{background:#fbecea;color:#9a2f22;}
   .fs-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 0 10px;}
   .fs-bar span{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-right:auto;}
@@ -822,6 +828,7 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other&nbsp;<span style="font-weight:600;opacity:.7">(non-core)</span></label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
+          <a class="qr-link qr-form-link" href="https://wkf.ms/43D9ZjP" target="_blank" rel="noopener">&#128242; Non-core? Book it on the QR form</a>
           <div id="projNotes"></div>
         </div>
 
@@ -1386,6 +1393,10 @@
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
+      ((l.interests || []).some(function(i){ return /^Other/.test(i); }) ?
+        '<div class="qr-box"><div class="lbl">Non-core project \u2014 book it on the QR form</div>' +
+        '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
+        '<button type="button" class="qr-copy" data-fu="qrcopy">\ud83d\udccb Copy lead info to paste in the form</button></div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
@@ -1836,6 +1847,19 @@
       '<a class="rr-text' + (sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
       (sent ? "\u2705 " + (sold ? "Thank-you" : na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
+  var QR_FORM_URL = "https://wkf.ms/43D9ZjP";
+  function qrInfo(l){
+    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
+    return [
+      "Name: " + (fullName(l.first_name, l.last_name) || l.homeowner_name || ""),
+      l.spouse ? (l.dm_relation || "Spouse") + ": " + l.spouse : "",
+      "Phone: " + (l.phone || ""),
+      l.alt_phone ? "Alt phone: " + l.alt_phone : "",
+      "Address: " + [l.address, l.zip].filter(Boolean).join(", "),
+      "Project: " + pr.join(", "),
+      (l.appt_date || l.appt_time) ? "Appointment: " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") : ""
+    ].filter(Boolean).join("\n");
+  }
   var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
   function buildDispatch(l){
     var st = statusOf(l);
@@ -1862,6 +1886,13 @@
     if(!b) return;
     var l = currentLead(); if(!l) return;
     var a = b.getAttribute("data-fu");
+    if(a === "qrcopy"){
+      var info = qrInfo(l);
+      function qdone(){ b.textContent = "\u2705 Copied \u2014 paste it in the form"; setTimeout(function(){ b.textContent = "\ud83d\udccb Copy lead info to paste in the form"; }, 2500); }
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(info).then(qdone, function(){ window.prompt("Copy this:", info); }); }
+      else { window.prompt("Copy this:", info); }
+      return;
+    }
     if(a === "rrcopy"){
       var isNA = statusOf(l) === "Confirm NA", isSold = statusOf(l) === "Sold";
       var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : (isSold ? soldText(l) : isNA ? naText(l) : repResetText(l));
