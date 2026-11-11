@@ -435,6 +435,21 @@
   .st-represet{background:#e6eefc;color:#1d4f8a;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
+  .st-cancel{background:#fbecea;color:#9a2f22;text-decoration:line-through;}
+  .clr-sum{font-size:13px;font-weight:700;color:var(--text-muted);margin:-4px 2px 10px;}
+  .clr{font-size:12px;font-weight:700;margin-top:6px;}
+  .clr.pending{color:#9a6a00;}
+  .clr.done{color:#0b6b3a;}
+  .clr.cx{color:#9a2f22;}
+  .fu-clear{margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:12px;background:#fff;}
+  .fu-clear .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
+  .fu-clear .big{font-size:16px;font-weight:800;}
+  .fu-clear .big.pending{color:#9a6a00;}
+  .fu-clear .big.done{color:#0b6b3a;}
+  .fu-clear .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:14px;}
+  .fu-clear input[type=date]{padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit;}
+  .fu-clear .cx-btn{width:100%;margin-top:10px;padding:12px;border-radius:10px;border:2px solid #c0392b;background:#fff;color:#c0392b;font-weight:800;font-size:15px;}
+  .fu-clear .sub{font-size:12.5px;color:var(--text-muted);margin-top:6px;}
   .st-dead{background:#fdecea;color:var(--danger);}
   .due{font-size:12px;font-weight:700;margin-top:4px;}
   .due.over{color:var(--danger);}
@@ -1128,15 +1143,47 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"]
   ];
-  var CLOSED = ["Sold","Not Interested"];
+  var CLOSED = ["Sold","Cancelled","Not Interested"];
   var currentTab = null;
   function statusOf(l){ return l.status || "New"; }
   function statusClass(st){ for(var i=0;i<STATUSES.length;i++){ if(STATUSES[i][0]===st) return STATUSES[i][1]; } return "st-new"; }
   function isOpen(l){ return CLOSED.indexOf(statusOf(l)) === -1; }
   function todayISO(){ var d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
   function addDaysISO(n){ var d=new Date(); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  // ---- Sale cancellation window (3 business days; 5 if homeowner is 65+). Sundays don't count. ----
+  function isoOf(d){ var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0,10); }
+  function saleDayISO(l){
+    if(l.sold_date) return l.sold_date;
+    var t = todayISO();
+    if(l.appt_date && l.appt_date <= t) return l.appt_date;
+    var lg = (l.log || []).filter(function(e){ return /^Sold$/.test(e.text); });
+    if(lg.length) return isoOf(lg[lg.length - 1].ts);
+    return l.appt_date || isoOf(l.created_at || Date.now());
+  }
+  // Holidays that don't count as business days for home-sale cancellations (CA Civil Code 1689.5)
+  function nthWeekday(y, m, wd, n){ var d = new Date(y, m, 1); var c = 0; while(true){ if(d.getDay() === wd){ c++; if(c === n) return d.getDate(); } d.setDate(d.getDate() + 1); } }
+  function lastWeekday(y, m, wd){ var d = new Date(y, m + 1, 0); while(d.getDay() !== wd){ d.setDate(d.getDate() - 1); } return d.getDate(); }
+  function isSaleHoliday(d){
+    var y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    return (m === 0 && day === 1) || (m === 1 && day === nthWeekday(y, 1, 1, 3)) || (m === 4 && day === lastWeekday(y, 4, 1)) ||
+      (m === 6 && day === 4) || (m === 8 && day === nthWeekday(y, 8, 1, 1)) || (m === 9 && day === nthWeekday(y, 9, 1, 2)) ||
+      (m === 10 && day === 11) || (m === 10 && day === nthWeekday(y, 10, 4, 4)) || (m === 11 && day === 25);
+  }
+  function clearInfo(l){
+    var days = l.senior ? 5 : 3, p = saleDayISO(l).split("-"), d = new Date(+p[0], +p[1]-1, +p[2]), n = 0;
+    while(n < days){ d.setDate(d.getDate() + 1); if(d.getDay() !== 0 && !isSaleHoliday(d)){ n++; } }
+    var end = isoOf(d);
+    return { days: days, endISO: end, cleared: todayISO() > end };
+  }
+  function clearLabel(l){
+    var st = statusOf(l);
+    if(st === "Cancelled") return '<div class="clr cx">\u274c Sale cancelled</div>';
+    if(st !== "Sold") return "";
+    var c = clearInfo(l);
+    return c.cleared ? '<div class="clr done">\u2705 Cleared</div>' : '<div class="clr pending">\ud83d\udd52 Can cancel through ' + esc(fmtIsoDate(c.endISO)) + '</div>';
+  }
   function isDue(l){ return isOpen(l) && l.next_followup && l.next_followup <= todayISO(); }
   function dueLabel(l){
     if(!isOpen(l) || !l.next_followup) return "";
@@ -1210,7 +1257,9 @@
     var banner = "";
     if(currentTab === "sold" && !q){
       var tot = filtered.reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
-      banner = '<div class="sold-total"><span>' + filtered.length + ' deal' + (filtered.length===1?'':'s') + ' sold</span>' + esc(fmtMoney(tot)) + '</div>';
+      var pend = filtered.filter(function(l){ return !clearInfo(l).cleared; }).length, cxl = leads.filter(function(l){ return statusOf(l) === "Cancelled"; }).length;
+      banner = '<div class="sold-total"><span>' + filtered.length + ' deal' + (filtered.length===1?'':'s') + ' sold</span>' + esc(fmtMoney(tot)) + '</div>' +
+        '<div class="clr-sum">\u2705 ' + (filtered.length - pend) + ' cleared \u00b7 \ud83d\udd52 ' + pend + ' in cancel window' + (cxl ? ' \u00b7 \u274c ' + cxl + ' cancelled' : '') + '</div>';
     }
     if(currentTab === "miss" && !q){
       banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' pitched, didn\u2019t close</span>\u274c</div>';
@@ -1227,7 +1276,7 @@
           '<div class="meta">' +
             '<div class="date">' + fmtDate(l.created_at) + '</div>' +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
-            dueLabel(l) +
+            dueLabel(l) + clearLabel(l) +
           '</div>' +
         '</div>'
       );
@@ -1783,7 +1832,8 @@
         '<div class="sched-hint" id="rrHint"></div>' +
         '<div class="roll-row"><button type="button" class="roll-cancel" data-fu="rrcancel">Cancel</button><button type="button" class="roll-save" data-fu="rrsave">Save reset</button></div>' +
       '</div>' +
-      (st === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(amt) + '"></div>' : '') +
+      (st === "Sold" ? '<div class="fu-sale"><label>Sold for</label><span class="dollar">$</span><input type="text" inputmode="decimal" id="fuAmount" placeholder="0" value="' + esc(amt) + '"></div>' + clearBox(l) : '') +
+      (st === "Cancelled" ? '<div class="fu-clear"><div class="lbl">Sale cancelled</div><div class="big" style="color:#9a2f22">\u274c ' + esc(fmtMoney(l.cancelled_amount || 0)) + ' sale cancelled</div><button type="button" class="cx-btn" style="border-color:#0b6b3a;color:#0b6b3a" data-fu="uncancel">\u21a9\ufe0f Undo \u2014 it\u2019s still sold</button></div>' : '') +
       '</div>';
   }
   function repName(){ try { return localStorage.getItem("lite_rep_name") || ""; } catch(e){ return ""; } }
@@ -1797,6 +1847,15 @@
     applyRepName();
   });
   applyRepName();
+  function clearBox(l){
+    var c = clearInfo(l);
+    return '<div class="fu-clear"><div class="lbl">Cancellation window \u00b7 ' + c.days + ' business days</div>' +
+      (c.cleared ? '<div class="big done">\u2705 Cleared \u2014 window ended ' + esc(fmtIsoDate(c.endISO)) + '</div>'
+                 : '<div class="big pending">\ud83d\udd52 Can cancel through ' + esc(fmtIsoDate(c.endISO)) + '</div><div class="sub">Sundays and holidays don\u2019t count. Clears automatically the day after if it doesn\u2019t cancel.</div>') +
+      '<div class="row"><span>Sale date</span><input type="date" id="fuSoldDate" value="' + esc(saleDayISO(l)) + '"></div>' +
+      '<label class="row"><span>Homeowner is 65+ (5 business days)</span><input type="checkbox" id="fuSenior"' + (l.senior ? " checked" : "") + '></label>' +
+      '<button type="button" class="cx-btn" data-fu="cancelsale">\u274c Sale cancelled</button></div>';
+  }
   function repResetText(l){
     var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
     var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
@@ -1958,7 +2017,12 @@
     else if(a === "ctc"){ l.status = "Call to Cancel"; l.next_followup = addDaysISO(1); addLog(l, "Called to cancel"); }
     else if(a === "nomr"){ l.status = "No Mr./Mrs."; l.next_followup = addDaysISO(1); addLog(l, "No Mr./Mrs. \u2014 not all decision makers home"); }
     else if(a === "miss"){ l.status = "Pitch & Miss"; l.next_followup = addDaysISO(30); addLog(l, "Pitch miss"); }
-    else if(a === "sold"){ l.status = "Sold"; l.next_followup = ""; addLog(l, "Sold"); refreshDetail(); setTimeout(function(){ var el = document.getElementById("fuAmount"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 60); return; }
+    else if(a === "cancelsale"){
+      if(!confirm("Mark this sale as cancelled?")) return;
+      l.cancelled_amount = l.sale_amount; l.status = "Cancelled"; addLog(l, "Sale cancelled" + (l.sale_amount ? " (" + fmtMoney(l.sale_amount) + ")" : ""));
+    }
+    else if(a === "uncancel"){ l.status = "Sold"; if(!l.sale_amount && l.cancelled_amount){ l.sale_amount = l.cancelled_amount; } addLog(l, "Cancellation undone \u2014 still sold"); }
+    else if(a === "sold"){ l.status = "Sold"; l.next_followup = ""; if(!l.sold_date){ var tt = todayISO(); l.sold_date = (l.appt_date && l.appt_date <= tt) ? l.appt_date : tt; } addLog(l, "Sold"); refreshDetail(); setTimeout(function(){ var el = document.getElementById("fuAmount"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 60); return; }
     else if(a === "sent"){ l.status = "Sent to Monday"; l.next_followup = addDaysISO(1); addLog(l, "Sent to Monday"); }
     else if(a === "roll"){
       var f = document.getElementById("rollForm"); f.hidden = false;
@@ -1985,6 +2049,10 @@
       l.status = e.target.value; addLog(l, "Status \u2192 " + l.status);
       if(!isOpen(l)) l.next_followup = "";
       refreshDetail();
+    } else if(e.target.id === "fuSoldDate"){
+      l.sold_date = e.target.value || ""; addLog(l, "Sale date " + (l.sold_date ? fmtIsoDate(l.sold_date) : "cleared")); refreshDetail();
+    } else if(e.target.id === "fuSenior"){
+      l.senior = e.target.checked; addLog(l, l.senior ? "Homeowner 65+ \u2014 5-day window" : "3-day window"); refreshDetail();
     } else if(e.target.id === "fuAmount"){
       l.sale_amount = parseMoney(e.target.value);
       addLog(l, l.sale_amount !== "" ? "Sale amount " + fmtMoney(l.sale_amount) : "Sale amount cleared");
