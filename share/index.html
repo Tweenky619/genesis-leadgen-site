@@ -514,6 +514,7 @@
   details.script .tag{font-size:calc(11px * var(--sfs, 1)) !important;}
   /* Keep fields at 16px on phones so iOS doesn't auto-zoom when you tap them */
   @media (pointer:coarse){ input:not([type=checkbox]):not([type=radio]), select, textarea{font-size:16px !important;} }
+  .sold-total.miss-total{background:#fbecea;color:#9a2f22;}
   .fs-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 0 10px;}
   .fs-bar span{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-right:auto;}
   .fs-bar button{min-width:52px;height:40px;border-radius:10px;border:1px solid #e6c7bb;background:#fff;color:#9a4a33;font-weight:800;font-size:16px;}
@@ -1144,6 +1145,7 @@
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
+    ["miss","Pitch & Miss", function(l){ return statusOf(l)==="Pitch & Miss"; }],
     ["all","All", function(){ return true; }]
   ];
   function fmtMoney(n){ return "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
@@ -1202,6 +1204,9 @@
     if(currentTab === "sold" && !q){
       var tot = filtered.reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
       banner = '<div class="sold-total"><span>' + filtered.length + ' deal' + (filtered.length===1?'':'s') + ' sold</span>' + esc(fmtMoney(tot)) + '</div>';
+    }
+    if(currentTab === "miss" && !q){
+      banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' pitched, didn\u2019t close</span>\u274c</div>';
     }
     container.innerHTML = banner + filtered.map(function(l){
       var tagLine = (l.interests && l.interests.length) ? esc(l.interests.join(" · ")) : "";
