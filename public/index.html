@@ -2541,7 +2541,13 @@
     else if(pts >= 3){ tier = "3 points"; rate = 30; comm = Math.round(c.money * 0.01); pay = "$30/hr + 1% of sales (" + fmtMoney(comm) + ")"; }
     else { tier = "Under 3 points"; rate = 18; pay = "$18/hr \u00b7 " + (3 - pts) + " more point" + (3 - pts === 1 ? "" : "s") + " to reach $30/hr + 1%"; }
     var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to $500 + $50/sit" : "";
-    var bonus = Math.floor(c.money / 100000) * 1500;
+    // $100k bonus resets monthly: use the month of the week being viewed
+    var wr = periodRange("week", statOffset), ref = new Date(Math.min(wr[1] - 1, Date.now()));
+    var mStart = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime(), mEnd = new Date(ref.getFullYear(), ref.getMonth() + 1, 1).getTime();
+    var monthSales = 0;
+    leads.forEach(function(l){ if(statusOf(l) === "Sold"){ var d = saleDate(l, leadEvents(l)); if(d >= mStart && d < mEnd){ monthSales += Number(l.sale_amount) || 0; } } });
+    var MONL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    var bonus = Math.floor(monthSales / 100000) * 1500;
     return '<div class="st-h">Pay points \u00b7 resets weekly</div><div class="st-pts tap" data-k="sold,miss" data-t="Sits">' +
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
@@ -2553,7 +2559,7 @@
           (comm ? ' \u00b7 commission ' + esc(fmtMoney(comm)) : '') + '</div>' +
         '<div class="hrs">Hours worked this week <input type="number" inputmode="decimal" step="0.5" min="0" max="80" id="weekHoursInput" value="' + hrs + '"></div>'; })() : '') +
       '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + c.sold + ' sold \u00d7 2)' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
-      '<div class="sub">$100k bonus: ' + esc(fmtMoney(c.money % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
+      '<div class="sub">$100k bonus (' + MONL[ref.getMonth()] + ', resets monthly): ' + esc(fmtMoney(monthSales % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
   }
   function computeStats(k){
     var rng = periodRange(k, statOffset), to = rng[1];
