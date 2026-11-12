@@ -532,22 +532,6 @@
   .qr-form-link{display:block;margin-top:8px;}
   #f_other_project[style*="display:none"] + .qr-form-link, #f_other_project[style*="display: none"] + .qr-form-link{display:none;}
   .qr-link{display:block;text-align:center;text-decoration:none;padding:13px;border-radius:10px;background:#1d4f8a;color:#fff;font-weight:800;font-size:15px;}
-  .qr-sheet{position:fixed;inset:0;z-index:9000;background:var(--bg, #f4f4f4);display:flex;flex-direction:column;}
-  .qr-sheet[hidden]{display:none;}
-  .qr-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;background:#1d4f8a;color:#fff;}
-  .qr-head button{background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:800;font-size:14px;}
-  .qr-head a{color:#fff;font-weight:700;font-size:13px;text-decoration:none;opacity:.9;}
-  .qr-lead{background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;max-height:42vh;overflow:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;}
-  .qr-lead.collapsed{display:none;}
-  .qr-lead .f{border:1px solid var(--border);border-radius:8px;padding:6px 8px;cursor:pointer;min-width:0;}
-  .qr-lead .f.wide{grid-column:1 / -1;}
-  .qr-lead .f small{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);}
-  .qr-lead .f span{display:block;font-size:15px;font-weight:700;word-break:break-word;}
-  .qr-lead .tip{grid-column:1 / -1;font-size:12px;color:var(--text-muted);}
-  .qr-toggle{border:none;background:#eef0f3;font-weight:700;font-size:13px;padding:6px;color:var(--text);}
-  .qr-sheet iframe{flex:1;width:100%;border:0;background:#fff;}
-  .qr-toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);z-index:9100;background:#111;color:#fff;padding:8px 16px;border-radius:20px;font-weight:700;font-size:14px;}
-  .qr-toast[hidden]{display:none;}
   .qr-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#f4f7fc;}
   .qr-box .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1d4f8a;margin-bottom:8px;}
   .qr-copy{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
@@ -1099,13 +1083,6 @@
 
 </div>
 
-<div class="qr-sheet" id="qrSheet" hidden>
-  <div class="qr-head"><button type="button" id="qrClose">&#10005; Close</button><b>QR booking form</b><a id="qrExt" href="#" target="_blank" rel="noopener">Safari &#8599;</a></div>
-  <div class="qr-lead" id="qrLead"></div>
-  <button type="button" class="qr-toggle" id="qrToggle">Hide lead &#9652;</button>
-  <iframe id="qrFrame" title="QR booking form" src="about:blank"></iframe>
-</div>
-<div class="qr-toast" id="qrToast" hidden>Copied</div>
 <div class="viewer" id="photoViewer" hidden>
   <img id="viewerImg" alt="Lead photo">
   <div class="viewer-bar">
@@ -1950,54 +1927,6 @@
       (sent ? "\u2705 " + (sold ? "Thank-you" : na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
   var QR_FORM_URL = "https://wkf.ms/43D9ZjP";
-  function qrFieldsFromLead(l){
-    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
-    return [
-      ["First name", l.first_name || (l.homeowner_name || "").split(" ")[0]], ["Last name", l.last_name || (l.homeowner_name || "").split(" ").slice(1).join(" ")],
-      [l.dm_relation || "Spouse", l.spouse], ["Phone", l.phone], ["Alt phone", l.alt_phone], ["Zip", l.zip],
-      ["Address", l.address, 1], ["Project", pr.join(", "), 1],
-      ["Appt date", l.appt_date ? fmtIsoDate(l.appt_date) : ""], ["Appt time", l.appt_time]
-    ];
-  }
-  function qrFieldsFromForm(){
-    function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
-    var pr = Array.prototype.map.call(document.querySelectorAll(".f_interest:checked"), function(c){ return c.value === "Other" ? (v("f_other_project") || "") : c.value; }).filter(Boolean);
-    var rel = document.getElementById("f_dm_rel");
-    return [
-      ["First name", v("f_first_name")], ["Last name", v("f_last_name")], [rel ? rel.value : "Spouse", v("f_spouse")],
-      ["Phone", v("f_phone")], ["Alt phone", v("f_alt_phone")], ["Zip", v("f_zip")],
-      ["Address", v("f_address"), 1], ["Project", pr.join(", "), 1],
-      ["Appt date", v("f_appt_date") ? fmtIsoDate(v("f_appt_date")) : ""], ["Appt time", v("f_appt_time")]
-    ];
-  }
-  function openQrSheet(fields){
-    var box = document.getElementById("qrLead");
-    box.innerHTML = fields.filter(function(f){ return f[1]; }).map(function(f){
-      return '<div class="f' + (f[2] ? " wide" : "") + '" data-copy="' + esc(f[1]) + '"><small>' + esc(f[0]) + '</small><span>' + esc(f[1]) + '</span></div>';
-    }).join("") + '<div class="tip">Tap a box to copy it, then paste into the form below.</div>';
-    box.classList.remove("collapsed"); document.getElementById("qrToggle").innerHTML = "Hide lead &#9652;";
-    document.getElementById("qrExt").href = QR_FORM_URL;
-    var fr = document.getElementById("qrFrame"); if(fr.getAttribute("src") !== QR_FORM_URL){ fr.setAttribute("src", QR_FORM_URL); }
-    document.getElementById("qrSheet").hidden = false; document.body.style.overflow = "hidden";
-  }
-  document.getElementById("qrClose").addEventListener("click", function(){ document.getElementById("qrSheet").hidden = true; document.body.style.overflow = ""; });
-  document.getElementById("qrToggle").addEventListener("click", function(){
-    var box = document.getElementById("qrLead"), c = box.classList.toggle("collapsed");
-    this.innerHTML = c ? "Show lead &#9662;" : "Hide lead &#9652;";
-  });
-  document.getElementById("qrLead").addEventListener("click", function(e){
-    var f = e.target.closest("[data-copy]"); if(!f) return;
-    var txt = f.getAttribute("data-copy"), t = document.getElementById("qrToast");
-    function ok(){ t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function(){ t.hidden = true; }, 1200); }
-    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(ok, function(){}); }
-  });
-  document.addEventListener("click", function(e){
-    var a = e.target.closest && e.target.closest("a.qr-link"); if(!a) return;
-    e.preventDefault();
-    if(a.classList.contains("qr-form-link")){ openQrSheet(qrFieldsFromForm()); return; }
-    var l = leads.filter(function(x){ return x.id === viewingId; })[0];
-    openQrSheet(l ? qrFieldsFromLead(l) : []);
-  });
   function qrInfo(l){
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
     return [
