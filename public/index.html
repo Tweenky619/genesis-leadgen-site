@@ -2693,7 +2693,9 @@
       var ev = leadEvents(l);
       Object.keys(ev).forEach(function(type){
         if(type === "sold") return;
-        if(ev[type].some(inR)){ c[type]++; add(type, l); }
+        // Each pitch miss is its own sit (a lead can be pitched more than once); other outcomes count once per lead
+        var hits = ev[type].filter(inR).length;
+        if(hits){ c[type] += (type === "miss" ? hits : 1); add(type, l); }
       });
       // A sale is any lead marked Sold, dated by its appointment day (the day it was sold)
       if(statusOf(l) === "Sold" && inR(saleDate(l, ev))){
