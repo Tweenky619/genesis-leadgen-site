@@ -1927,6 +1927,14 @@
       (sent ? "\u2705 " + (sold ? "Thank-you" : na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
   var QR_FORM_URL = "https://wkf.ms/43D9ZjP";
+  // On iPhone, open the QR form in the real Safari app (not a sheet over this app) so you can switch back and forth
+  document.addEventListener("click", function(e){
+    var a = e.target.closest && e.target.closest("a.qr-link"); if(!a) return;
+    var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if(!ios) return;
+    e.preventDefault();
+    window.location.href = "x-safari-" + a.getAttribute("href");
+  });
   function qrInfo(l){
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
     return [
