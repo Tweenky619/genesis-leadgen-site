@@ -599,6 +599,13 @@
   .st-h:first-child{margin-top:4px;}
   .st-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .tap{cursor:pointer;}
+  .st-prod{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 16px;}
+  .st-prod>div{border:1px solid var(--border);border-radius:12px;background:var(--card);padding:10px;text-align:center;}
+  .st-prod small{display:block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.3px;color:var(--text-muted);}
+  .st-prod b{display:block;font-size:18px;font-weight:900;margin:4px 0 2px;}
+  .st-prod span{display:block;font-size:12px;color:var(--text-muted);}
+  .st-prod .cx b{color:#9a2f22;}
+  .st-prod .net b{color:#0b6b3a;}
   .st-pts{border:1px solid var(--border);border-radius:14px;background:var(--card);padding:14px 16px;margin-bottom:16px;}
   .st-pts .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
   .st-pts .big{font-size:32px;font-weight:900;}
@@ -2765,7 +2772,7 @@
         c.sold++; c.money += Number(l.sale_amount) || 0; add("sold", l);
       }
       // Cancelled sales still earn pay points (not commission)
-      if(statusOf(l) === "Cancelled" && inR(saleDate(l, ev))){ c.cxl = (c.cxl || 0) + 1; add("cxl", l); }
+      if(statusOf(l) === "Cancelled" && inR(saleDate(l, ev))){ c.cxl = (c.cxl || 0) + 1; c.cxlMoney = (c.cxlMoney || 0) + (Number(l.cancelled_amount || l.sale_amount) || 0); add("cxl", l); }
     });
     return c;
   }
@@ -2806,6 +2813,14 @@
         bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
       '<div class="st-money tap" data-k="sold" data-t="Sold"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
         '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>' +
+      (function(){
+        var cx = c.cxl || 0, cxm = c.cxlMoney || 0, gross = c.money + cxm, deals = c.sold + cx;
+        return '<div class="st-prod">' +
+          '<div class="tap" data-k="sold,cxl" data-t="Gross production"><small>Gross production</small><b>' + esc(fmtMoney(gross)) + '</b><span>' + deals + ' deal' + (deals === 1 ? '' : 's') + ' written</span></div>' +
+          '<div class="tap cx" data-k="cxl" data-t="Cancelled"><small>Cancelled</small><b>' + (cxm ? '\u2212' : '') + esc(fmtMoney(cxm)) + '</b><span>' + cx + ' deal' + (cx === 1 ? '' : 's') + '</span></div>' +
+          '<div class="tap net" data-k="sold" data-t="Net production"><small>Net production</small><b>' + esc(fmtMoney(c.money)) + '</b><span>' + (gross ? Math.round(c.money / gross * 100) + '% stuck' : '\u2014') + '</span></div>' +
+          '</div>';
+      })() +
       (statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
       gasHtml();
     var body = document.getElementById("statsBody");
