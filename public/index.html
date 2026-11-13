@@ -610,6 +610,17 @@
   .st-pts .est span{font-size:12.5px;color:var(--muted);}
   .st-pts .hrs{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:14px;font-weight:600;}
   .st-pts .hrs input{width:80px;padding:8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:16px;text-align:center;}
+  .gas-add{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+  .gas-add button{grid-column:1 / -1;padding:10px !important;}
+  .gas-tot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .gas-tot .big{font-size:22px !important;font-weight:900;}
+  .gas-tot small{font-size:12px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+  .gas-add input{min-width:0;padding:8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:16px;}
+  .gas-add button{padding:8px 12px;border:none;border-radius:8px;background:var(--brand);color:#fff;font-weight:800;}
+  .gas-list{margin-top:10px;border-top:1px solid var(--border);}
+  .gas-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+  .gas-row span:nth-child(2){color:var(--text-muted);font-size:13px;}
+  .gas-del{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;color:#b3261e;font-weight:700;}
   .st-pts .sub{font-size:13px;color:var(--muted);margin-top:4px;}
   .st-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--card);}
   .st-nav span{flex:1;text-align:center;font-weight:800;font-size:15px;}
@@ -2651,6 +2662,49 @@
     if(ev.sold && ev.sold.length){ return Math.max.apply(null, ev.sold); }
     return l.created_at || 0;
   }
+  // ---- Gas tracker: fill-ups saved on this phone ----
+  var GAS_KEY = "socal_gas_v1";
+  function gasList(){ try { return JSON.parse(localStorage.getItem(GAS_KEY) || "[]"); } catch(e){ return []; } }
+  function gasSave(list){ try { localStorage.setItem(GAS_KEY, JSON.stringify(list)); } catch(e){} }
+  function gasTs(g){ var p = g.date.split("-"); return new Date(+p[0], +p[1]-1, +p[2]).getTime(); }
+  function gasInRange(r){ return gasList().filter(function(g){ var t = gasTs(g); return t >= r[0] && t < r[1]; }).sort(function(a, b){ return b.date < a.date ? -1 : 1; }); }
+  function money2(n){ n = +n || 0; return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function gasTotal(r){ return gasInRange(r).reduce(function(s2, g){ return s2 + (+g.amount || 0); }, 0); }
+  function gasHtml(){
+    var r = periodRange(statPeriod, statOffset), list = gasInRange(r), tot = list.reduce(function(s2, g){ return s2 + (+g.amount || 0); }, 0);
+    var gal = list.reduce(function(s2, g){ return s2 + (+g.gallons || 0); }, 0);
+    var mi = list.reduce(function(s2, g){ return s2 + (+g.miles || 0); }, 0);
+    var wk = gasTotal(periodRange("week", statOffset)), now = new Date(Math.min(periodRange("week", statOffset)[1] - 1, Date.now()));
+    var mo = gasTotal([new Date(now.getFullYear(), now.getMonth(), 1).getTime(), new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()]);
+    var wkMi = gasInRange(periodRange("week", statOffset)).reduce(function(s2, g){ return s2 + (+g.miles || 0); }, 0);
+    var moR = [new Date(now.getFullYear(), now.getMonth(), 1).getTime(), new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()];
+    var moMi = gasInRange(moR).reduce(function(s2, g){ return s2 + (+g.miles || 0); }, 0);
+    return '<div class="st-h">\u26fd Gas &amp; miles</div><div class="st-pts gas">' +
+      '<div class="tier" style="margin-bottom:6px">' + esc(periodLabel(statPeriod, statOffset)) + '</div>' +
+      '<div class="gas-tot"><div><div class="big">' + esc(money2(tot)) + '</div><small>gas</small></div><div><div class="big">' + (Math.round(mi * 10) / 10).toLocaleString() + '</div><small>miles</small></div>' +
+        '<div><div class="big">' + (mi && tot ? esc(money2(tot / mi)) : '\u2014') + '</div><small>per mile</small></div></div>' +
+      '<div class="sub">' + list.filter(function(g){ return +g.amount; }).length + ' fill-up' + (list.filter(function(g){ return +g.amount; }).length === 1 ? '' : 's') + (gal ? ' \u00b7 ' + (Math.round(gal * 10) / 10) + ' gal' : '') +
+        (statPeriod === "week" ? ' \u00b7 month so far ' + esc(money2(mo)) + ', ' + Math.round(moMi) + ' mi' : statPeriod === "month" ? '' : ' \u00b7 this week ' + esc(money2(wk)) + ', ' + Math.round(wkMi) + ' mi') + '</div>' +
+      '<div class="gas-add"><input type="date" id="gasDate" value="' + todayISO() + '"><input type="text" inputmode="decimal" id="gasMi" placeholder="miles"><input type="text" inputmode="decimal" id="gasAmt" placeholder="$ gas"><input type="text" inputmode="decimal" id="gasGal" placeholder="gal (opt.)"><button type="button" id="gasAddBtn">Add</button></div>' +
+      '<div class="sub">Log your miles each day, and a $ amount when you fill up.</div>' +
+      (list.length ? '<div class="gas-list">' + list.map(function(g){
+        var bits = [g.miles ? esc(g.miles) + ' mi' : '', g.gallons ? esc(g.gallons) + ' gal' : ''].filter(Boolean).join(' \u00b7 ');
+        return '<div class="gas-row"><span>' + esc(fmtIsoDate(g.date)) + '</span><span>' + bits + '</span><b>' + (+g.amount ? esc(money2(g.amount)) : '') + '</b><button type="button" class="gas-del" data-gas-del="' + esc(g.id) + '" aria-label="Delete">\u2715</button></div>';
+      }).join("") + '</div>' : '') + '</div>';
+  }
+  document.addEventListener("click", function(e){
+    var t = e.target;
+    if(t.id === "gasAddBtn"){
+      var amt = parseFloat((document.getElementById("gasAmt").value || "").replace(/[^0-9.]/g, "")), d = document.getElementById("gasDate").value || todayISO();
+      var gal = parseFloat((document.getElementById("gasGal").value || "").replace(/[^0-9.]/g, ""));
+      var mil = parseFloat((document.getElementById("gasMi").value || "").replace(/[^0-9.]/g, ""));
+      if(!amt && !mil){ document.getElementById("gasMi").focus(); return; }
+      var list = gasList(); list.push({ id: "g" + Date.now(), date: d, amount: amt ? Math.round(amt * 100) / 100 : "", gallons: gal ? Math.round(gal * 1000) / 1000 : "", miles: mil ? Math.round(mil * 10) / 10 : "" }); gasSave(list); renderStats();
+    } else if(t.getAttribute && t.getAttribute("data-gas-del")){
+      if(!confirm("Delete this fill-up?")) return;
+      var id = t.getAttribute("data-gas-del"); gasSave(gasList().filter(function(g){ return g.id !== id; })); renderStats();
+    }
+  });
   // Pay points: 1 per sit (pitch miss), 2 per sale
   // Mon\u2013Fri 10\u20136 and Sat 10\u20135, each minus a 30-min unpaid lunch: 5\u00d77.5 + 6.5 = 44 hrs
   var WEEK_HOURS = 44;
@@ -2681,7 +2735,8 @@
       '<div class="pay">' + esc(pay) + '</div>' +
       (rate ? (function(){ var hrs = weekHours(), reg = Math.min(hrs, 40), ot = Math.max(0, hrs - 40);
         var regPay = reg * rate, otPay = ot * rate * 1.5, total = Math.round(regPay + otPay + comm);
-        return '<div class="est">Est. week: <b>' + esc(fmtMoney(total)) + '</b></div>' +
+        var gw = gasTotal(periodRange("week", statOffset));
+        return '<div class="est">Est. week: <b>' + esc(fmtMoney(total)) + '</b>' + (gw ? ' <span>\u00b7 after gas ' + esc(money2(total - gw)) + '</span>' : '') + '</div>' +
         '<div class="sub">' + reg + ' hrs \u00d7 $' + rate + ' = ' + esc(fmtMoney(Math.round(regPay))) +
           (ot ? ' \u00b7 ' + ot + ' OT hrs \u00d7 $' + (rate * 1.5).toFixed(2).replace(/\.00$/, "") + ' = ' + esc(fmtMoney(Math.round(otPay))) : '') +
           (comm ? ' \u00b7 commission ' + esc(fmtMoney(comm)) : '') + '</div>' +
@@ -2751,7 +2806,8 @@
         bar([[c.sold, "#0b6b3a"], [c.miss, "#c2735f"]]) + '</div>' +
       '<div class="st-money tap" data-k="sold" data-t="Sold"><div><div style="font-size:12px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.4px;">Total sold</div><div class="big">' + esc(fmtMoney(c.money)) + '</div></div>' +
         '<div class="sm">' + (c.sold ? 'Avg ' + esc(fmtMoney(Math.round(c.money / c.sold))) + '<br>per sale' : 'No sales yet') + '</div></div>' +
-      (statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>');
+      (statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
+      gasHtml();
     var body = document.getElementById("statsBody");
     if(statDrill){
       var keys = statDrill.k.split(","), seen = {}, list = [];
@@ -2768,7 +2824,7 @@
     body.innerHTML = html;
   }
   document.getElementById("statsBody").addEventListener("click", function(e){
-    if(e.target.closest("input, .hrs")) return;
+    if(e.target.closest("input, .hrs, .gas, button")) return;
     var t = e.target.closest(".tap[data-k]"); if(!t || statDrill) return;
     statDrill = { k: t.getAttribute("data-k"), t: t.getAttribute("data-t") };
     renderStats(); window.scrollTo(0, 0);
