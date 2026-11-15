@@ -627,6 +627,10 @@
   .gas-list{margin-top:10px;border-top:1px solid var(--border);}
   .gas-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
   .gas-row span:nth-child(2){color:var(--text-muted);font-size:13px;}
+  .mi-adj{display:inline-flex;align-items:center;gap:4px;}
+  .mi-adj button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#eef0f3;font-weight:800;font-size:16px;color:var(--text);}
+  .mi-adj input{width:58px;padding:5px 4px;border:1px solid var(--border);border-radius:8px;text-align:center;font:inherit;font-size:16px;color:var(--text);}
+  .mi-adj small{font-size:12px;}
   .gas-del{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#fff;color:#b3261e;font-weight:700;}
   .st-pts .sub{font-size:13px;color:var(--muted);margin-top:4px;}
   .st-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding:6px;border:1px solid var(--border);border-radius:12px;background:var(--card);}
@@ -2692,10 +2696,12 @@
         '<div><div class="big">' + (mi && tot ? esc(money2(tot / mi)) : '\u2014') + '</div><small>per mile</small></div></div>' +
       '<div class="sub">' + list.filter(function(g){ return +g.amount; }).length + ' fill-up' + (list.filter(function(g){ return +g.amount; }).length === 1 ? '' : 's') + (gal ? ' \u00b7 ' + (Math.round(gal * 10) / 10) + ' gal' : '') +
         (statPeriod === "week" ? ' \u00b7 month so far ' + esc(money2(mo)) + ', ' + Math.round(moMi) + ' mi' : statPeriod === "month" ? '' : ' \u00b7 this week ' + esc(money2(wk)) + ', ' + Math.round(wkMi) + ' mi') + '</div>' +
-      '<div class="gas-add"><input type="date" id="gasDate" value="' + todayISO() + '"><input type="text" inputmode="decimal" id="gasMi" placeholder="miles"><input type="text" inputmode="decimal" id="gasAmt" placeholder="$ gas"><input type="text" inputmode="decimal" id="gasGal" placeholder="gal (opt.)"><button type="button" id="gasAddBtn">Add</button></div>' +
+      '<div class="gas-add"><input type="date" id="gasDate" value="' + todayISO() + '"><input type="text" inputmode="decimal" id="gasMi" placeholder="miles (use \u2212 to subtract)"><input type="text" inputmode="decimal" id="gasAmt" placeholder="$ gas"><input type="text" inputmode="decimal" id="gasGal" placeholder="gal (opt.)"><button type="button" id="gasAddBtn">Add</button></div>' +
       '<div class="sub">Log your miles each day, and a $ amount when you fill up.</div>' +
       (list.length ? '<div class="gas-list">' + list.map(function(g){
-        var bits = [g.miles ? esc(g.miles) + ' mi' : '', g.gallons ? esc(g.gallons) + ' gal' : ''].filter(Boolean).join(' \u00b7 ');
+        var bits = '<span class="mi-adj"><button type="button" data-gas-step="-1" data-id="' + esc(g.id) + '" aria-label="Less miles">\u2212</button>' +
+          '<input type="text" inputmode="decimal" class="gas-mi-edit" data-gas-mi="' + esc(g.id) + '" value="' + esc(g.miles || 0) + '"><small>mi</small>' +
+          '<button type="button" data-gas-step="1" data-id="' + esc(g.id) + '" aria-label="More miles">+</button></span>' + (g.gallons ? ' <small>' + esc(Math.round(g.gallons * 10) / 10) + ' gal</small>' : '');
         return '<div class="gas-row"><span>' + esc(fmtIsoDate(g.date)) + '</span><span>' + bits + '</span><b>' + (+g.amount ? esc(money2(g.amount)) : '') + '</b><button type="button" class="gas-del" data-gas-del="' + esc(g.id) + '" aria-label="Delete">\u2715</button></div>';
       }).join("") + '</div>' : '') + '</div>';
   }
@@ -2704,13 +2710,26 @@
     if(t.id === "gasAddBtn"){
       var amt = parseFloat((document.getElementById("gasAmt").value || "").replace(/[^0-9.]/g, "")), d = document.getElementById("gasDate").value || todayISO();
       var gal = parseFloat((document.getElementById("gasGal").value || "").replace(/[^0-9.]/g, ""));
-      var mil = parseFloat((document.getElementById("gasMi").value || "").replace(/[^0-9.]/g, ""));
+      var mil = parseFloat((document.getElementById("gasMi").value || "").replace(/[^0-9.\-]/g, ""));
       if(!amt && !mil){ document.getElementById("gasMi").focus(); return; }
       var list = gasList(); list.push({ id: "g" + Date.now(), date: d, amount: amt ? Math.round(amt * 100) / 100 : "", gallons: gal ? Math.round(gal * 1000) / 1000 : "", miles: mil ? Math.round(mil * 10) / 10 : "" }); gasSave(list); renderStats();
+    } else if(t.getAttribute && t.getAttribute("data-gas-step")){
+      var sid = t.getAttribute("data-id"), step = +t.getAttribute("data-gas-step"), gl = gasList();
+      gl.forEach(function(g){ if(g.id === sid){ g.miles = Math.round(((+g.miles || 0) + step) * 10) / 10; } }); gasSave(gl); renderStats();
     } else if(t.getAttribute && t.getAttribute("data-gas-del")){
       if(!confirm("Delete this fill-up?")) return;
       var id = t.getAttribute("data-gas-del"); gasSave(gasList().filter(function(g){ return g.id !== id; })); renderStats();
     }
+  });
+  document.addEventListener("change", function(e){
+    var t = e.target; if(!t.getAttribute || !t.getAttribute("data-gas-mi")) return;
+    var id = t.getAttribute("data-gas-mi"), v = (t.value || "").trim(), gl = gasList();
+    gl.forEach(function(g){
+      if(g.id !== id) return;
+      var n = parseFloat(v.replace(/[^0-9.\-]/g, "")) || 0;
+      g.miles = Math.round(n * 10) / 10;
+    });
+    gasSave(gl); renderStats();
   });
   // Pay points: 1 per sit (pitch miss), 2 per sale
   // Mon\u2013Fri 10\u20136 and Sat 10\u20135, each minus a 30-min unpaid lunch: 5\u00d77.5 + 6.5 = 44 hrs
