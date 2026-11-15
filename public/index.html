@@ -615,6 +615,10 @@
   .st-pts .est{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:15px;}
   .st-pts .est b{font-size:18px;color:#0b6b3a;}
   .st-pts .est span{font-size:12.5px;color:var(--muted);}
+  .pay-lines{margin-top:8px;border-top:1px solid var(--border);}
+  .pay-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;}
+  .pay-line small{display:block;font-size:12px;font-weight:600;color:var(--text-muted);}
+  .pay-line.zero{opacity:.45;}
   .st-pts .hrs{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;font-size:14px;font-weight:600;}
   .st-pts .hrs input{width:80px;padding:8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:16px;text-align:center;}
   .gas-add{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
@@ -2764,11 +2768,12 @@
   });
   function pointsHtml(c){
     var cx = c.cxl || 0, sits = c.sold + cx + c.miss, pts = c.miss + (c.sold + cx) * 2, tier, pay, rate = 0, comm = 0;
-    if(pts >= 10){ tier = "10+ points"; pay = "$500 + $50/sit after 3 sits" + (sits > 3 ? " = " + fmtMoney(500 + 50 * (sits - 3)) : " = $500"); }
+    var sitBonus = 50 * Math.max(0, sits - 3), monster = 0;
+    if(pts >= 10){ tier = "10+ points"; rate = 35; comm = Math.round(c.money * 0.02); monster = 500; pay = "$35/hr + 2% + $500 Monster bonus"; }
     else if(pts >= 7){ tier = "7 points"; rate = 35; comm = Math.round(c.money * 0.02); pay = "$35/hr + 2% of sales (" + fmtMoney(comm) + ")"; }
     else if(pts >= 3){ tier = "3 points"; rate = 30; comm = Math.round(c.money * 0.01); pay = "$30/hr + 1% of sales (" + fmtMoney(comm) + ")"; }
     else { tier = "Under 3 points"; rate = 18; pay = "$18/hr \u00b7 " + (3 - pts) + " more point" + (3 - pts === 1 ? "" : "s") + " to reach $30/hr + 1%"; }
-    var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to $500 + $50/sit" : "";
+    var next = pts < 3 ? "" : pts < 7 ? (7 - pts) + " more to $35/hr + 2%" : pts < 10 ? (10 - pts) + " more to the $500 Monster bonus" : "";
     // $100k bonus resets monthly: use the month of the week being viewed
     var wr = periodRange("week", statOffset), ref = new Date(Math.min(wr[1] - 1, Date.now()));
     var mStart = new Date(ref.getFullYear(), ref.getMonth(), 1).getTime(), mEnd = new Date(ref.getFullYear(), ref.getMonth() + 1, 1).getTime();
@@ -2780,12 +2785,16 @@
       '<div class="row"><div class="big">' + pts + ' <span>pts</span></div><div class="tier">' + esc(tier) + '</div></div>' +
       '<div class="pay">' + esc(pay) + '</div>' +
       (rate ? (function(){ var hrs = weekHours(), reg = Math.min(hrs, 40), ot = Math.max(0, hrs - 40);
-        var regPay = reg * rate, otPay = ot * rate * 1.5, total = Math.round(regPay + otPay + comm);
+        var regPay = reg * rate, otPay = ot * rate * 1.5, base = Math.round(regPay + otPay), total = base + comm + sitBonus + monster;
         var gw = gasTotal(periodRange("week", statOffset));
+        function line(icon, label, amt, sub){ return '<div class="pay-line' + (amt ? '' : ' zero') + '"><span>' + icon + ' ' + label + (sub ? '<small>' + sub + '</small>' : '') + '</span><b>' + esc(fmtMoney(amt)) + '</b></div>'; }
         return '<div class="est">Est. week: <b>' + esc(fmtMoney(total)) + '</b>' + (gw ? ' <span>\u00b7 after gas ' + esc(money2(total - gw)) + '</span>' : '') + '</div>' +
-        '<div class="sub">' + reg + ' hrs \u00d7 $' + rate + ' = ' + esc(fmtMoney(Math.round(regPay))) +
-          (ot ? ' \u00b7 ' + ot + ' OT hrs \u00d7 $' + (rate * 1.5).toFixed(2).replace(/\.00$/, "") + ' = ' + esc(fmtMoney(Math.round(otPay))) : '') +
-          (comm ? ' \u00b7 commission ' + esc(fmtMoney(comm)) : '') + '</div>' +
+        '<div class="pay-lines">' +
+          line("\ud83e\ude99", "Base pay", base, reg + ' hrs \u00d7 $' + rate + (ot ? ' + ' + ot + ' OT hrs \u00d7 $' + (rate * 1.5).toFixed(2).replace(/\.00$/, "") : '')) +
+          line("\ud83d\udc8e", "Commission", comm, rate === 35 ? "2% of net" : rate === 30 ? "1% of net" : "") +
+          line("\ud83e\udd47", "Sit bonus", sitBonus, "$50 \u00d7 each sit after 3") +
+          line("\ud83e\uddf0", "Monster bonus", monster, "$500 at 10+ points") +
+        '</div>' +
         '<div class="hrs">Hours worked this week <input type="number" inputmode="decimal" step="0.5" min="0" max="80" id="weekHoursInput" value="' + hrs + '"></div>'; })() : '') +
       '<div class="sub">' + sits + ' sit' + (sits === 1 ? "" : "s") + ' (' + c.miss + ' miss \u00d7 1, ' + (c.sold + cx) + ' sold \u00d7 2' + (cx ? ', incl. ' + cx + ' cancelled' : '') + ')' + (next ? ' \u00b7 ' + esc(next) : '') + '</div>' +
       '<div class="sub">$100k bonus (' + MONL[ref.getMonth()] + ', resets monthly): ' + esc(fmtMoney(monthSales % 100000)) + ' of $100,000' + (bonus ? ' \u00b7 earned ' + esc(fmtMoney(bonus)) : '') + '</div></div>';
