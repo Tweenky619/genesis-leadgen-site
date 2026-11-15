@@ -627,6 +627,9 @@
   .gas-list{margin-top:10px;border-top:1px solid var(--border);}
   .gas-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
   .gas-row span:nth-child(2){color:var(--text-muted);font-size:13px;}
+  .gas-left{display:flex;align-items:baseline;justify-content:space-between;background:#eef6ef;border-radius:10px;padding:8px 12px;margin-bottom:10px;}
+  .gas-left span{font-size:13px;font-weight:800;color:#0b6b3a;text-transform:uppercase;letter-spacing:.3px;}
+  .gas-left b{font-size:24px;color:#0b6b3a;}
   .mi-adj{display:inline-flex;align-items:center;gap:4px;}
   .mi-adj button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:#eef0f3;font-weight:800;font-size:16px;color:var(--text);}
   .mi-adj input{width:58px;padding:5px 4px;border:1px solid var(--border);border-radius:8px;text-align:center;font:inherit;font-size:16px;color:var(--text);}
@@ -2680,6 +2683,12 @@
   function gasTs(g){ var p = g.date.split("-"); return new Date(+p[0], +p[1]-1, +p[2]).getTime(); }
   function gasInRange(r){ return gasList().filter(function(g){ var t = gasTs(g); return t >= r[0] && t < r[1]; }).sort(function(a, b){ return b.date < a.date ? -1 : 1; }); }
   function money2(n){ n = +n || 0; return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function lastRange(list){
+    var withR = (list || gasList()).filter(function(g){ return g.range !== "" && g.range != null; });
+    if(!withR.length) return null;
+    withR.sort(function(a, b){ return (a.date + (a.ts || 0)) < (b.date + (b.ts || 0)) ? -1 : 1; });
+    return +withR[withR.length - 1].range;
+  }
   function gasTotal(r){ return gasInRange(r).reduce(function(s2, g){ return s2 + (+g.amount || 0); }, 0); }
   function gasHtml(){
     var r = periodRange(statPeriod, statOffset), list = gasInRange(r), tot = list.reduce(function(s2, g){ return s2 + (+g.amount || 0); }, 0);
@@ -2690,18 +2699,21 @@
     var wkMi = gasInRange(periodRange("week", statOffset)).reduce(function(s2, g){ return s2 + (+g.miles || 0); }, 0);
     var moR = [new Date(now.getFullYear(), now.getMonth(), 1).getTime(), new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime()];
     var moMi = gasInRange(moR).reduce(function(s2, g){ return s2 + (+g.miles || 0); }, 0);
+    var left = lastRange();
     return '<div class="st-h">\u26fd Gas &amp; miles</div><div class="st-pts gas">' +
+      (left !== null ? '<div class="gas-left"><span>Miles left in the tank</span><b>' + Math.round(left) + '</b></div>' : '') +
       '<div class="tier" style="margin-bottom:6px">' + esc(periodLabel(statPeriod, statOffset)) + '</div>' +
       '<div class="gas-tot"><div><div class="big">' + esc(money2(tot)) + '</div><small>gas</small></div><div><div class="big">' + (Math.round(mi * 10) / 10).toLocaleString() + '</div><small>miles</small></div>' +
         '<div><div class="big">' + (mi && tot ? esc(money2(tot / mi)) : '\u2014') + '</div><small>per mile</small></div></div>' +
       '<div class="sub">' + list.filter(function(g){ return +g.amount; }).length + ' fill-up' + (list.filter(function(g){ return +g.amount; }).length === 1 ? '' : 's') + (gal ? ' \u00b7 ' + (Math.round(gal * 10) / 10) + ' gal' : '') +
         (statPeriod === "week" ? ' \u00b7 month so far ' + esc(money2(mo)) + ', ' + Math.round(moMi) + ' mi' : statPeriod === "month" ? '' : ' \u00b7 this week ' + esc(money2(wk)) + ', ' + Math.round(wkMi) + ' mi') + '</div>' +
-      '<div class="gas-add"><input type="date" id="gasDate" value="' + todayISO() + '"><input type="text" inputmode="decimal" id="gasMi" placeholder="miles (use \u2212 to subtract)"><input type="text" inputmode="decimal" id="gasAmt" placeholder="$ gas"><input type="text" inputmode="decimal" id="gasGal" placeholder="gal (opt.)"><button type="button" id="gasAddBtn">Add</button></div>' +
-      '<div class="sub">Log your miles each day, and a $ amount when you fill up.</div>' +
+      '<div class="gas-add"><input type="date" id="gasDate" value="' + todayISO() + '"><input type="text" inputmode="decimal" id="gasMi" placeholder="miles (use \u2212 to subtract)"><input type="text" inputmode="decimal" id="gasRange" placeholder="miles left on dash" style="grid-column:1 / -1"><input type="text" inputmode="decimal" id="gasAmt" placeholder="$ gas"><input type="text" inputmode="decimal" id="gasGal" placeholder="gal (opt.)"><button type="button" id="gasAddBtn">Add</button></div>' +
+      '<div class="sub">Each day, type the <b>miles left</b> on your dash \u2014 the app works out how far you drove. When you fill up, add the <b>$</b> and the new miles left.</div>' +
       (list.length ? '<div class="gas-list">' + list.map(function(g){
         var bits = '<span class="mi-adj"><button type="button" data-gas-step="-1" data-id="' + esc(g.id) + '" aria-label="Less miles">\u2212</button>' +
           '<input type="text" inputmode="decimal" class="gas-mi-edit" data-gas-mi="' + esc(g.id) + '" value="' + esc(g.miles || 0) + '"><small>mi</small>' +
-          '<button type="button" data-gas-step="1" data-id="' + esc(g.id) + '" aria-label="More miles">+</button></span>' + (g.gallons ? ' <small>' + esc(Math.round(g.gallons * 10) / 10) + ' gal</small>' : '');
+          '<button type="button" data-gas-step="1" data-id="' + esc(g.id) + '" aria-label="More miles">+</button></span>' + (g.gallons ? ' <small>' + esc(Math.round(g.gallons * 10) / 10) + ' gal</small>' : '') +
+          (g.range !== "" && g.range != null ? ' <small>\u00b7 ' + esc(Math.round(g.range)) + ' left' + (+g.amount ? ' after fill-up' : '') + '</small>' : '');
         return '<div class="gas-row"><span>' + esc(fmtIsoDate(g.date)) + '</span><span>' + bits + '</span><b>' + (+g.amount ? esc(money2(g.amount)) : '') + '</b><button type="button" class="gas-del" data-gas-del="' + esc(g.id) + '" aria-label="Delete">\u2715</button></div>';
       }).join("") + '</div>' : '') + '</div>';
   }
@@ -2711,8 +2723,16 @@
       var amt = parseFloat((document.getElementById("gasAmt").value || "").replace(/[^0-9.]/g, "")), d = document.getElementById("gasDate").value || todayISO();
       var gal = parseFloat((document.getElementById("gasGal").value || "").replace(/[^0-9.]/g, ""));
       var mil = parseFloat((document.getElementById("gasMi").value || "").replace(/[^0-9.\-]/g, ""));
-      if(!amt && !mil){ document.getElementById("gasMi").focus(); return; }
-      var list = gasList(); list.push({ id: "g" + Date.now(), date: d, amount: amt ? Math.round(amt * 100) / 100 : "", gallons: gal ? Math.round(gal * 1000) / 1000 : "", miles: mil ? Math.round(mil * 10) / 10 : "" }); gasSave(list); renderStats();
+      var rng = parseFloat((document.getElementById("gasRange").value || "").replace(/[^0-9.]/g, ""));
+      if(!amt && !mil && isNaN(rng)){ document.getElementById("gasRange").focus(); return; }
+      var list = gasList();
+      // Miles left on the dash: driven = last reading - this reading (a fill-up just sets the new starting point)
+      if(!isNaN(rng) && !mil && !amt){
+        var last = lastRange(list);
+        if(last !== null && last - rng > 0){ mil = Math.round((last - rng) * 10) / 10; }
+      }
+      list.push({ id: "g" + Date.now(), ts: Date.now(), date: d, amount: amt ? Math.round(amt * 100) / 100 : "", gallons: gal ? Math.round(gal * 1000) / 1000 : "", miles: mil ? Math.round(mil * 10) / 10 : "", range: isNaN(rng) ? "" : rng });
+      gasSave(list); renderStats();
     } else if(t.getAttribute && t.getAttribute("data-gas-step")){
       var sid = t.getAttribute("data-id"), step = +t.getAttribute("data-gas-step"), gl = gasList();
       gl.forEach(function(g){ if(g.id === sid){ g.miles = Math.round(((+g.miles || 0) + step) * 10) / 10; } }); gasSave(gl); renderStats();
