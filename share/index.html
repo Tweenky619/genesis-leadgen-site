@@ -1194,12 +1194,18 @@
     return '<div class="due later">Next: ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
   }
   function addLog(l, text){ l.log = l.log || []; l.log.unshift({ ts: Date.now(), text: text }); }
+  // Core-product sections: match the lead's projects (not "Other: ...")
+  function hasProduct(l, re){ return (l.interests || []).some(function(i){ return !/^Other/.test(i) && re.test(i); }); }
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["miss","Pitch & Miss", function(l){ return statusOf(l)==="Pitch & Miss"; }],
+    ["roof","🏠 Roof", function(l){ return hasProduct(l, /roof/i); }],
+    ["paint","🧱 Exterior Paint & Stucco", function(l){ return hasProduct(l, /paint|stucco/i); }],
+    ["fascia","🪵 Fascia/Trim Boards", function(l){ return hasProduct(l, /fascia|trim|wood/i); }],
+    ["windows","🪟 Windows", function(l){ return hasProduct(l, /window/i); }],
     ["all","All", function(){ return true; }]
   ];
   function fmtMoney(n){ return "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
