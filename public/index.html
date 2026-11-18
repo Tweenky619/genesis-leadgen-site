@@ -1281,7 +1281,7 @@
     }
     var l = leads.filter(function(x){ return x.id === viewingId; })[0]; if(!l) return;
     var num = waNumber().replace(/\D/g, ""); if(num.length === 10){ num = "1" + num; }
-    var url = "https://wa.me/" + num + "?text=" + encodeURIComponent(waText(l));
+    var url = num ? "https://wa.me/" + num + "?text=" + encodeURIComponent(waText(l)) : "https://wa.me/?text=" + encodeURIComponent(waText(l));
     addLog(l, "Sent to WhatsApp" + (waNumber() ? " (" + waNumber() + ")" : "")); save();
     window.location.href = url;
   });
@@ -1627,7 +1627,7 @@
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       '<div class="wa-box"><button type="button" class="wa-btn" data-wa="send">\ud83d\udfe2 Send lead to WhatsApp</button>' +
-        '<div class="wa-sub">' + (waNumber() ? 'To ' + esc(waNumber()) + ' \u00b7 <a href="#" data-wa="change">change</a>' : '<a href="#" data-wa="change">Set the WhatsApp Business number</a> (or pick a chat each time)') + '</div></div>' +
+        '<div class="wa-sub">' + (waNumber() ? 'To ' + esc(waNumber()) + ' \u00b7 <a href="#" data-wa="change">send to the group instead</a>' : 'WhatsApp opens with the lead written out \u2014 pick <b>OG\u2019s Villa Pacifica</b> and hit send') + '</div></div>' +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
