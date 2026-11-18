@@ -1267,6 +1267,7 @@
     if(!isOpen(l) || !l.next_followup) return "";
     var t = todayISO();
     if(l.next_followup < t) return '<div class="due over">Overdue \u00b7 ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
+    if(statusOf(l) === "Blow Out" && !l.bo_text_sent && l.next_followup <= t) return '<div class="due today">\ud83d\udcac Send check-in text today</div>';
     if(statusOf(l) === "Rep Reset" && !l.rr_text_sent && l.next_followup <= t) return '<div class="due today">\ud83d\udcac Send reconfirm text today</div>';
     if(l.next_followup === t) return '<div class="due today">Follow up today</div>';
     return '<div class="due later">Next: ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
@@ -2001,17 +2002,26 @@
     if(statusOf(l) !== "Sold" || !l.phone) return "";
     return '<div class="fu-dispatch"><div class="lbl">\ud83c\udf89 Sold \u2014 send a thank-you</div>' + repResetTextBtn(l) + '</div>';
   }
+  function blowText(l){
+    var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
+    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; })
+      .map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
+    var proj = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
+    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with SoCal Contractor Exchange. " +
+      "No worries at all about the visit" + proj + " \u2014 I know things come up. " +
+      "Whenever you\u2019re ready, I\u2019m happy to find a time that works better for you. Just reply here. Thank you!";
+  }
   function repResetTextBtn(l){
     var st = statusOf(l);
-    if((st !== "Rep Reset" && st !== "Confirm NA" && st !== "Sold") || !l.phone) return "";
+    if((st !== "Rep Reset" && st !== "Confirm NA" && st !== "Sold" && st !== "Blow Out") || !l.phone) return "";
     if(st === "Confirm NA" && (l.na_count || 1) < 2) return "";
-    var na = st === "Confirm NA", sold = st === "Sold";
-    var msg = sold ? soldText(l) : na ? naText(l) : repResetText(l), sent = sold ? l.ty_text_sent : na ? l.na_text_sent : l.rr_text_sent;
+    var na = st === "Confirm NA", sold = st === "Sold", blow = st === "Blow Out";
+    var msg = blow ? blowText(l) : sold ? soldText(l) : na ? naText(l) : repResetText(l), sent = blow ? l.bo_text_sent : sold ? l.ty_text_sent : na ? l.na_text_sent : l.rr_text_sent;
     var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(msg);
     return '<div class="rr-copy"><textarea id="rrMsg" rows="10">' + esc(msg) + '</textarea>' +
       '<button type="button" data-fu="rrcopy" id="rrCopyBtn">\ud83d\udccb Copy text</button></div>' +
       '<a class="rr-text' + (sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
-      (sent ? "\u2705 " + (sold ? "Thank-you" : na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
+      (sent ? "\u2705 " + (blow ? "Check-in" : sold ? "Thank-you" : na ? "Reminder" : "Reconfirm") + " text sent \u2014 send again" : "\ud83d\udcac Open in Messages") + '</a>';
   }
   var QR_FORM_URL = "https://wkf.ms/43D9ZjP";
   // On iPhone, open the QR form in the real Safari app (not a sheet over this app) so you can switch back and forth
@@ -2038,7 +2048,7 @@
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
-    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? ((l.na_count || 1) >= 2 ? "No answer twice \u2014 send the reminder text" : "1st no answer \u2014 call them yourself (tap NA again if they still don\u2019t pick up)") : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? (l.bo_text_sent ? "Blew out \u2014 call after 5 pm or knock when you\u2019re on the street" : "Blew out \u2014 wait 2\u20133 hours, then send a check-in text") : st === "Confirm NA" ? ((l.na_count || 1) >= 2 ? "No answer twice \u2014 send the reminder text" : "1st no answer \u2014 call them yourself (tap NA again if they still don\u2019t pick up)") : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
     return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div>' + repResetTextBtn(l) + '<div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
@@ -2070,10 +2080,11 @@
       return;
     }
     if(a === "rrcopy"){
-      var isNA = statusOf(l) === "Confirm NA", isSold = statusOf(l) === "Sold";
-      var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : (isSold ? soldText(l) : isNA ? naText(l) : repResetText(l));
+      var isNA = statusOf(l) === "Confirm NA", isSold = statusOf(l) === "Sold", isBlow = statusOf(l) === "Blow Out";
+      var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : (isBlow ? blowText(l) : isSold ? soldText(l) : isNA ? naText(l) : repResetText(l));
       function done(){ b.textContent = "\u2705 Copied \u2014 paste it in your text";
-        if(isSold){ if(!l.ty_text_sent){ l.ty_text_sent = true; addLog(l, "Thank-you text copied"); save(); } }
+        if(isBlow){ if(!l.bo_text_sent){ l.bo_text_sent = true; l.next_followup = addDaysISO(1); addLog(l, "Blow-out check-in text copied \u2014 call or knock " + fmtIsoDate(l.next_followup)); save(); } }
+        else if(isSold){ if(!l.ty_text_sent){ l.ty_text_sent = true; addLog(l, "Thank-you text copied"); save(); } }
         else if(isNA){ if(!l.na_text_sent){ l.na_text_sent = true; addLog(l, "NA reminder text copied"); save(); } }
         else if(!l.rr_text_sent){ l.rr_text_sent = true; l.next_followup = ""; addLog(l, "Reconfirm text copied"); save(); }
         setTimeout(function(){ b.textContent = "\ud83d\udccb Copy text"; }, 2500); }
@@ -2082,6 +2093,7 @@
       return;
     }
     if(a === "rrtext"){
+      if(statusOf(l) === "Blow Out"){ if(!l.bo_text_sent){ l.bo_text_sent = true; l.next_followup = addDaysISO(1); addLog(l, "Blow-out check-in text sent \u2014 call or knock " + fmtIsoDate(l.next_followup)); } setTimeout(refreshDetail, 400); return; }
       if(statusOf(l) === "Sold"){ addLog(l, "Thank-you text sent"); l.ty_text_sent = true; setTimeout(refreshDetail, 400); return; }
       if(statusOf(l) === "Confirm NA"){ addLog(l, "NA reminder text sent"); l.na_text_sent = true; setTimeout(refreshDetail, 400); return; }
       addLog(l, "Reconfirm text sent");
@@ -2156,7 +2168,7 @@
       l.appt_date = nd; l.appt_time = nt; l.status = "Rolled"; l.next_followup = "";
       addLog(l, "Rolled to " + fmtIsoDate(nd) + " " + nt);
     }
-    else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
+    else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = todayISO(); l.bo_text_sent = false; addLog(l, "Blow out"); }
     else if(a === "confirmed"){ l.na_count = 0; l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
     else if(a === "badnum"){ l.status = "Bad Number"; l.next_followup = addDaysISO(1); l.bad_phone = l.phone || ""; addLog(l, "Bad number" + (l.phone ? " (" + l.phone + ")" : "") + " \u2014 knock again"); }
     else if(a === "baddead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Bad number, couldn\u2019t reach after knocking \u2014 dead"); }
