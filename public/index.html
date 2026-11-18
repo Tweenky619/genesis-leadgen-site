@@ -573,6 +573,11 @@
   .tc-b.brk{background:#c0874a;}
   .tc-b.lun{background:#1d4f8a;}
   .tc-b.out{background:#9a2f22;}
+  .tc-cd{margin-top:10px;text-align:center;background:#eef6ef;border-radius:12px;padding:8px;}
+  .tc-cd small{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#0b6b3a;}
+  .tc-cd b{display:block;font-size:40px;font-weight:900;color:#0b6b3a;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .tc-cd.soon{background:#fff4e0;} .tc-cd.soon small,.tc-cd.soon b{color:#8a5a00;}
+  .tc-cd.over{background:#fbecea;} .tc-cd.over small,.tc-cd.over b{color:#c0392b;}
   .tc-live{margin-top:8px;text-align:center;font-weight:800;color:#8a5a00;}
   .tc-live.over{color:#c0392b;}
   .tc-punches{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
@@ -3024,8 +3029,8 @@
     }
     var stTxt = !isToday ? "" : st === "out" ? (tcForDay(day).length ? "Clocked out" : "Not clocked in") : st === "in" ? "\ud83d\udfe2 On the clock" : st === "break" ? "\u2615 On break" : "\ud83c\udf74 At lunch";
     var bLive = "";
-    if(isToday && st === "break" && sm.openBreakAt){ var bm = (Date.now() - sm.openBreakAt) / 60000; bLive = '<div class="tc-live' + (bm > 10 ? " over" : "") + '">Break ' + Math.floor(bm) + ' min' + (bm > 10 ? ' \u2014 over 10 min' : '') + '</div>'; }
-    if(isToday && st === "lunch" && sm.openLunchAt){ bLive = '<div class="tc-live">Lunch ' + Math.floor((Date.now() - sm.openLunchAt) / 60000) + ' min</div>'; }
+    if(isToday && st === "break" && sm.openBreakAt){ bLive = '<div class="tc-cd" data-cd-start="' + sm.openBreakAt + '" data-cd-len="600000" data-cd-name="Break"></div>'; }
+    if(isToday && st === "lunch" && sm.openLunchAt){ bLive = '<div class="tc-cd" data-cd-start="' + sm.openLunchAt + '" data-cd-len="1800000" data-cd-name="Lunch"></div>'; }
     var ps = tcForDay(day);
     var list = tcEdit ? '<div class="tc-edit">' + (ps.length ? ps.map(function(x){
         var t = new Date(x.ts), hh = String(t.getHours()).padStart(2, "0"), mm = String(t.getMinutes()).padStart(2, "0");
@@ -3040,6 +3045,18 @@
       '<div class="tc-tot"><div><b>' + tcFmt(sm.worked) + '</b><small>worked</small></div><div><b>' + tcFmt(sm.lunch) + '</b><small>lunch</small></div><div><b>' + tcFmt(sm.brk) + '</b><small>breaks</small></div><div><b>' + tcFmt(tcWeekMs(weekOffsetFor(day))) + '</b><small>' + (day === tcDayISO(Date.now()) ? 'this week' : 'that week') + '</small></div></div>' +
       bLive + (btns ? '<div class="tc-btns">' + btns + '</div>' : '') + list;
     clearTimeout(tcTimer); if(isToday && st !== "out"){ tcTimer = setTimeout(renderClock, 30000); }
+    tcTick();
+  }
+  // Live countdown for break (10 min) and lunch (30 min), updated every second
+  var tcTickT = null;
+  function tcTick(){
+    clearTimeout(tcTickT);
+    var el = document.querySelector("#timeClock .tc-cd"); if(!el) return;
+    var left = (+el.getAttribute("data-cd-start") + +el.getAttribute("data-cd-len")) - Date.now(), over = left < 0, a = Math.abs(left);
+    var mm = Math.floor(a / 60000), ss = Math.floor((a % 60000) / 1000);
+    el.className = "tc-cd" + (over ? " over" : left < 60000 ? " soon" : "");
+    el.innerHTML = '<small>' + el.getAttribute("data-cd-name") + (over ? ' \u2014 over by' : ' \u2014 time left') + '</small><b>' + (over ? '+' : '') + mm + ':' + String(ss).padStart(2, "0") + '</b>';
+    tcTickT = setTimeout(tcTick, 1000);
   }
   function weekOffsetFor(iso){ var p = iso.split("-"), d = new Date(+p[0], +p[1]-1, +p[2]).getTime(), r0 = periodRange("week", 0)[0]; return d >= r0 ? 0 : Math.ceil((r0 - d) / (7 * 864e5)); }
   document.addEventListener("click", function(e){
