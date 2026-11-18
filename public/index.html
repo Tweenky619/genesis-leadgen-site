@@ -557,6 +557,32 @@
   .wa-btn{display:block;width:100%;padding:13px;border-radius:12px;border:none;background:#25d366;color:#fff;font-weight:800;font-size:15px;}
   .wa-sub{font-size:12.5px;color:var(--text-muted);text-align:center;margin-top:6px;}
   .wa-sub a{color:#128c4b;font-weight:700;}
+  .tc{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;}
+  .tc-top{display:flex;align-items:center;gap:6px;}
+  .tc-top b{font-size:15px;}
+  .tc-nav{width:30px;height:30px;border:none;border-radius:8px;background:#eef0f3;font-size:18px;font-weight:800;color:var(--text);}
+  .tc-nav:disabled{opacity:.3;}
+  .tc-st{flex:1;font-size:13px;font-weight:700;color:var(--text-muted);text-align:right;}
+  .tc-editbtn{border:1px solid var(--border);background:#fff;border-radius:8px;padding:6px 10px;font-weight:700;font-size:13px;color:var(--text);}
+  .tc-tot{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;text-align:center;}
+  .tc-tot b{display:block;font-size:16px;font-weight:900;}
+  .tc-tot small{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;}
+  .tc-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px;}
+  .tc-b{padding:12px 4px;border-radius:10px;border:none;font-weight:800;font-size:14px;color:#fff;background:#12344d;}
+  .tc-b.in{background:#0b6b3a;grid-column:1 / -1;}
+  .tc-b.brk{background:#c0874a;}
+  .tc-b.lun{background:#1d4f8a;}
+  .tc-b.out{background:#9a2f22;}
+  .tc-live{margin-top:8px;text-align:center;font-weight:800;color:#8a5a00;}
+  .tc-live.over{color:#c0392b;}
+  .tc-punches{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .tc-punches span{font-size:12px;font-weight:700;background:#eef0f3;border-radius:20px;padding:4px 10px;}
+  .tc-edit{margin-top:10px;}
+  .tc-row{display:grid;grid-template-columns:1.3fr 1fr auto;gap:6px;margin-bottom:6px;}
+  .tc-row select,.tc-row input{padding:8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:16px;min-width:0;background:#fff;}
+  .tc-row button{width:36px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#b3261e;font-weight:800;}
+  .tc-add{width:100%;padding:10px;border:1px dashed var(--border);border-radius:10px;background:#fff;font-weight:700;color:var(--text);}
+  .tc-sub{font-size:13px;color:var(--text-muted);}
   .co-pick{margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border);}
   .co-pick .co-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
   .co-pick button{display:block;width:100%;margin-bottom:6px;text-align:left;}
@@ -856,6 +882,7 @@
 
     <!-- LIST VIEW -->
     <section class="view active" id="view-list">
+      <div class="tc" id="timeClock"></div>
       <div class="search-wrap">
         <input type="text" id="searchInput" placeholder="Search by name or address">
       </div>
@@ -2952,6 +2979,90 @@
     });
     gasSave(gl); renderStats();
   });
+  // ================= Time clock =================
+  // Punches per company: {id, type: in|out|bstart|bend|lstart|lend, ts}
+  var TC_KEY = CO_PREFIX + "clock_v1", tcDay = null, tcEdit = false, tcTimer = null;
+  var TC_LABEL = { "in": "Clocked in", "out": "Clocked out", "bstart": "Break start", "bend": "Break end", "lstart": "Lunch out", "lend": "Lunch in" };
+  function tcList(){ try { return JSON.parse(localStorage.getItem(TC_KEY) || "[]"); } catch(e){ return []; } }
+  function tcSave(a){ try { localStorage.setItem(TC_KEY, JSON.stringify(a)); } catch(e){} }
+  function tcDayISO(ts){ var d = new Date(ts); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function tcForDay(iso){ return tcList().filter(function(x){ return tcDayISO(x.ts) === iso; }).sort(function(a, b){ return a.ts - b.ts; }); }
+  function tcState(iso){
+    var st = "out";
+    tcForDay(iso).forEach(function(x){ st = x.type === "in" || x.type === "bend" || x.type === "lend" ? "in" : x.type === "bstart" ? "break" : x.type === "lstart" ? "lunch" : "out"; });
+    return st;
+  }
+  // Worked = clock in to out, minus lunch (unpaid). Rest breaks are paid, so they count as worked.
+  function tcSummary(iso){
+    var ps = tcForDay(iso), worked = 0, lunch = 0, brk = 0, inAt = null, lAt = null, bAt = null, now = Date.now(), live = iso === tcDayISO(now);
+    ps.forEach(function(x){
+      if(x.type === "in"){ inAt = x.ts; }
+      else if(x.type === "out" && inAt){ worked += x.ts - inAt; inAt = null; }
+      else if(x.type === "lstart"){ lAt = x.ts; }
+      else if(x.type === "lend" && lAt){ lunch += x.ts - lAt; lAt = null; }
+      else if(x.type === "bstart"){ bAt = x.ts; }
+      else if(x.type === "bend" && bAt){ brk += x.ts - bAt; bAt = null; }
+    });
+    if(inAt && live){ worked += now - inAt; }
+    if(lAt && live){ lunch += now - lAt; }
+    if(bAt && live){ brk += now - bAt; }
+    return { worked: Math.max(0, worked - lunch), lunch: lunch, brk: brk, openBreakAt: bAt, openLunchAt: lAt };
+  }
+  function tcFmt(ms){ var m = Math.round(ms / 60000), h = Math.floor(m / 60); return h + "h " + String(m % 60).padStart(2, "0") + "m"; }
+  function tcClock(ts){ return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }); }
+  function tcWeekMs(off){ var r = periodRange("week", off || 0), d = new Date(r[0]), tot = 0; for(var i = 0; i < 7; i++){ tot += tcSummary(tcDayISO(d.getTime())).worked; d.setDate(d.getDate() + 1); } return tot; }
+  function tcPunch(type){ var a = tcList(); a.push({ id: "p" + Date.now(), type: type, ts: Date.now() }); tcSave(a); renderClock(); }
+  function renderClock(){
+    var box = document.getElementById("timeClock"); if(!box) return;
+    var today = tcDayISO(Date.now()), day = tcDay || today, isToday = day === today;
+    var st = tcState(day), sm = tcSummary(day), btns = "";
+    if(isToday){
+      if(st === "out") btns = '<button type="button" class="tc-b in" data-tc="in">\u25b6\ufe0f Clock in</button>';
+      else if(st === "in") btns = '<button type="button" class="tc-b brk" data-tc="bstart">\u2615 Break (2\u201310 min)</button><button type="button" class="tc-b lun" data-tc="lstart">\ud83c\udf74 Lunch out</button><button type="button" class="tc-b out" data-tc="out">\u23f9\ufe0f Clock out</button>';
+      else if(st === "break") btns = '<button type="button" class="tc-b in wide" data-tc="bend">\u2705 End break</button>';
+      else if(st === "lunch") btns = '<button type="button" class="tc-b in wide" data-tc="lend">\u2705 Lunch in (back to work)</button>';
+    }
+    var stTxt = !isToday ? "" : st === "out" ? (tcForDay(day).length ? "Clocked out" : "Not clocked in") : st === "in" ? "\ud83d\udfe2 On the clock" : st === "break" ? "\u2615 On break" : "\ud83c\udf74 At lunch";
+    var bLive = "";
+    if(isToday && st === "break" && sm.openBreakAt){ var bm = (Date.now() - sm.openBreakAt) / 60000; bLive = '<div class="tc-live' + (bm > 10 ? " over" : "") + '">Break ' + Math.floor(bm) + ' min' + (bm > 10 ? ' \u2014 over 10 min' : '') + '</div>'; }
+    if(isToday && st === "lunch" && sm.openLunchAt){ bLive = '<div class="tc-live">Lunch ' + Math.floor((Date.now() - sm.openLunchAt) / 60000) + ' min</div>'; }
+    var ps = tcForDay(day);
+    var list = tcEdit ? '<div class="tc-edit">' + (ps.length ? ps.map(function(x){
+        var t = new Date(x.ts), hh = String(t.getHours()).padStart(2, "0"), mm = String(t.getMinutes()).padStart(2, "0");
+        return '<div class="tc-row"><select data-tc-type="' + x.id + '">' + Object.keys(TC_LABEL).map(function(k){ return '<option value="' + k + '"' + (k === x.type ? " selected" : "") + '>' + TC_LABEL[k] + '</option>'; }).join("") + '</select>' +
+          '<input type="time" data-tc-time="' + x.id + '" value="' + hh + ':' + mm + '"><button type="button" data-tc-del="' + x.id + '" aria-label="Delete">\u2715</button></div>';
+      }).join("") : '<div class="tc-sub">No punches this day.</div>') +
+      '<button type="button" class="tc-add" data-tc="add">+ Add a punch</button></div>'
+      : (ps.length ? '<div class="tc-punches">' + ps.map(function(x){ return '<span>' + TC_LABEL[x.type] + ' ' + tcClock(x.ts) + '</span>'; }).join("") + '</div>' : '');
+    box.innerHTML = '<div class="tc-top"><button type="button" class="tc-nav" data-tc="prev">\u2039</button><b>' + (isToday ? "Today" : esc(fmtIsoDate(day))) + '</b>' +
+        '<button type="button" class="tc-nav" data-tc="next"' + (isToday ? " disabled" : "") + '>\u203a</button><span class="tc-st">' + stTxt + '</span>' +
+        '<button type="button" class="tc-editbtn" data-tc="edit">' + (tcEdit ? "Done" : "\u270e Edit") + '</button></div>' +
+      '<div class="tc-tot"><div><b>' + tcFmt(sm.worked) + '</b><small>worked</small></div><div><b>' + tcFmt(sm.lunch) + '</b><small>lunch</small></div><div><b>' + tcFmt(sm.brk) + '</b><small>breaks</small></div><div><b>' + tcFmt(tcWeekMs(weekOffsetFor(day))) + '</b><small>' + (day === tcDayISO(Date.now()) ? 'this week' : 'that week') + '</small></div></div>' +
+      bLive + (btns ? '<div class="tc-btns">' + btns + '</div>' : '') + list;
+    clearTimeout(tcTimer); if(isToday && st !== "out"){ tcTimer = setTimeout(renderClock, 30000); }
+  }
+  function weekOffsetFor(iso){ var p = iso.split("-"), d = new Date(+p[0], +p[1]-1, +p[2]).getTime(), r0 = periodRange("week", 0)[0]; return d >= r0 ? 0 : Math.ceil((r0 - d) / (7 * 864e5)); }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest && e.target.closest("[data-tc], [data-tc-del]"); if(!b || !b.closest("#timeClock")) return;
+    var today = tcDayISO(Date.now()), day = tcDay || today;
+    if(b.hasAttribute("data-tc-del")){ if(!confirm("Delete this punch?")) return; var id = b.getAttribute("data-tc-del"); tcSave(tcList().filter(function(x){ return x.id !== id; })); renderClock(); return; }
+    var a = b.getAttribute("data-tc");
+    if(a === "prev" || a === "next"){ var p = day.split("-"), d = new Date(+p[0], +p[1]-1, +p[2] + (a === "prev" ? -1 : 1)); var iso = tcDayISO(d.getTime()); tcDay = iso >= today ? null : iso; renderClock(); return; }
+    if(a === "edit"){ tcEdit = !tcEdit; renderClock(); return; }
+    if(a === "add"){
+      var p2 = day.split("-"), now = new Date(), t = new Date(+p2[0], +p2[1]-1, +p2[2], now.getHours(), now.getMinutes());
+      var arr = tcList(); arr.push({ id: "p" + Date.now(), type: "in", ts: t.getTime() }); tcSave(arr); renderClock(); return;
+    }
+    tcPunch(a);
+  });
+  document.addEventListener("change", function(e){
+    var t = e.target; if(!t.closest || !t.closest("#timeClock")) return;
+    var arr = tcList();
+    if(t.hasAttribute("data-tc-type")){ var id = t.getAttribute("data-tc-type"); arr.forEach(function(x){ if(x.id === id){ x.type = t.value; } }); tcSave(arr); renderClock(); }
+    if(t.hasAttribute("data-tc-time")){ var id2 = t.getAttribute("data-tc-time"), hm = (t.value || "").split(":"); if(hm.length < 2) return;
+      arr.forEach(function(x){ if(x.id === id2){ var d = new Date(x.ts); d.setHours(+hm[0], +hm[1], 0, 0); x.ts = d.getTime(); } }); tcSave(arr); renderClock(); }
+  });
+  renderClock();
   // Pay points: 1 per sit (pitch miss), 2 per sale
   // Mon\u2013Fri 10\u20136 and Sat 10\u20135, each minus a 30-min unpaid lunch: 5\u00d77.5 + 6.5 = 44 hrs
   var WEEK_HOURS = 44;
