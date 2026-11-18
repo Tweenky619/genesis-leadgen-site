@@ -435,6 +435,11 @@
   .st-represet{background:#e6eefc;color:#1d4f8a;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
+  .st-badnum{background:#efe4fb;color:#6a2fb0;}
+  .bad-btn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #b89be0;background:#fff;color:#6a2fb0;font-weight:800;font-size:15px;}
+  .bad-btn.on{background:#efe4fb;border-color:#6a2fb0;}
+  .bad-help{font-size:13px;color:var(--text-muted);margin:8px 2px 0;}
+  .bad-dead{display:block;width:100%;margin-top:8px;padding:11px;border-radius:10px;border:1px solid var(--border);background:#fff;color:#9a2f22;font-weight:700;font-size:14px;}
   .st-cancel{background:#fbecea;color:#9a2f22;text-decoration:line-through;}
   .clr-sum{font-size:13px;font-weight:700;color:var(--text-muted);margin:-4px 2px 10px;}
   .clr{font-size:12px;font-weight:700;margin-top:6px;}
@@ -1156,7 +1161,7 @@
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Bad Number","st-badnum"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"]
   ];
   var CLOSED = ["Sold","Cancelled"];
   // Not Interested = dead, but it comes back for a re-knock 6 months later
@@ -1192,6 +1197,7 @@
     var end = isoOf(d);
     return { days: days, endISO: end, cleared: todayISO() > end };
   }
+  function badLabel(l){ return statusOf(l) === "Bad Number" ? '<div class="clr cx">\ud83d\udcf5 Bad number \u2014 knock again</div>' : ""; }
   function clearLabel(l){
     var st = statusOf(l);
     if(st === "Cancelled") return '<div class="clr cx">\u274c Sale cancelled</div>';
@@ -1223,7 +1229,7 @@
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
-    ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"; }],
+    ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"||s==="Bad Number"; }],
     ["miss","♻️ Rehash (Demo, No Sale)", function(l){ return statusOf(l)==="Pitch & Miss"; }],
     ["sold","💰 Sold", function(l){ return statusOf(l)==="Sold"; }],
     ["cancelled","🚫 Cancelled", function(l){ return statusOf(l)==="Cancelled"; }],
@@ -1320,7 +1326,7 @@
           '<div class="meta">' +
             '<div class="date">' + fmtDate(l.created_at) + '</div>' +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
-            dueLabel(l) + clearLabel(l) + outcomeLabel(l) +
+            dueLabel(l) + clearLabel(l) + badLabel(l) + outcomeLabel(l) +
           '</div>' +
         '</div>'
       );
@@ -1595,7 +1601,13 @@
       if((l.address || "") !== data.address || (l.zip || "") !== data.zip){ if(l.geo_src !== "gps"){ delete l.lat; delete l.lng; delete l.geo_fail; } }
       var hadAppt = l.appt_date || l.appt_time;
       var oldAppt = (l.appt_date || "") + "|" + (l.appt_time || "");
+      var wasBad = statusOf(l) === "Bad Number", oldPhone = l.phone || "";
       Object.assign(l, data);
+      if(wasBad && (l.phone || "") !== oldPhone && l.phone){
+        var upcoming = l.appt_date && l.appt_date >= todayISO();
+        l.status = upcoming ? "Appt Set" : "New"; l.next_followup = upcoming ? "" : todayISO();
+        addLog(l, "Number fixed \u2192 " + l.phone);
+      }
       if(hadAppt && oldAppt !== (l.appt_date || "") + "|" + (l.appt_time || "") && (l.appt_date || l.appt_time)){
         addLog(l, "Appointment moved to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" "));
       }
@@ -1971,7 +1983,7 @@
       (l.appt_date || l.appt_time) ? "Appointment: " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") : ""
     ].filter(Boolean).join("\n");
   }
-  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out"];
+  var CONFIRM_STATES = ["Appt Set","Sent to Monday","Reset","Rolled","Rep Reset","Confirm NA","Confirmed","Blow Out","Bad Number"];
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
@@ -1983,6 +1995,8 @@
       '<button type="button" class="na-btn' + on("Confirm NA") + '" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button>' +
       '</div>' +
       '<button type="button" class="roll-btn' + on("Rolled") + '" data-fu="roll">\ud83d\udcc5 Rolled to another day</button>' +
+      '<button type="button" class="bad-btn' + on("Bad Number") + '" data-fu="badnum">\ud83d\udcf5 Bad number (wrong / disconnected)</button>' +
+      (st === "Bad Number" ? '<div class="bad-help">Try the alt or spouse number, then knock again for the right one. Fix it with <b>Edit</b>.</div><button type="button" class="bad-dead" data-fu="baddead">\ud83d\udc80 Still bad after knocking \u2014 mark dead</button>' : '') +
       '<div class="roll-form" id="rollForm" hidden>' +
         '<div class="roll-row"><input type="date" id="rollDate"><select id="rollTime"><option value="">Pick a date first</option></select></div>' +
         '<div class="sched-hint" id="rollHint"></div>' +
@@ -2091,6 +2105,8 @@
     }
     else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
     else if(a === "confirmed"){ l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
+    else if(a === "badnum"){ l.status = "Bad Number"; l.next_followup = addDaysISO(1); l.bad_phone = l.phone || ""; addLog(l, "Bad number" + (l.phone ? " (" + l.phone + ")" : "") + " \u2014 knock again"); }
+    else if(a === "baddead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Bad number, couldn\u2019t reach after knocking \u2014 dead"); }
     else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); l.na_text_sent = false; addLog(l, "No answer on confirmation"); }
     else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
     refreshDetail();
@@ -2743,6 +2759,7 @@
     var st = statusOf(l);
     if(st === "Sold") return "#0b6b3a";
     if(["Appt Set","Sent to Monday","Confirmed","Reset","Rolled","Rep Reset"].indexOf(st) !== -1) return "#2f6fd6";
+    if(st === "Bad Number") return "#7b3fbf";
     if(["Not Interested","Blow Out","Call to Cancel","Pitch & Miss"].indexOf(st) !== -1) return "#c0392b";
     if(isDue(l) || st === "New" || st === "No Answer" || st === "Confirm NA" || st === "No Show" || st === "No Mr./Mrs.") return "#e08a00";
     return "#8a9199";
