@@ -435,6 +435,16 @@
   .st-represet{background:#e6eefc;color:#1d4f8a;}
   .st-miss{background:#f7e9e4;color:#9a4a33;}
   .st-sold{background:#0b6b3a;color:#fff;}
+  .bo-plan{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;}
+  .bo-plan .lbl{margin-bottom:6px;}
+  .bo-step{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
+  .bo-step:last-of-type{border-bottom:none;}
+  .bo-step .t b{display:block;font-size:14.5px;}
+  .bo-step .t small{display:block;font-size:12px;color:var(--text-muted);}
+  .bo-step .d{font-size:12.5px;font-weight:700;color:var(--text-muted);}
+  .bo-step.done{opacity:.5;}
+  .bo-step.now{background:#fff4e0;border-radius:8px;padding:6px;}
+  .bo-next{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:none;background:#1d4f8a;color:#fff;font-weight:800;font-size:15px;}
   .st-badnum{background:#efe4fb;color:#6a2fb0;}
   .bad-btn{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #b89be0;background:#fff;color:#6a2fb0;font-weight:800;font-size:15px;}
   .bad-btn.on{background:#efe4fb;border-color:#6a2fb0;}
@@ -1210,7 +1220,7 @@
     if(!isOpen(l) || !l.next_followup) return "";
     var t = todayISO();
     if(l.next_followup < t) return '<div class="due over">Overdue \u00b7 ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
-    if(statusOf(l) === "Blow Out" && !l.bo_text_sent && l.next_followup <= t) return '<div class="due today">\ud83d\udcac Send check-in text today</div>';
+    if(statusOf(l) === "Blow Out" && l.next_followup <= t && BO_PLAN[l.bo_stage || 0]) return '<div class="due today">' + BO_PLAN[l.bo_stage || 0][1] + ' today</div>';
     if(statusOf(l) === "Rep Reset" && !l.rr_text_sent && l.next_followup <= t) return '<div class="due today">\ud83d\udcac Send reconfirm text today</div>';
     if(l.next_followup === t) return '<div class="due today">Follow up today</div>';
     return '<div class="due later">Next: ' + esc(fmtIsoDate(l.next_followup)) + '</div>';
@@ -1952,6 +1962,35 @@
     if(statusOf(l) !== "Sold" || !l.phone) return "";
     return '<div class="fu-dispatch"><div class="lbl">\ud83c\udf89 Sold \u2014 send a thank-you</div>' + repResetTextBtn(l) + '</div>';
   }
+  // Blow-out reach-out plan: day offsets from the blow out
+  var BO_PLAN = [
+    [0, "\ud83d\udcac Text", "2\u20133 hours later \u2014 short, no pressure"],
+    [1, "\ud83d\udcde Call", "Next day, 5\u20137 pm"],
+    [3, "\ud83d\udeaa Knock", "In person within 2\u20133 days, when you\u2019re on the street"],
+    [14, "\ud83d\udd01 Try again", "2 weeks out \u2014 text, call or knock"],
+    [30, "\ud83d\udcc5 Last try", "30 days out"]
+  ];
+  function boStart(l){ if(l.bo_date) return l.bo_date; var e = (l.log || []).filter(function(x){ return /^Blow ?out$/i.test(x.text); })[0]; if(!e) return todayISO(); var d = new Date(e.ts); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function boDue(l, i){ var p = boStart(l).split("-"), d = new Date(+p[0], +p[1]-1, +p[2] + BO_PLAN[i][0]); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); var iso = d.toISOString().slice(0,10); return iso < todayISO() ? todayISO() : iso; }
+  function boAdvance(l, how){
+    var i = l.bo_stage || 0;
+    addLog(l, "Blow-out step " + (i + 1) + " done (" + BO_PLAN[i][1].replace(/^\S+\s/, "") + ")" + (how && how !== "done" ? " \u2014 " + how : ""));
+    l.bo_stage = i + 1;
+    if(l.bo_stage < BO_PLAN.length){ l.next_followup = boDue(l, l.bo_stage); }
+    else { l.next_followup = ""; }
+  }
+  function boPlanHtml(l){
+    var cur = l.bo_stage || 0;
+    var rows = BO_PLAN.map(function(st2, i){
+      var done = i < cur, now = i === cur;
+      return '<div class="bo-step' + (done ? " done" : now ? " now" : "") + '"><span class="ic">' + (done ? "\u2705" : now ? "\u27a1\ufe0f" : "\u25cb") + '</span><span class="t"><b>' + st2[1] + '</b><small>' + st2[2] + '</small></span><span class="d">' + (done ? "" : esc(fmtIsoDate(boDue(l, i)))) + '</span></div>';
+    }).join("");
+    var tail = cur >= BO_PLAN.length
+      ? '<div class="bad-help">All 5 tries done. If they\u2019re still not ready, mark them dead \u2014 they\u2019ll come back for a re-knock in 6 months.</div><button type="button" class="bad-dead" data-fu="baddead">\ud83d\udc80 Mark dead</button>'
+      : (cur === 0 ? '' : '<button type="button" class="bo-next" data-fu="bonext">\u2705 Done \u2014 ' + esc(BO_PLAN[cur][1].replace(/^\S+\s/, "")) + ', move to next step</button>');
+    return '<div class="bo-plan"><div class="lbl">Reach-out plan</div>' + rows + tail +
+      '<div class="bad-help">Best times: weekdays 5\u20137 pm, Saturday 10\u2013noon. Got them? Tap <b>Rolled</b> to book the new time.</div></div>';
+  }
   function blowText(l){
     var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; })
@@ -1965,6 +2004,7 @@
     var st = statusOf(l);
     if((st !== "Rep Reset" && st !== "Confirm NA" && st !== "Sold" && st !== "Blow Out") || !l.phone) return "";
     if(st === "Confirm NA" && (l.na_count || 1) < 2) return "";
+    if(st === "Blow Out" && (l.bo_stage || 0) !== 0) return "";
     var na = st === "Confirm NA", sold = st === "Sold", blow = st === "Blow Out";
     var msg = blow ? blowText(l) : sold ? soldText(l) : na ? naText(l) : repResetText(l), sent = blow ? l.bo_text_sent : sold ? l.ty_text_sent : na ? l.na_text_sent : l.rr_text_sent;
     var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(msg);
@@ -1998,9 +2038,9 @@
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
-    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? (l.bo_text_sent ? "Blew out \u2014 call after 5 pm or knock when you\u2019re on the street" : "Blew out \u2014 wait 2\u20133 hours, then send a check-in text") : st === "Confirm NA" ? ((l.na_count || 1) >= 2 ? "No answer twice \u2014 send the reminder text" : "1st no answer \u2014 call them yourself (tap NA again if they still don\u2019t pick up)") : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out \u2014 next: " + (BO_PLAN[l.bo_stage || 0] ? BO_PLAN[l.bo_stage || 0][1].replace(/^\S+\s/, "") + " (" + BO_PLAN[l.bo_stage || 0][2] + ")" : "all tries done") : st === "Confirm NA" ? ((l.na_count || 1) >= 2 ? "No answer twice \u2014 send the reminder text" : "1st no answer \u2014 call them yourself (tap NA again if they still don\u2019t pick up)") : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
-    return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div>' + repResetTextBtn(l) + '<div class="row3">' +
+    return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div>' + (st === "Blow Out" ? boPlanHtml(l) : '') + repResetTextBtn(l) + '<div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
       '<button type="button" class="blow' + on("Blow Out") + '" data-fu="blowout">\ud83d\udca5 Blow out</button>' +
       '<button type="button" class="na-btn' + on("Confirm NA") + '" data-fu="noreach" aria-label="No answer"><span class="na-sign"><span style="position:relative;z-index:1;">NA</span></span></button>' +
@@ -2033,7 +2073,7 @@
       var isNA = statusOf(l) === "Confirm NA", isSold = statusOf(l) === "Sold", isBlow = statusOf(l) === "Blow Out";
       var ta = document.getElementById("rrMsg"), txt = ta ? ta.value : (isBlow ? blowText(l) : isSold ? soldText(l) : isNA ? naText(l) : repResetText(l));
       function done(){ b.textContent = "\u2705 Copied \u2014 paste it in your text";
-        if(isBlow){ if(!l.bo_text_sent){ l.bo_text_sent = true; l.next_followup = addDaysISO(1); addLog(l, "Blow-out check-in text copied \u2014 call or knock " + fmtIsoDate(l.next_followup)); save(); } }
+        if(isBlow){ if(!l.bo_text_sent){ l.bo_text_sent = true; boAdvance(l, "text copied"); save(); refreshDetail(); } }
         else if(isSold){ if(!l.ty_text_sent){ l.ty_text_sent = true; addLog(l, "Thank-you text copied"); save(); } }
         else if(isNA){ if(!l.na_text_sent){ l.na_text_sent = true; addLog(l, "NA reminder text copied"); save(); } }
         else if(!l.rr_text_sent){ l.rr_text_sent = true; l.next_followup = ""; addLog(l, "Reconfirm text copied"); save(); }
@@ -2043,7 +2083,7 @@
       return;
     }
     if(a === "rrtext"){
-      if(statusOf(l) === "Blow Out"){ if(!l.bo_text_sent){ l.bo_text_sent = true; l.next_followup = addDaysISO(1); addLog(l, "Blow-out check-in text sent \u2014 call or knock " + fmtIsoDate(l.next_followup)); } setTimeout(refreshDetail, 400); return; }
+      if(statusOf(l) === "Blow Out"){ if(!l.bo_text_sent){ l.bo_text_sent = true; boAdvance(l, "text sent"); } setTimeout(refreshDetail, 400); return; }
       if(statusOf(l) === "Sold"){ addLog(l, "Thank-you text sent"); l.ty_text_sent = true; setTimeout(refreshDetail, 400); return; }
       if(statusOf(l) === "Confirm NA"){ addLog(l, "NA reminder text sent"); l.na_text_sent = true; setTimeout(refreshDetail, 400); return; }
       addLog(l, "Reconfirm text sent");
@@ -2118,7 +2158,8 @@
       l.appt_date = nd; l.appt_time = nt; l.status = "Rolled"; l.next_followup = "";
       addLog(l, "Rolled to " + fmtIsoDate(nd) + " " + nt);
     }
-    else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = todayISO(); l.bo_text_sent = false; addLog(l, "Blow out"); }
+    else if(a === "blowout"){ l.status = "Blow Out"; l.bo_date = todayISO(); l.bo_stage = 0; l.next_followup = todayISO(); l.bo_text_sent = false; addLog(l, "Blow out"); }
+    else if(a === "bonext"){ boAdvance(l, "done"); }
     else if(a === "confirmed"){ l.na_count = 0; l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
     else if(a === "badnum"){ l.status = "Bad Number"; l.next_followup = addDaysISO(1); l.bad_phone = l.phone || ""; addLog(l, "Bad number" + (l.phone ? " (" + l.phone + ")" : "") + " \u2014 knock again"); }
     else if(a === "baddead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Bad number, couldn\u2019t reach after knocking \u2014 dead"); }
