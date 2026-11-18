@@ -1117,6 +1117,17 @@
       if(fixed){ save(); }
       try { localStorage.setItem("lite_socal_fix_appt_v1", "1"); } catch(e){}
     }
+    // Existing Not Interested leads with no revisit date: 6 months after they went dead
+    var niFix = false;
+    leads.forEach(function(l){
+      if(l.status === "Not Interested" && !l.next_followup){
+        var e = (l.log || []).filter(function(x){ return /Not Interested|Not interested/.test(x.text); })[0];
+        var base = e ? new Date(e.ts) : new Date(l.updated_at || l.created_at || Date.now());
+        base.setMinutes(base.getMinutes() - base.getTimezoneOffset());
+        l.next_followup = addMonthsISO(base.toISOString().slice(0,10), 6); niFix = true;
+      }
+    });
+    if(niFix){ save(); }
   }
   function save(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
@@ -1147,7 +1158,9 @@
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
     ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"]
   ];
-  var CLOSED = ["Sold","Cancelled","Not Interested"];
+  var CLOSED = ["Sold","Cancelled"];
+  // Not Interested = dead, but it comes back for a re-knock 6 months later
+  function addMonthsISO(iso, m){ var p = (iso || todayISO()).split("-"), d = new Date(+p[0], +p[1]-1 + m, +p[2]); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
   var currentTab = null;
   function statusOf(l){ return l.status || "New"; }
   function statusClass(st){ for(var i=0;i<STATUSES.length;i++){ if(STATUSES[i][0]===st) return STATUSES[i][1]; } return "st-new"; }
@@ -1286,6 +1299,10 @@
     }
     if(currentTab === "reset" && !q){
       banner = '<div class="sold-total reset-total"><span>' + filtered.length + ' didn\u2019t run \u2014 call back and reset</span>\ud83d\udd01</div>';
+    }
+    if(currentTab === "dead" && !q){
+      var back = filtered.filter(function(l){ return l.next_followup && l.next_followup <= todayISO(); }).length;
+      banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' not interested \u2014 each comes back for a re-knock in 6 months</span>' + (back ? back + ' due' : '') + '</div>';
     }
     if(currentTab === "cancelled" && !q){
       var ctot = filtered.reduce(function(s2, l){ return s2 + (Number(l.cancelled_amount || l.sale_amount) || 0); }, 0);
@@ -2030,7 +2047,7 @@
     else if(a === "talked"){ l.status = "Contacted"; l.next_followup = addDaysISO(3); addLog(l, "Talked"); }
     else if(a === "reset"){ l.status = "Reset"; l.next_followup = ""; addLog(l, "Reset \u2014 rescheduling appointment"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); el.focus(); } }, 80); return; }
     else if(a === "booked"){ l.status = "Appt Set"; l.next_followup = ""; addLog(l, "Appointment booked"); refreshDetail(); openEditForm(l.id); setTimeout(function(){ var el=document.getElementById("f_appt_date"); if(el){ el.scrollIntoView({block:"center"}); } }, 80); return; }
-    else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = ""; addLog(l, "Not interested"); }
+    else if(a === "dead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Not interested"); }
     else if(a === "represet"){
       var rf = document.getElementById("rrForm"); rf.hidden = false;
       document.getElementById("rrDate").value = ""; fillRollTimes("", "rr");
@@ -2083,6 +2100,7 @@
     if(e.target.id === "fuStatus"){
       l.status = e.target.value; addLog(l, "Status \u2192 " + l.status);
       if(!isOpen(l)) l.next_followup = "";
+      if(l.status === "Not Interested"){ l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Revisit " + fmtIsoDate(l.next_followup) + " (6 months)"); }
       refreshDetail();
     } else if(e.target.id === "fuSoldDate"){
       l.sold_date = e.target.value || ""; addLog(l, "Sale date " + (l.sold_date ? fmtIsoDate(l.sold_date) : "cleared")); refreshDetail();
