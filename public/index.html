@@ -553,6 +553,13 @@
   .qr-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#f4f7fc;}
   .qr-box .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1d4f8a;margin-bottom:8px;}
   .qr-copy{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
+  .co-pick{margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border);}
+  .co-pick .co-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
+  .co-pick button{display:block;width:100%;margin-bottom:6px;text-align:left;}
+  .co-pick button.on{border:2px solid #12344d !important;font-weight:800;}
+  .co-pick p{font-size:12.5px;color:var(--text-muted);margin:4px 0 0;}
+  .co-banner{background:#fff4e0;border:1px solid #f0d9a8;color:#6b4b00;border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:14px;}
+  .co-banner button{display:block;margin-top:8px;width:100%;padding:10px;border-radius:10px;border:none;background:#12344d;color:#fff;font-weight:800;}
   .sold-total.reset-total{background:#fff4e0;color:#8a5a00;}
   .out-when{font-size:12px;font-weight:700;color:var(--text-muted);margin-top:6px;}
   .sold-total.miss-total{background:#fbecea;color:#9a2f22;}
@@ -848,6 +855,7 @@
       <div class="search-wrap">
         <input type="text" id="searchInput" placeholder="Search by name or address">
       </div>
+      <div class="co-banner" id="coBanner" hidden></div>
       <div class="restore" id="restoreBox" hidden></div>
       <div class="tabs" id="tabs"></div>
       <div id="listContainer"></div>
@@ -1147,6 +1155,12 @@
     <p>Your leads are saved on this phone. Export a backup at the end of each day.</p>
     <button type="button" id="exportBtn">&#8659; Export backup (CSV)</button>
     <button type="button" id="importBtn">&#8657; Import leads (CSV)</button>
+    <div class="co-pick">
+      <div class="co-lbl">Company</div>
+      <button type="button" data-co="vp" id="coVp">&#127796; Villa Pacifica Construction</button>
+      <button type="button" data-co="socal" id="coSocal">&#128193; SoCal Contractor Exchange (saved)</button>
+      <p>Each company keeps its own leads, stats, photos, hours and gas. Switching doesn&rsquo;t delete anything.</p>
+    </div>
     <button type="button" class="cancel" id="backupCancel">Cancel</button>
   </div>
 </div>
@@ -1162,7 +1176,12 @@
 (function(){
   "use strict";
 
-  var STORAGE_KEY = "socal_leads_v1"; // fresh start; old leads remain under "genesis_leadgen_leads_v1"
+  // ---- Company workspaces: Villa Pacifica (current) and SoCal Contractor Exchange (saved, untouched) ----
+  var COMPANY = "vp"; try { COMPANY = localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
+  var CO_NAME = COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
+  var CO_PREFIX = COMPANY === "socal" ? "socal_" : "vp_";
+  function setCompany(c){ try { localStorage.setItem("lg_company", c); } catch(e){} location.reload(); }
+  var STORAGE_KEY = CO_PREFIX + "leads_v1"; // SoCal leads stay under "socal_leads_v1"
   var leads = [];
   var editingId = null;
   var viewingId = null;
@@ -1828,7 +1847,7 @@
       return;
     }
     var csv = buildCSV();
-    var filename = "socal-leads-" + new Date().toISOString().slice(0,10) + ".csv";
+    var filename = (COMPANY === "socal" ? "socal" : "villa-pacifica") + "-leads-" + new Date().toISOString().slice(0,10) + ".csv";
 
     try {
       var file = new File([csv], filename, { type: "text/csv" });
@@ -2242,7 +2261,7 @@
     if(photoDB) return Promise.resolve(photoDB);
     return new Promise(function(res, rej){
       if(!window.indexedDB){ rej(new Error("no idb")); return; }
-      var r = indexedDB.open("socal_lead_photos", 1);
+      var r = indexedDB.open(CO_PREFIX + "lead_photos", 1);
       r.onupgradeneeded = function(){
         var st = r.result.createObjectStore("photos", { keyPath: "id" });
         st.createIndex("leadId", "leadId");
@@ -2580,6 +2599,17 @@
     rd.readAsText(file);
   });
 
+  (function(){
+    var on = document.getElementById(COMPANY === "socal" ? "coSocal" : "coVp"); if(on){ on.classList.add("on"); on.innerHTML += " \u2713"; }
+    document.querySelectorAll("[data-co]").forEach(function(b){ b.addEventListener("click", function(){ var c = b.getAttribute("data-co"); if(c !== COMPANY){ setCompany(c); } }); });
+    var bn = document.getElementById("coBanner");
+    if(COMPANY === "socal"){
+      bn.hidden = false;
+      bn.innerHTML = '\ud83d\udcc1 Viewing your saved <b>SoCal Contractor Exchange</b> leads &amp; stats <button type="button" id="coBack">Back to Villa Pacifica</button>';
+      document.getElementById("coBack").addEventListener("click", function(){ setCompany("vp"); });
+      var tag = document.querySelector("header.topbar .lg-tag"); if(tag){ tag.textContent = "SOCAL ARCHIVE"; tag.style.color = "#9a2f22"; }
+    }
+  })();
   // ---- Restore leads saved by the previous version on this phone ----
   var OLD_KEY = "genesis_leadgen_leads_v1";
   var RESTORE_HIDE_KEY = "socal_restore_hidden";
@@ -2592,6 +2622,7 @@
   function isToday(ts){ var d = new Date(ts), n = new Date(); return d.getFullYear()===n.getFullYear() && d.getMonth()===n.getMonth() && d.getDate()===n.getDate(); }
   function renderRestore(){
     var box = document.getElementById("restoreBox");
+    if(COMPANY !== "socal"){ box.hidden = true; return; }
     var hidden = false; try { hidden = localStorage.getItem(RESTORE_HIDE_KEY) === "1"; } catch(e){}
     var pending = notYetHere(oldLeads());
     if(hidden || !pending.length){ box.hidden = true; return; }
@@ -2792,7 +2823,7 @@
     return l.created_at || 0;
   }
   // ---- Gas tracker: fill-ups saved on this phone ----
-  var GAS_KEY = "socal_gas_v1";
+  var GAS_KEY = CO_PREFIX + "gas_v1";
   function gasList(){ try { return JSON.parse(localStorage.getItem(GAS_KEY) || "[]"); } catch(e){ return []; } }
   function gasSave(list){ try { localStorage.setItem(GAS_KEY, JSON.stringify(list)); } catch(e){} }
   function gasTs(g){ var p = g.date.split("-"); return new Date(+p[0], +p[1]-1, +p[2]).getTime(); }
@@ -2869,7 +2900,7 @@
   // Pay points: 1 per sit (pitch miss), 2 per sale
   // Mon\u2013Fri 10\u20136 and Sat 10\u20135, each minus a 30-min unpaid lunch: 5\u00d77.5 + 6.5 = 44 hrs
   var WEEK_HOURS = 44;
-  function weekKey(){ return "socal_hours_" + new Date(periodRange("week", statOffset)[0]).toISOString().slice(0,10); }
+  function weekKey(){ return CO_PREFIX + "hours_" + new Date(periodRange("week", statOffset)[0]).toISOString().slice(0,10); }
   function weekHours(){ try { var v = localStorage.getItem(weekKey()); return v !== null && v !== "" && !isNaN(+v) ? +v : WEEK_HOURS; } catch(e){ return WEEK_HOURS; } }
   document.addEventListener("change", function(e){
     if(e.target && e.target.id === "weekHoursInput"){
