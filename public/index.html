@@ -2004,6 +2004,7 @@
   function repResetTextBtn(l){
     var st = statusOf(l);
     if((st !== "Rep Reset" && st !== "Confirm NA" && st !== "Sold") || !l.phone) return "";
+    if(st === "Confirm NA" && (l.na_count || 1) < 2) return "";
     var na = st === "Confirm NA", sold = st === "Sold";
     var msg = sold ? soldText(l) : na ? naText(l) : repResetText(l), sent = sold ? l.ty_text_sent : na ? l.na_text_sent : l.rr_text_sent;
     var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(msg);
@@ -2037,7 +2038,7 @@
   function buildDispatch(l){
     var st = statusOf(l);
     if(CONFIRM_STATES.indexOf(st) === -1 && !((l.appt_date || l.appt_time) && st === "New")) return "";
-    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? "No answer \u2014 call them yourself" : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
+    var lbl = st === "Confirmed" ? "Confirmed \u2014 good to go" : st === "Blow Out" ? "Blew out" : st === "Confirm NA" ? ((l.na_count || 1) >= 2 ? "No answer twice \u2014 send the reminder text" : "1st no answer \u2014 call them yourself (tap NA again if they still don\u2019t pick up)") : st === "Reset" ? "Confirm the new time" : st === "Rolled" ? "Rolled to " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm the new day" : st === "Rep Reset" ? "Rep reset for " + [fmtIsoDate(l.appt_date), l.appt_time].filter(Boolean).join(" ") + " \u2014 confirm it" : "How did the confirmation go?";
     function on(x){ return st === x ? " on" : ""; }
     return '<div class="fu-dispatch"><div class="lbl">' + lbl + '</div>' + repResetTextBtn(l) + '<div class="row3">' +
       '<button type="button" class="ok' + on("Confirmed") + '" data-fu="confirmed">\u2705 Confirmed</button>' +
@@ -2120,6 +2121,7 @@
     }
     else if(a === "rrcancel"){ document.getElementById("rrForm").hidden = true; return; }
     else if(a === "rrsave"){
+      l.na_count = 0;
       var rd = document.getElementById("rrDate").value, rt = document.getElementById("rrTime").value;
       if(!rd || !rt){ var hh = document.getElementById("rrHint"); hh.textContent = "Pick the new date and time."; hh.className = "sched-hint warn"; return; }
       var rp = rd.split("-"); l.appt_day = DAYS[new Date(+rp[0], +rp[1]-1, +rp[2]).getDay()];
@@ -2147,6 +2149,7 @@
     }
     else if(a === "rollcancel"){ document.getElementById("rollForm").hidden = true; return; }
     else if(a === "rollsave"){
+      l.na_count = 0;
       var nd = document.getElementById("rollDate").value, nt = document.getElementById("rollTime").value;
       if(!nd || !nt){ document.getElementById("rollHint").textContent = "Pick the new date and time."; document.getElementById("rollHint").className = "sched-hint warn"; return; }
       var pp = nd.split("-"); l.appt_day = DAYS[new Date(+pp[0], +pp[1]-1, +pp[2]).getDay()];
@@ -2154,10 +2157,10 @@
       addLog(l, "Rolled to " + fmtIsoDate(nd) + " " + nt);
     }
     else if(a === "blowout"){ l.status = "Blow Out"; l.next_followup = ""; addLog(l, "Blow out"); }
-    else if(a === "confirmed"){ l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
+    else if(a === "confirmed"){ l.na_count = 0; l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
     else if(a === "badnum"){ l.status = "Bad Number"; l.next_followup = addDaysISO(1); l.bad_phone = l.phone || ""; addLog(l, "Bad number" + (l.phone ? " (" + l.phone + ")" : "") + " \u2014 knock again"); }
     else if(a === "baddead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Bad number, couldn\u2019t reach after knocking \u2014 dead"); }
-    else if(a === "noreach"){ l.status = "Confirm NA"; l.next_followup = todayISO(); l.na_text_sent = false; addLog(l, "No answer on confirmation"); }
+    else if(a === "noreach"){ l.na_count = (statusOf(l) === "Confirm NA" ? (l.na_count || 1) : 0) + 1; l.status = "Confirm NA"; l.next_followup = todayISO(); l.na_text_sent = false; addLog(l, "No answer on confirmation" + (l.na_count > 1 ? " (" + l.na_count + (l.na_count === 2 ? "nd" : l.na_count === 3 ? "rd" : "th") + " try)" : "")); }
     else if(a === "note"){ var n = document.getElementById("fuNote"); var t = n ? n.value.trim() : ""; if(!t) return; addLog(l, t); }
     refreshDetail();
   });
