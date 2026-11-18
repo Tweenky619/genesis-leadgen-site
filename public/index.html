@@ -1282,6 +1282,18 @@
     var l = leads.filter(function(x){ return x.id === viewingId; })[0]; if(!l) return;
     var num = waNumber().replace(/\D/g, ""); if(num.length === 10){ num = "1" + num; }
     var url = num ? "https://wa.me/" + num + "?text=" + encodeURIComponent(waText(l)) : "https://wa.me/?text=" + encodeURIComponent(waText(l));
+    var pics = (typeof shownBlobs !== "undefined" && shownBlobs.detailPhotos) || [];
+    if(pics.length && navigator.canShare){
+      var files = photoFiles(pics, l), txt = waText(l);
+      if(navigator.canShare({ files: files, text: txt })){
+        // Copy the lead text too, in case WhatsApp drops the caption
+        try { if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).catch(function(){}); } } catch(err){}
+        navigator.share({ files: files, text: txt }).then(function(){
+          addLog(l, "Sent to WhatsApp with " + files.length + " photo" + (files.length === 1 ? "" : "s")); save(); if(typeof refreshDetail === "function"){ refreshDetail(); }
+        }).catch(function(){});
+        return;
+      }
+    }
     addLog(l, "Sent to WhatsApp" + (waNumber() ? " (" + waNumber() + ")" : "")); save();
     window.location.href = url;
   });
@@ -1627,7 +1639,7 @@
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
       '<div class="wa-box"><button type="button" class="wa-btn" data-wa="send">\ud83d\udfe2 Send lead to WhatsApp</button>' +
-        '<div class="wa-sub">' + (waNumber() ? 'To ' + esc(waNumber()) + ' \u00b7 <a href="#" data-wa="change">send to the group instead</a>' : 'WhatsApp opens with the lead written out \u2014 pick <b>OG\u2019s Villa Pacifica</b> and hit send') + '</div></div>' +
+        '<div class="wa-sub">' + (waNumber() ? 'To ' + esc(waNumber()) + ' \u00b7 <a href="#" data-wa="change">send to the group instead</a>' : 'Pick <b>OG\u2019s Villa Pacifica</b> and hit send. If the lead has photos they go with it, and the lead text is also copied \u2014 paste it if it doesn\u2019t show.') + '</div></div>' +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
