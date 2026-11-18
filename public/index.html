@@ -535,6 +535,8 @@
   .qr-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#f4f7fc;}
   .qr-box .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1d4f8a;margin-bottom:8px;}
   .qr-copy{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
+  .sold-total.reset-total{background:#fff4e0;color:#8a5a00;}
+  .out-when{font-size:12px;font-weight:700;color:var(--text-muted);margin-top:6px;}
   .sold-total.miss-total{background:#fbecea;color:#9a2f22;}
   .fs-bar{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:0 0 10px;}
   .fs-bar span{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;margin-right:auto;}
@@ -1252,12 +1254,23 @@
   function addLog(l, text){ l.log = l.log || []; l.log.unshift({ ts: Date.now(), text: text }); }
   // Core-product sections: match the lead's projects (not "Other: ...")
   function hasProduct(l, re){ return (l.interests || []).some(function(i){ return !/^Other/.test(i) && re.test(i); }); }
+  // Outcome tabs: newest outcome first, with the outcome + date on each card
+  var OUTCOME_TABS = ["reset", "miss", "sold", "cancelled", "dead"];
+  var OUTCOME_RE = /^(No show|Called to cancel|No Mr\.\/Mrs\.|Blow ?out|Blow Out|Pitch miss|Sold|Sale cancelled|Not interested|Status \u2192)/i;
+  function outcomeTs(l){ var e = (l.log || []).filter(function(x){ return OUTCOME_RE.test(x.text); })[0]; return e ? e.ts : (l.updated_at || l.created_at || 0); }
+  function outcomeLabel(l){
+    if(OUTCOME_TABS.indexOf(currentTab) === -1) return "";
+    return '<div class="out-when">Outcome \u00b7 ' + esc(fmtDate(outcomeTs(l))) + '</div>';
+  }
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
-    ["sold","Sold", function(l){ return statusOf(l)==="Sold"; }],
-    ["miss","Pitch & Miss", function(l){ return statusOf(l)==="Pitch & Miss"; }],
+    ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"; }],
+    ["miss","♻️ Rehash (Demo, No Sale)", function(l){ return statusOf(l)==="Pitch & Miss"; }],
+    ["sold","💰 Sold", function(l){ return statusOf(l)==="Sold"; }],
+    ["cancelled","🚫 Cancelled", function(l){ return statusOf(l)==="Cancelled"; }],
+    ["dead","💀 Dead", function(l){ return statusOf(l)==="Not Interested"; }],
     ["roof","🏠 Roof", function(l){ return hasProduct(l, /roof/i); }],
     ["paint","🧱 Exterior Paint & Stucco", function(l){ return hasProduct(l, /paint|stucco/i); }],
     ["fascia","🪵 Fascia/Trim Boards", function(l){ return hasProduct(l, /fascia|trim|wood/i); }],
@@ -1285,6 +1298,7 @@
     }).join("");
     var sorted = leads.slice().sort(function(a,b){
       if(currentTab === "due"){ return (a.next_followup||"").localeCompare(b.next_followup||""); }
+      if(OUTCOME_TABS.indexOf(currentTab) !== -1){ return outcomeTs(b) - outcomeTs(a); }
       return b.created_at - a.created_at;
     });
     var filtered = sorted.filter(function(l){
@@ -1324,7 +1338,14 @@
         '<div class="clr-sum">\u2705 ' + (filtered.length - pend) + ' cleared \u00b7 \ud83d\udd52 ' + pend + ' in cancel window' + (cxl ? ' \u00b7 \u274c ' + cxl + ' cancelled' : '') + '</div>';
     }
     if(currentTab === "miss" && !q){
-      banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' pitched, didn\u2019t close</span>\u274c</div>';
+      banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' to rehash \u2014 pitched, didn\u2019t close</span>\u267b\ufe0f</div>';
+    }
+    if(currentTab === "reset" && !q){
+      banner = '<div class="sold-total reset-total"><span>' + filtered.length + ' didn\u2019t run \u2014 call back and reset</span>\ud83d\udd01</div>';
+    }
+    if(currentTab === "cancelled" && !q){
+      var ctot = filtered.reduce(function(s2, l){ return s2 + (Number(l.cancelled_amount || l.sale_amount) || 0); }, 0);
+      banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' cancelled</span>' + esc(fmtMoney(ctot)) + '</div>';
     }
     container.innerHTML = banner + filtered.map(leadRowHtml).join("");
     bindLeadRows(container, false);
@@ -1349,7 +1370,7 @@
           '<div class="meta">' +
             '<div class="date">' + fmtDate(l.created_at) + '</div>' +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
-            dueLabel(l) + clearLabel(l) +
+            dueLabel(l) + clearLabel(l) + outcomeLabel(l) +
           '</div>' +
         '</div>'
       );
