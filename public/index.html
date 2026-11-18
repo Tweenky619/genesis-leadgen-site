@@ -3066,7 +3066,7 @@
           '<div class="tap net" data-k="sold" data-t="Net production"><small>Net production</small><b>' + esc(fmtMoney(c.money)) + '</b><span>' + (gross ? Math.round(c.money / gross * 100) + '% stuck' : '\u2014') + '</span></div>' +
           '</div>';
       })() +
-      (statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
+      (COMPANY !== "socal" ? '' : statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
       gasHtml();
     var body = document.getElementById("statsBody");
     if(statDrill){
