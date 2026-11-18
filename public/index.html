@@ -919,7 +919,6 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other&nbsp;<span style="font-weight:600;opacity:.7">(non-core)</span></label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
-          <a class="qr-link qr-form-link" href="https://wkf.ms/43D9ZjP" target="_blank" rel="noopener">&#128242; Non-core? Book it on the QR form</a>
           <div id="projNotes"></div>
         </div>
 
@@ -1567,14 +1566,9 @@
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
-      ((l.interests || []).some(function(i){ return /^Other/.test(i); }) ?
-        '<div class="qr-box"><div class="lbl">Non-core project \u2014 book it on the QR form</div>' +
-        '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
-        '</div>' : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
-
       section("Contact Info",
         (function(){ var t = [l.is_sole_owner || (l.sole_owner && !/^Widow/.test(l.owner_status || "")) ? "Sole owner" : "", /^Widow/.test(l.owner_status || "") ? l.owner_status : ""].filter(Boolean).join(" \u00b7 "); return t ? item("Homeowner", t) : ""; })() +
         (l.sole_owner ? item("Decision maker", "Decides alone") : (l.spouse ? item(l.dm_relation || "Spouse", l.spouse) : "")) +
@@ -1582,14 +1576,12 @@
         item("Contact Number", l.phone) +
         item("Alt Number", l.alt_phone) +
         item("Email", l.email, true)) +
-
       section("Rapport Builder",
         item("Years Owned", l.years_owned) +
         item("# Windows", l.window_count) +
         item("# Sliding Doors", l.sliding_doors) +
         item("# French Doors", l.french_doors) +
         item("Pet Door", l.pet_door)) +
-
       section("Roof",
         item("Roof Age", l.roof_age) +
         item("# Layers", l.roof_layers) +
@@ -1597,17 +1589,14 @@
         item("# Panels", l.solar_panel_count) +
         item("Any Leaks", l.roof_leaks) +
         item("Leak Location", l.leak_location)) +
-
       section("Paint & Stucco",
         item("Last Painted", l.last_painted) +
         item("Colors", l.paint_colors) +
         item("Fascia/Wood Replacement", l.fascia, true) +
         item("Cracks", l.cracks) +
         item("Wear and Tear", l.wear_tear)) +
-
       section("Appointment",
         item("Scheduled", apptBits + ((l.appt_date || l.appt_day) && !l.appt_time ? " \u2014 time not set (tap Edit to add)" : ""), true)) +
-
       (l.project_notes && Object.keys(l.project_notes).length ? '<div class="form-section-title">Project details</div><div class="detail-grid">' +
         Object.keys(l.project_notes).map(function(k){ return item(k === "Other" ? ((l.interests || []).filter(function(i){ return /^Other:/.test(i); })[0] || "Other") : k, l.project_notes[k], true); }).join("") + '</div>' : '') +
       (l.notes ? '<div class="detail-note">' +
