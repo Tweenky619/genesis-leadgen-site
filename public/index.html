@@ -553,6 +553,10 @@
   .qr-box{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;background:#f4f7fc;}
   .qr-box .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#1d4f8a;margin-bottom:8px;}
   .qr-copy{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:2px solid #1d4f8a;background:#fff;color:#1d4f8a;font-weight:800;font-size:15px;}
+  .wa-box{margin:-4px 0 14px;}
+  .wa-btn{display:block;width:100%;padding:13px;border-radius:12px;border:none;background:#25d366;color:#fff;font-weight:800;font-size:15px;}
+  .wa-sub{font-size:12.5px;color:var(--text-muted);text-align:center;margin-top:6px;}
+  .wa-sub a{color:#128c4b;font-weight:700;}
   .co-pick{margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border);}
   .co-pick .co-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
   .co-pick button{display:block;width:100%;margin-bottom:6px;text-align:left;}
@@ -1244,6 +1248,43 @@
     if(parts.length !== 3) return iso;
     return parts[1] + "/" + parts[2] + "/" + parts[0];
   }
+  // ---- Send a lead to WhatsApp (Business) ----
+  var WA_KEY = (typeof CO_PREFIX !== "undefined" ? CO_PREFIX : "vp_") + "wa_number";
+  function waNumber(){ try { return localStorage.getItem(WA_KEY) || ""; } catch(e){ return ""; } }
+  function waText(l){
+    var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
+    var dm = l.sole_owner ? ((l.owner_status || "") + " \u2014 decides alone").replace(/^ \u2014 /, "Decides alone") : (l.spouse ? (l.dm_relation || "Spouse") + ": " + l.spouse : "");
+    var others = (l.others || []).filter(function(o){ return o.name; }).map(function(o){ return o.rel + ": " + o.name; });
+    var appt = [l.appt_date ? fmtIsoDate(l.appt_date) : "", l.appt_time || ""].filter(Boolean).join(" ");
+    return [
+      "*New lead \u2014 " + (fullName(l.first_name, l.last_name) || l.homeowner_name || "Homeowner") + "*",
+      l.owner_status && l.owner_status !== "Sole owner" ? "Homeowner: " + l.owner_status : "",
+      dm ? "Decision maker: " + dm : "", others.length ? others.join(", ") : "",
+      "Phone: " + (l.phone || "\u2014") + (l.alt_phone ? " / " + l.alt_phone : ""),
+      "Address: " + [l.address, l.zip].filter(Boolean).join(", "),
+      pr.length ? "Project: " + pr.join(", ") : "",
+      appt ? "Appointment: " + appt : "",
+      l.status ? "Status: " + statusOf(l) : "",
+      l.notes ? "Notes: " + l.notes : "",
+      "Rep: Arturo Delgado Mora"
+    ].filter(Boolean).join("\n");
+  }
+  document.addEventListener("click", function(e){
+    var t = e.target.closest && e.target.closest("[data-wa]"); if(!t) return;
+    e.preventDefault();
+    if(t.getAttribute("data-wa") === "change"){
+      var cur = waNumber(), v = window.prompt("WhatsApp Business number to send leads to (with area code). Leave blank to pick a chat each time:", cur);
+      if(v === null) return;
+      try { localStorage.setItem(WA_KEY, v.trim()); } catch(err){}
+      if(typeof refreshDetail === "function"){ refreshDetail(); }
+      return;
+    }
+    var l = leads.filter(function(x){ return x.id === viewingId; })[0]; if(!l) return;
+    var num = waNumber().replace(/\D/g, ""); if(num.length === 10){ num = "1" + num; }
+    var url = "https://wa.me/" + num + "?text=" + encodeURIComponent(waText(l));
+    addLog(l, "Sent to WhatsApp" + (waNumber() ? " (" + waNumber() + ")" : "")); save();
+    window.location.href = url;
+  });
   function fullName(first, last){
     return (first || "") + (last ? " " + last : "");
   }
@@ -1585,6 +1626,8 @@
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
+      '<div class="wa-box"><button type="button" class="wa-btn" data-wa="send">\ud83d\udfe2 Send lead to WhatsApp</button>' +
+        '<div class="wa-sub">' + (waNumber() ? 'To ' + esc(waNumber()) + ' \u00b7 <a href="#" data-wa="change">change</a>' : '<a href="#" data-wa="change">Set the WhatsApp Business number</a> (or pick a chat each time)') + '</div></div>' +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
