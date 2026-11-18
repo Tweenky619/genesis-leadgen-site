@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SoCal Contractor Exchange</title>
+<title>Villa Pacifica Construction Lead Gen</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="SoCal Leads">
+<meta name="apple-mobile-web-app-title" content="Villa Pacifica Lead Gen">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
-<link rel="icon" type="image/png" href="apple-touch-icon.png?v=2">
+<link rel="apple-touch-icon" href="vp-icon.png?v=1">
+<link rel="icon" type="image/png" href="vp-icon.png?v=1">
 <style>
   :root{
     --brand:#152535;
@@ -62,6 +62,8 @@
     font-weight:700;
     letter-spacing:0.2px;
   }
+  header.topbar .wordmark b{display:block;font-size:17px;font-weight:900;letter-spacing:1.5px;white-space:nowrap;color:#12344d;line-height:1.1;}
+  header.topbar .wordmark span{display:block;font-size:9px;font-weight:700;letter-spacing:1px;white-space:nowrap;color:#c0874a;margin-top:2px;}
   header.topbar .logo{display:block;height:44px;width:auto;max-width:100%;object-fit:contain;object-position:left center;}
   header.topbar .subtitle{
     font-size:12px;
@@ -824,7 +826,7 @@
 
   <header class="topbar">
     <div style="min-width:0;flex:1;margin-right:10px;">
-      <img class="logo" src="socal-logo.png" alt="SoCal Contractor Exchange">
+      <div class="wordmark"><b>VILLA PACIFICA</b><span>CONSTRUCTION LEAD GEN</span></div>
       <div class="subtitle" id="headerSubtitle">Lead Tracker</div>
     </div>
     <div class="header-actions">
@@ -1840,7 +1842,7 @@
     try {
       var file = new File([csv], filename, { type: "text/csv" });
       if(navigator.canShare && navigator.canShare({ files: [file] })){
-        navigator.share({ files: [file], title: "SoCal Contractor Exchange Leads Export" }).catch(function(){});
+        navigator.share({ files: [file], title: "Villa Pacifica Construction Leads Export" }).catch(function(){});
         return;
       }
     } catch(e){}
@@ -1981,7 +1983,7 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is Art with SoCal Contractor Exchange. " +
+    return "Hi" + (first ? " " + first : "") + ", this is Art with Villa Pacifica Construction. " +
       "Just a heads-up \u2014 reaching out to reconfirm the visit our rep reset with you, you can thumbs up here or say \u201cgood to go\u201d so we know we\u2019re fine to go out " +
       dateTxt + (l.appt_time ? " at " + l.appt_time : "") + projTxt + ". " +
       "Please and Thank you!";
@@ -1995,7 +1997,7 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with SoCal Contractor Exchange. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with Villa Pacifica Construction. " +
       "Our office tried calling to confirm your appointment" + projTxt + (dateTxt ? " " + (when ? "" : "on ") + dateTxt : "") + (l.appt_time ? " at " + l.appt_time : "") + ". " +
       "Friendly reminder: we\u2019ll be calling from " + OFFICE_PHONE + " \u2014 please save the number and pick up when we call so we can lock in your visit. Thank you!";
   }
@@ -2004,7 +2006,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
     pr = pr.map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) : "project";
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " from SoCal Contractor Exchange. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " from Villa Pacifica Construction. " +
       "I just wanted to say thank you for having us out \u2014 I heard you\u2019re getting your " + proj + " done. " +
       "You\u2019re going to love how the house looks! If you ever have any questions, I\u2019m just a text away. Have a great day!";
   }
@@ -2046,7 +2048,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; })
       .map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with SoCal Contractor Exchange. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with Villa Pacifica Construction. " +
       "No worries at all about the visit" + proj + " \u2014 I know things come up. " +
       "Whenever you\u2019re ready, I\u2019m happy to find a time that works better for you. Just reply here. Thank you!";
   }
