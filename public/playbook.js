@@ -46,7 +46,7 @@
     qe("Have you noticed this chipping and peeling getting worse?", "Did you know chipping and peeling allows moisture in, which can lead to dry rot, termites, and toxic mold?") +
     qe("Have you seen this white stuff anywhere else on the home?", "That’s efflorescence — your stucco going back to its original form: sand, water, and glue. The alkaline in the soil is attacking the glue. That’s why they call it stucco cancer.") +
     qe("Have you noticed any water stains on the other side of this wall?", "That’s the moisture getting behind the stucco to the wood framing — that’s where the rot starts, where you can’t see it.") +
-    (VPF ? '' :     '<h4>🪵 Fascia/Trim</h4>' +
+    (    '<h4>🪵 Fascia/Trim</h4>' +
     qe("Have you noticed the paint peeling on the boards up at the roofline?", "Once the paint’s gone, the wood soaks up water every time it rains — and it rots from the inside out.") +
     qe("See how it’s darker and soft-looking at that corner?", "That’s moisture in the wood. If it waits, it’s not a paint job anymore — it’s replacing the wood.") +
     qe("Have you had any bees, birds, or rodents getting in up there?", "Gaps in rotted trim are exactly how pests get into the attic — and termites love wet wood.")) +
@@ -72,8 +72,8 @@
       "Have you noticed the sprinklers hitting the wall right here — see how it’s darker on the bottom?", "That wall is drinking water every time they run. That moisture sits right where the stucco meets the foundation — exactly where the wood starts to rot and termites move in.") +
     build("🧱", "Paint — bubbling or blistering", "bubbles in the paint", "moisture trapped behind it", "peeling, then water in the wall",
       "Have you noticed these little bubbles in the paint?", "That’s moisture trapped behind it, pushing the paint off the wall. When those pop, the water has a direct path in — and that’s when it gets to the wood.") +
-    (VPF ? "" : build("🪵", "Fascia — gutter pulling away", "gap between gutter and fascia", "water running behind the gutter", "fascia rot, rafter damage, gutters falling", "See how the gutter is pulling away from the house right there?", "When that happens, the water runs behind the gutter instead of through it — straight onto the fascia board. That’s what rots the wood that holds your gutters up.")) +
-    (VPF ? "" : build("🪵", "Trim — garage door frame rot", "soft, chipped frame at the bottom", "water and pests", "rot climbing up, termites", "Have you noticed the bottom of the garage trim — how it’s soft and chipping?", "That’s where water sits after it rains. Once the wood goes soft like that, termites love it — and the rot keeps climbing up the frame.")) +
+    (build("🪵", "Fascia — gutter pulling away", "gap between gutter and fascia", "water running behind the gutter", "fascia rot, rafter damage, gutters falling", "See how the gutter is pulling away from the house right there?", "When that happens, the water runs behind the gutter instead of through it — straight onto the fascia board. That’s what rots the wood that holds your gutters up.")) +
+    (build("🪵", "Trim — garage door frame rot", "soft, chipped frame at the bottom", "water and pests", "rot climbing up, termites", "Have you noticed the bottom of the garage trim — how it’s soft and chipping?", "That’s where water sits after it rains. Once the wood goes soft like that, termites love it — and the rot keeps climbing up the frame.")) +
     build("🪟", "Windows — cracked caulking", "gaps or cracked caulk around the frame", "air and water into the wall", "drafts, high bills, water damage",
       "Have you noticed the caulking around this window — see how it’s cracked and pulling away?", "That seal is what keeps air and water out. When it cracks, you’re paying to cool the outside — and when it rains, water gets into the wall.") +
     build("🪟", "Windows — old aluminum, single-pane", "old aluminum frames, thin glass", "heat, cold, and noise", "high bills, condensation, frame corrosion",
@@ -102,7 +102,7 @@
       ["🧱 Stucco", "At the wall, arm’s length away", "Run your hand along the crack or do the chalk rub", "Show your chalky hand: “See that?”"],
       ["🪵 Fascia", "Under the roofline, a few steps back", "Point up and trace the bad board", "“See how it’s darker at that corner?”"],
       [VPF ? "🪟 High Performance Windows" : "🪟 Windows", "Beside the window, angled so light shows the fog", "Tap the frame gently; point at the fog", "“That one — see the cloudy part?”"]
-    ].filter(function(r){ return !(VPF && /Fascia/.test(r[0])); })) +
+    ]) +
     '<h4>Energy across the 3 loops</h4>' +
     table(["Loop", "Energy", "Sounds like"], [
       ["1. What they see", "Friendly, curious", "“Oh — have you noticed this?”"],
@@ -131,9 +131,9 @@
 
   window.playbookHtml = function(){
     return '<div class="pb">' +
-      (VPF ? sec("⭐ My formula", VP_FORMULA, true) + sec("🧠 Question \u2192 Education", FORMULA) : sec("🧠 The formula", FORMULA, true)) +
+      (VPF ? sec("⭐ My formula", VP_FORMULA, true) + sec("🧠 Question \u2192 Education formula", FORMULA) : sec("🧠 The formula", FORMULA, true)) +
       sec("📝 Q → E for each core product", PRODUCTS) +
-      sec("🛠️ Build your own (" + (VPF ? 6 : 8) + " examples)", BUILD) +
+      sec("🛠️ Build your own (8 examples)", BUILD) +
       sec("🌉 Bridges — using their answer", BRIDGES) +
       sec("🎤 Delivery", DELIVERY) +
       sec("⚠️ Common mistakes", MISTAKES) +

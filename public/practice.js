@@ -154,7 +154,8 @@
   // ---------- Art's formula (the door approach) ----------
   var VP = A.company !== "socal";
   // My 3 core products: Roof, Paint/Stucco, High Performance Windows (SoCal archive keeps its 4)
-  var PRODUCTS = VP ? ["Roof", "Paint/Stucco", "Windows"] : ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
+  var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
+  var VP_CORE = ["Roof", "Paint/Stucco", "Windows"];   // my pitch: 3 core products
   function pn(p){ return VP && p === "Windows" ? "High Performance Windows" : p; }
   function pl(p){ return p === "Pitch" ? "My pitch" : pn(p); }
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
@@ -169,7 +170,7 @@
   var VP_DONE_SEE = { "Roof": "a new roof", "Paint/Stucco": "fresh paint and stucco", "Windows": "new windows" };
   function joinAnd(a){ return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + (a.length > 2 ? "," : "") + " and " + a[a.length - 1]; }
   function vpScene(){
-    var done = pick(PRODUCTS), rest = PRODUCTS.filter(function(p){ return p !== done; });
+    var done = pick(VP_CORE), rest = VP_CORE.filter(function(p){ return p !== done; });
     var need = [pick(rest)];   // one product/project per pitch
     return { done: done, need: need,
       text: "🏠 This house: " + VP_DONE_SEE[done] + " already done · needs: " + joinAnd(need.map(function(n){ return VP_NEED[n]; })) };
@@ -210,7 +211,7 @@
   var esc = A.esc;
 
   function header(){
-    var chips = ["Playbook"].concat(VP ? ["Pitch"] : PRODUCTS.concat(["Mix"]), ["QE", "Rebuttals", "Progress"]).map(function(p){
+    var chips = ["Playbook"].concat(VP ? ["Pitch"] : [], PRODUCTS, ["Mix", "QE", "Rebuttals", "Progress"]).map(function(p){
       var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
@@ -237,7 +238,7 @@
   // Practice only the Question -> Education phase (no opener / close)
   // Full flow: Intro -> transition -> Q/E x3 -> transition -> Close -> transition to info
   function runSteps(product){
-    if(VP){ if(!st.run || !st.run.vp || st.run.vpFor !== product){ if(st.run){ st.run.vp = vpSteps(product); st.run.vpFor = product; } else { return vpSteps(product); } } return st.run.vp; }
+    if(product === "Pitch"){ if(!st.run || !st.run.vp || st.run.vpFor !== product){ if(st.run){ st.run.vp = vpSteps(product); st.run.vpFor = product; } else { return vpSteps(product); } } return st.run.vp; }
     var all = PITCHES[product];
     var intro = all.filter(function(x){ return x.type === "open"; })[0];
     var qs = all.filter(function(x){ return x.type === "q" && x.follow; }).slice(0, 3);
@@ -521,7 +522,7 @@
         }).join("") +
         '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div>' +
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
-          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY.replace("___", VP_WORD[pr]) : SOCAL_CLOSE.say) + '”</div></div>' +
+          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(SOCAL_CLOSE.say) + '”</div></div>' +
           '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
       html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pn(pr)) + ' \u2014 more questions to ask</span></summary>' +
         QE_LOOPS.map(function(L){ return '<div class="rbm-sub">' + esc(L[1]) + '</div><ul class="rbm-say">' + QE_BANK[pr][L[0]].map(function(q){ return '<li>\u201c' + esc(q) + '\u201d</li>'; }).join("") + '</ul>'; }).join("") +
@@ -644,7 +645,7 @@
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : pl(st.product);
     return '<div class="pr-card pr-start"><div class="pr-step">Full pitch · ' + esc(p) + '</div>' +
-      (VP ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
+      (st.product === "Pitch" ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
           : '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>') +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
