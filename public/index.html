@@ -87,6 +87,13 @@
     cursor:pointer;
   }
   .icon-btn:active{background:#d6dde6;}
+  #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
+  #arenaView[hidden]{display:none;}
+  .ar-bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;background:#12344d;color:#fff;}
+  .ar-bar button{background:#7c3aed;color:#fff;border:none;border-radius:10px;padding:7px 12px;font-size:14px;font-weight:700;}
+  .ar-bar .ar-t{flex:1;font-weight:700;font-size:15px;}
+  .ar-bar .ar-r{background:rgba(255,255,255,.15);padding:7px 10px;}
+  #arenaFrame{flex:1;width:100%;border:0;background:#fff;}
 
   main{
     flex:1;
@@ -374,7 +381,7 @@
   .header-actions{
     display:flex;
     align-items:center;
-    gap:6px;
+    gap:4px;
     flex:none;
   }
 
@@ -895,6 +902,7 @@
       <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
       <button class="icon-btn" id="practiceBtn" title="Practice">&#127919;</button>
       <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
+      <button class="icon-btn" id="arenaBtn" title="Canvassing Arena">&#128205;</button>
       <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
       <input type="file" id="importInput" accept=".csv,text/csv" hidden>
       <button class="icon-btn" id="newBtnTop" title="New lead">+</button>
@@ -3524,5 +3532,27 @@
 </script>
 <script src="playbook.js?v=1"></script>
 <script src="practice.js?v=46"></script>
+<div id="arenaView" hidden>
+  <div class="ar-bar">
+    <button type="button" id="arenaBack">&#8592; Lead Gen</button>
+    <div class="ar-t">&#128205; Canvassing Arena</div>
+    <button type="button" class="ar-r" id="arenaReload" title="Reload">&#8635;</button>
+  </div>
+  <iframe id="arenaFrame" title="Canvassing Arena" allow="geolocation; clipboard-write; web-share"></iframe>
+</div>
+<script>
+(function(){
+  var ARENA_URL = "https://canvassing-arena.pages.dev/";
+  var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
+  var btn = document.getElementById("arenaBtn");
+  if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
+  function openArena(){ if (!fr.src) fr.src = ARENA_URL; view.hidden = false; try{ localStorage.setItem("vp_arena_open","1"); }catch(e){} }
+  function closeArena(){ view.hidden = true; try{ localStorage.removeItem("vp_arena_open"); }catch(e){} }
+  btn.addEventListener("click", openArena);
+  document.getElementById("arenaBack").addEventListener("click", closeArena);
+  document.getElementById("arenaReload").addEventListener("click", function(){ fr.src = ARENA_URL + "?r=" + Date.now(); });
+  try{ if (localStorage.getItem("vp_arena_open")) openArena(); }catch(e){}
+})();
+</script>
 </body>
 </html>
