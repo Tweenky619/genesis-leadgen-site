@@ -1644,6 +1644,7 @@
         addLog(data, "Captured at door");
       }
       leads.push(data);
+      ping("lead_saved");
     }
     save();
     renderList();
@@ -1905,6 +1906,11 @@
   }
   function repName(){ try { return localStorage.getItem("lite_rep_name") || ""; } catch(e){ return ""; } }
   function repFirst(){ return repName().trim().split(/\s+/)[0] || ""; }
+  // ---- Anonymous usage counter: app opens + leads saved (no names, numbers or addresses) ----
+  var PING_URL = "https://genesis-leadgen.goldenbeemalajjewelry.workers.dev/api/ping";
+  function usageDevice(){ try { var d = localStorage.getItem("lite_device_id"); if(!d){ d = "d" + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); localStorage.setItem("lite_device_id", d); } return d; } catch(e){ return "unknown"; } }
+  function ping(ev){ try { fetch(PING_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ app: "share", device: usageDevice(), event: ev }), keepalive: true }).catch(function(){}); } catch(e){} }
+  ping("open");
   function applyRepName(){
     var inp = document.getElementById("repNameInput"); if(inp && document.activeElement !== inp){ inp.value = repName(); }
     Array.prototype.forEach.call(document.querySelectorAll(".rep-first"), function(el){ el.textContent = repFirst() || "___"; });

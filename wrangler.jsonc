@@ -1,7 +1,12 @@
 {
   "name": "genesis-leadgen",
+  "main": "src/worker.js",
   "compatibility_date": "2025-01-01",
   "assets": {
-    "directory": "./public"
-  }
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "leadgen-usage", "database_id": "d3b99e31-f40b-4b25-b15c-d6329835d81a" }
+  ]
 }
