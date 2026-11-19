@@ -1,0 +1,12 @@
+{
+  "name": "Villa Pacifica Lead Gen",
+  "short_name": "Villa Pacifica",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f4f9",
+  "theme_color": "#12344d",
+  "icons": [
+    { "src": "/vp-icon.png?v=3", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

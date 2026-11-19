@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Villa Pacifica Construction Lead Gen</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Villa Pacifica Lead Gen">
 <meta name="theme-color" content="#ffffff">
@@ -105,6 +106,9 @@
   .ar-bar .ar-t{flex:1;font-weight:700;font-size:15px;}
   .ar-bar .ar-r{background:rgba(255,255,255,.15);padding:7px 10px;}
   #arenaFrame{flex:1;width:100%;border:0;background:#fff;}
+  #arToast{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);z-index:5;background:#12344d;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px #0004;}
+  #arToast[hidden]{display:none;}
+  #arenaView{position:fixed;}
 
   main{
     flex:1;
@@ -3606,8 +3610,10 @@
   <div class="ar-bar">
     <button type="button" id="arenaBack">&#8592; Lead Gen</button>
     <div class="ar-t">&#128205; Canvassing Arena</div>
+    <button type="button" class="ar-r" id="arenaBell" title="New-lead alerts">&#128277;</button>
     <button type="button" class="ar-r" id="arenaReload" title="Reload">&#8635;</button>
   </div>
+  <div id="arToast" hidden></div>
   <iframe id="arenaFrame" title="Canvassing Arena" allow="geolocation; clipboard-write; web-share"></iframe>
 </div>
 <script>
@@ -3754,6 +3760,38 @@
       setTimeout(function(){ if (pendingKey[l.arena_id] === k) delete pendingKey[l.arena_id]; }, 30000);   // retry later if no answer
     });
   }
+  // ---- New-lead alerts (push) run from Lead Gen itself, because the Arena screen inside can't get them ----
+  var VAPID = "BJS7n9AFuOfZnLhfs7ujQY85wPe7GdOa9QvZj60u1vLJ8Cb4HANURe-CdqjmoQyFvmlbXkzGPvzc8dbYshpu4BM";
+  var bell = document.getElementById("arenaBell"), swReg = null;
+  function b64ToBytes(b){ b = b.replace(/-/g, "+").replace(/_/g, "/"); while(b.length % 4) b += "="; var r = atob(b), o = new Uint8Array(r.length); for(var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
+  function sendSwAuth(){ var a = savedLogin(); if(swReg && a && a.mgr && navigator.serviceWorker.controller !== undefined){ navigator.serviceWorker.ready.then(function(r){ if(r.active) r.active.postMessage({ type: "auth", auth: { code: a.code, mgr: a.mgr } }); }); } }
+  function bellState(){
+    var on = ("Notification" in window) && Notification.permission === "granted" && localStorage.getItem("vp_push_on") === "1";
+    bell.innerHTML = on ? "&#128276;" : "&#128277;"; bell.style.background = on ? "#7c3aed" : "";
+  }
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").then(function(r){ swReg = r; sendSwAuth(); }).catch(function(){}); }
+  bellState();
+  var pushWait = null;
+  bell.addEventListener("click", function(){
+    if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){
+      alertBox("This phone can't get alerts from the app yet. Make sure Villa Pacifica Lead Gen was added to your Home Screen from Safari (Share \u2192 Add to Home Screen) and iOS is up to date.");
+      return;
+    }
+    var a = savedLogin(); if(!a || !a.mgr){ alertBox("Sign in to Canvassing Arena as Manager first (tap \ud83d\udccd)."); return; }
+    Notification.requestPermission().then(function(perm){
+      if(perm !== "granted"){ alertBox("Alerts are blocked. Turn them on in Settings \u2192 Notifications \u2192 Villa Pacifica."); return; }
+      return navigator.serviceWorker.ready.then(function(r){ swReg = r; sendSwAuth(); return r.pushManager.getSubscription().then(function(sub){ return sub || r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID) }); }); })
+        .then(function(sub){
+          fr.contentWindow.postMessage({ type: "lg-push-sub", endpoint: sub.endpoint }, ARENA_ORIGIN);
+          pushWait = setTimeout(function(){ alertBox("Couldn't reach Canvassing Arena \u2014 check your connection and tap \ud83d\udd14 again."); }, 12000);
+        });
+    }).catch(function(){ alertBox("Couldn't turn on alerts. Try again."); });
+  });
+  function alertBox(msg){ var t = document.getElementById("arToast"); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function(){ t.hidden = true; }, 6000); }
+  function openArenaLeads(){ openArena(); try{ fr.contentWindow.postMessage({ type: "lg-open-leads" }, ARENA_ORIGIN); }catch(e){} setTimeout(function(){ try{ fr.contentWindow.postMessage({ type: "lg-open-leads" }, ARENA_ORIGIN); }catch(e){} }, 2500); }
+  if("serviceWorker" in navigator){ navigator.serviceWorker.addEventListener("message", function(e){ if(e.data && e.data.type === "open-arena-leads") openArenaLeads(); }); }
+  if(/[?&]arena=leads/.test(location.search)){ history.replaceState(null, "", "/"); openArenaLeads(); }
+
   var t; window.LG_onSave = function(){ clearTimeout(t); t = setTimeout(pushStatuses, 400); };
   window.addEventListener("message", function(e){
     if (e.origin !== ARENA_ORIGIN || !e.data || typeof e.data !== "object") return;
@@ -3761,10 +3799,12 @@
     if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
+    else if (m.type === "arena-push-ok"){ clearTimeout(pushWait); localStorage.setItem("vp_push_on", "1"); bellState(); alertBox("\ud83d\udd14 New-lead alerts are on for this phone."); try{ swReg && swReg.showNotification("Alerts are working", { body: "New rep leads will pop up here, even when the app is closed.", icon: "/vp-icon.png?v=3" }).catch(function(){}); }catch(e){} }
+    else if (m.type === "arena-push-fail"){ clearTimeout(pushWait); alertBox("Couldn't turn on alerts: " + (m.error || "try again")); }
     else if (m.type === "arena-logout"){ try{ localStorage.removeItem("vp_arena_me"); }catch(e){} }
     else if (m.type === "arena-login" && m.me && m.me.code){
       var cur = savedLogin() || {};
-      if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem("vp_arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} }
+      if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem("vp_arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} sendSwAuth(); }
     }
     else if (m.type === "arena-ack"){
       var l = LG.leads.find(function(y){ return y.arena_id === m.id; });
