@@ -7,8 +7,8 @@
 <script>
   // Rep copy: /rep — same Lead Gen, rep-only Arena, no manager tools, its own storage
   window.LG_REP = /^\/(rep|ruben)(\/|$)/.test(location.pathname);
-  // Ruben's personal copy: already signed in as him
-  window.LG_PRESET = /^\/ruben(\/|$)/.test(location.pathname) ? { name: "Ruben Gutierrez", code: "VILLPC", mgr: "" } : null;
+  // Ruben's personal copy: already signed in as him, in Manager mode (his own co-manager code — remove him under Arena → Co-managers to cut it off)
+  window.LG_PRESET = /^\/ruben(\/|$)/.test(location.pathname) ? { name: "Ruben Gutierrez", code: "VILLPC", mgr: "RGTWBAQAFC1K" } : null;
   if (window.LG_REP){
     document.documentElement.className += " rep-app" + (window.LG_PRESET ? " mgr-copy" : "");
     document.addEventListener("DOMContentLoaded", function(){
@@ -3678,7 +3678,7 @@
 <script>
 (function(){
   var AP = window.LG_REP ? "rep_" : "vp_";
-  if (window.LG_PRESET){ try{ if (!localStorage.getItem(AP + "arena_me")) localStorage.setItem(AP + "arena_me", JSON.stringify(window.LG_PRESET)); }catch(e){} }
+  if (window.LG_PRESET){ try{ var cur0 = JSON.parse(localStorage.getItem(AP + "arena_me") || "null"); if (!cur0 || cur0.mgr !== window.LG_PRESET.mgr || cur0.name !== window.LG_PRESET.name) localStorage.setItem(AP + "arena_me", JSON.stringify(window.LG_PRESET)); }catch(e){} }
   // Ruben (part owner) gets the full Arena so he can sign in as Manager; other reps get rep-only
   var ARENA_URL = window.LG_REP && !window.LG_PRESET ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
