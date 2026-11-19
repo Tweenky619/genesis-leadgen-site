@@ -1,0 +1,4 @@
+/rep  /rep/  301
+/ruben  /ruben/  301
+/rep/*  /:splat  200
+/ruben/*  /:splat  200
