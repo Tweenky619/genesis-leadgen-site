@@ -87,6 +87,12 @@
     cursor:pointer;
   }
   .icon-btn:active{background:#d6dde6;}
+  .day-box{background:#fff;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+  .day-box .dh{font-weight:800;color:var(--brand);font-size:15px;display:flex;justify-content:space-between;gap:8px;}
+  .day-box .dh span{font-weight:600;color:var(--text-muted);font-size:13px;}
+  .dchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .dchip{background:#f1f0f6;border-radius:999px;padding:5px 10px;font-size:13px;color:#334155;}
+  .dchip.ok{background:#dcfce7;color:#166534;} .dchip.warn{background:#fef3c7;color:#92400e;} .dchip.bad{background:#fee2e2;color:#991b1b;}
   #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
   #arenaView[hidden]{display:none;}
   .ar-bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;background:#12344d;color:#fff;}
@@ -1453,6 +1459,8 @@
   }
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
+    ["today","\ud83d\udcc5 Today", function(l){ return isTodayLead(l); }],
+    ["tomorrow","\ud83c\udf05 Tomorrow", function(l){ return l.appt_date === nextWorkISO() && isOpen(l); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"||s==="Bad Number"; }],
@@ -1466,6 +1474,39 @@
     ["windows","🪟 Windows", function(l){ return hasProduct(l, /window/i); }],
     ["all","All", function(){ return true; }]
   ];
+  // ---- Today / Tomorrow ----
+  var OUT_TYPES = ["sold","miss","noshow","ctc","nomr","blowout","rolled","represet"];
+  function dayStart(iso){ var p = iso.split("-"); return new Date(+p[0], +p[1]-1, +p[2]).getTime(); }
+  function hadOutcomeToday(l){
+    var a = dayStart(todayISO()), b = a + 864e5, ev = leadEvents(l);
+    return OUT_TYPES.some(function(t){ return (ev[t] || []).some(function(ts){ return ts >= a && ts < b; }); });
+  }
+  function isTodayLead(l){ return l.appt_date === todayISO() || hadOutcomeToday(l); }
+  function nextWorkISO(){ var d = new Date(); d.setDate(d.getDate() + 1); if(d.getDay() === 0){ d.setDate(d.getDate() + 1); } return isoOf(d); }
+  function nextWorkLabel(){ var n = nextWorkISO(); return n === addDaysISO(1) ? "Tomorrow" : new Date(n + "T12:00").toLocaleDateString("en-US", { weekday: "long" }); }
+  function timeMins(t){ var m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 9999; var h = +m[1] % 12 + (/pm/i.test(m[3]) ? 12 : 0); return h * 60 + +m[2]; }
+  var BOOKED_ST = ["Appt Set","Sent to Monday","Confirmed","Reset","Rolled","Rep Reset","Confirm NA","New","Contacted","No Answer"];
+  function isConfirmedSt(st){ return st === "Confirmed" || st === "Sent to Monday"; }
+  function dayBanner(tab, list){
+    var chips = [];
+    function chip(n, label, cls){ if(n){ chips.push('<span class="dchip ' + (cls || '') + '"><b>' + n + '</b> ' + label + '</span>'); } }
+    if(tab === "tomorrow"){
+      var conf = list.filter(function(l){ return isConfirmedSt(statusOf(l)); }).length;
+      chip(conf, "confirmed", "ok"); chip(list.length - conf, "still to confirm", "warn");
+      return '<div class="day-box"><div class="dh">\ud83c\udf05 ' + nextWorkLabel() + ' \u00b7 ' + fmtIsoDate(nextWorkISO()) + ' <span>' + list.length + ' appointment' + (list.length === 1 ? '' : 's') + '</span></div><div class="dchips">' + (chips.join("") || '<span class="dchip">Nothing booked yet</span>') + '</div></div>';
+    }
+    var c = {}; list.forEach(function(l){ var st = statusOf(l); c[st] = (c[st] || 0) + 1; });
+    var money = list.filter(function(l){ return statusOf(l) === "Sold"; }).reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
+    var pending = list.filter(function(l){ return BOOKED_ST.indexOf(statusOf(l)) !== -1 && l.appt_date === todayISO(); }).length;
+    chip(c["Sold"], "sold" + (money ? " (" + fmtMoney(money) + ")" : ""), "ok");
+    chip(c["Pitch & Miss"], "pitch & miss");
+    chip((c["No Show"] || 0) + (c["Blow Out"] || 0), "no show / blow out", "bad");
+    chip(c["Call to Cancel"], "called to cancel", "bad");
+    chip(c["No Mr./Mrs."], "no Mr./Mrs.", "bad");
+    chip(c["Rep Reset"], "rep reset");
+    chip(pending, "waiting on outcome", "warn");
+    return '<div class="day-box"><div class="dh">\ud83d\udcc5 Today \u00b7 ' + fmtIsoDate(todayISO()) + ' <span>' + list.length + ' appointment' + (list.length === 1 ? '' : 's') + '</span></div><div class="dchips">' + (chips.join("") || '<span class="dchip">No appointments today</span>') + '</div></div>';
+  }
   function fmtMoney(n){ return "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
   function parseMoney(v){ var n = parseFloat(String(v || "").replace(/[^0-9.]/g, "")); return isNaN(n) ? "" : n; }
 
@@ -1487,6 +1528,7 @@
     }).join("");
     var sorted = leads.slice().sort(function(a,b){
       if(currentTab === "due"){ return (a.next_followup||"").localeCompare(b.next_followup||""); }
+      if(currentTab === "today" || currentTab === "tomorrow"){ return timeMins(a.appt_time) - timeMins(b.appt_time); }
       if(OUTCOME_TABS.indexOf(currentTab) !== -1){ return outcomeTs(b) - outcomeTs(a); }
       return b.created_at - a.created_at;
     });
@@ -1500,6 +1542,10 @@
     document.getElementById("headerSubtitle").textContent =
       leads.length + (leads.length === 1 ? " Lead" : " Leads") + " Captured";
 
+    if(filtered.length === 0 && !q && (currentTab === "today" || currentTab === "tomorrow") && leads.length){
+      container.innerHTML = dayBanner(currentTab, []);
+      return;
+    }
     if(filtered.length === 0){
       if(leads.length === 0){
         container.innerHTML =
@@ -1520,6 +1566,7 @@
     }
 
     var banner = "";
+    if((currentTab === "today" || currentTab === "tomorrow") && !q){ banner = dayBanner(currentTab, filtered); }
     if(currentTab === "sold" && !q){
       var tot = filtered.reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
       var pend = filtered.filter(function(l){ return !clearInfo(l).cleared; }).length, cxl = leads.filter(function(l){ return statusOf(l) === "Cancelled"; }).length;
@@ -1562,8 +1609,10 @@
             (tagLine ? '<div class="addr" style="color:var(--brand-dark);font-weight:600;">' + tagLine + '</div>' : '') +
           '</div>' +
           '<div class="meta">' +
-            '<div class="date">' + fmtDate(l.created_at) + '</div>' +
+            ((currentTab === "today" || currentTab === "tomorrow") && l.appt_time ? '<div class="date" style="font-weight:800;color:var(--brand);font-size:15px;">' + esc(l.appt_time) + '</div>' : '<div class="date">' + fmtDate(l.created_at) + '</div>') +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
+            (currentTab === "tomorrow" && !isConfirmedSt(statusOf(l)) ? '<div class="due" style="color:#b45309;font-weight:700;">\u23f3 Not confirmed</div>' : '') +
+            (currentTab === "today" && l.appt_date === todayISO() && BOOKED_ST.indexOf(statusOf(l)) !== -1 ? '<div class="due" style="color:#b45309;font-weight:700;">Needs outcome</div>' : '') +
             dueLabel(l) + clearLabel(l) + badLabel(l) + outcomeLabel(l) +
           '</div>' +
         '</div>'
