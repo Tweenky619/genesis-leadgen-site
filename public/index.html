@@ -1460,7 +1460,7 @@
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["today","\ud83d\udcc5 Today", function(l){ return isTodayLead(l); }],
-    ["tomorrow","\ud83c\udf05 Tomorrow", function(l){ return l.appt_date === nextWorkISO() && isOpen(l); }],
+    ["tomorrow","\ud83c\udf05 Tomorrow", function(l){ return l.appt_date === nextWorkISO() && isConfirmedSt(statusOf(l)); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"||s==="Bad Number"; }],
@@ -1491,9 +1491,8 @@
     var chips = [];
     function chip(n, label, cls){ if(n){ chips.push('<span class="dchip ' + (cls || '') + '"><b>' + n + '</b> ' + label + '</span>'); } }
     if(tab === "tomorrow"){
-      var conf = list.filter(function(l){ return isConfirmedSt(statusOf(l)); }).length;
-      chip(conf, "confirmed", "ok"); chip(list.length - conf, "still to confirm", "warn");
-      return '<div class="day-box"><div class="dh">\ud83c\udf05 ' + nextWorkLabel() + ' \u00b7 ' + fmtIsoDate(nextWorkISO()) + ' <span>' + list.length + ' appointment' + (list.length === 1 ? '' : 's') + '</span></div><div class="dchips">' + (chips.join("") || '<span class="dchip">Nothing booked yet</span>') + '</div></div>';
+      chip(list.length, "confirmed", "ok");
+      return '<div class="day-box"><div class="dh">\ud83c\udf05 ' + nextWorkLabel() + ' \u00b7 ' + fmtIsoDate(nextWorkISO()) + '</div><div class="dchips">' + (chips.join("") || '<span class="dchip">Nothing confirmed yet</span>') + '</div></div>';
     }
     var c = {}; list.forEach(function(l){ var st = statusOf(l); c[st] = (c[st] || 0) + 1; });
     var money = list.filter(function(l){ return statusOf(l) === "Sold"; }).reduce(function(a, l){ return a + (Number(l.sale_amount) || 0); }, 0);
@@ -1611,7 +1610,6 @@
           '<div class="meta">' +
             ((currentTab === "today" || currentTab === "tomorrow") && l.appt_time ? '<div class="date" style="font-weight:800;color:var(--brand);font-size:15px;">' + esc(l.appt_time) + '</div>' : '<div class="date">' + fmtDate(l.created_at) + '</div>') +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
-            (currentTab === "tomorrow" && !isConfirmedSt(statusOf(l)) ? '<div class="due" style="color:#b45309;font-weight:700;">\u23f3 Not confirmed</div>' : '') +
             (currentTab === "today" && l.appt_date === todayISO() && BOOKED_ST.indexOf(statusOf(l)) !== -1 ? '<div class="due" style="color:#b45309;font-weight:700;">Needs outcome</div>' : '') +
             dueLabel(l) + clearLabel(l) + badLabel(l) + outcomeLabel(l) +
           '</div>' +
