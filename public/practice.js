@@ -179,10 +179,10 @@
     var sc = vpScene();
     return [
       { type: "open", ph: 0, scene: sc.text, title: "Step 1 · Greet & introduce", who: "You say", followWho: "You acknowledge",
-        say: greet() + "! My name is Art, I work with Villa Pacifica — how are you?",
-        replies: ["Good, and you?", "Fine, thanks.", "Doing well.", "Not bad, you?"],
-        follow: "Glad to hear it! I'm doing great, thank you.",
-        tip: "Match the time of day. Whatever they say, acknowledge it before you move on — busy? “I'll be quick.”" },
+        say: greet() + "! My name is Art, I work with Villa Pacifica! How are you?",
+        replies: ["Doing fine, and yourself?", "Good, and you?", "I'm fine, how about you?", "Not bad — yourself?"],
+        follow: "I'm doing great — and that's the first time I've heard that all day!",
+        tip: "Most of the time they laugh — that's the guard coming down. If they don't ask back, just say “Glad to hear it!” Busy? “I'll be quick.”" },
       { type: "q", ph: 1, scene: sc.text, title: "Step 2 · Why you're here → compliment what they've done", who: "You say", cue: "Point to their " + VP_DONE_SEE[sc.done].replace(/^an? /, "") + " as you bridge.",
         say: "The reason I'm in your neighborhood — my company, tomorrow we're leaving estimates on different services that we do. " + pick(VP_DONE[sc.done]) + " — so I know you have pride in ownership on your home!",
         tip: "One breath — bridge straight from the reason into the compliment. Compliment a core product they've already done (roof, paint/stucco or windows)." },
