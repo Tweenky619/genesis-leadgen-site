@@ -1237,6 +1237,10 @@
     <p>Your leads are saved on this phone. Export a backup at the end of each day.</p>
     <button type="button" id="exportBtn">&#8659; Export backup (CSV)</button>
     <button type="button" id="importBtn">&#8657; Import leads (CSV)</button>
+    <div class="full-bk" id="trashBox">
+      <div class="co-lbl">&#128465;&#65039; Recently deleted &mdash; kept 30 days</div>
+      <div id="trashList"></div>
+    </div>
     <div class="full-bk">
       <div class="co-lbl">Full backup &mdash; everything</div>
       <button type="button" id="fullSaveBtn">&#128190; Save full backup</button>
@@ -2108,8 +2112,9 @@
   });
   document.getElementById("deleteBtn").addEventListener("click", function(){
     if(!viewingId) return;
-    if(confirm("Delete this lead? This can't be undone.")){
-      photoDeleteForLead(viewingId);
+    if(confirm("Delete this lead?\n\nYou can bring it back from \u21c5 \u2192 Recently deleted for 30 days.")){
+      var gone = leads.find(function(x){ return x.id === viewingId; });
+      if(gone){ var tr = trashList(); tr.unshift({ lead: gone, deleted_at: Date.now() }); trashSave(tr); }
       leads = leads.filter(function(x){ return x.id !== viewingId; });
       save();
       viewingId = null;
@@ -3423,7 +3428,33 @@
   });
 
   // ---- Backup sheet ----
-  document.getElementById("backupBtn").addEventListener("click", function(){ document.getElementById("backupSheet").hidden = false; });
+  document.getElementById("backupBtn").addEventListener("click", function(){ renderTrash(); document.getElementById("backupSheet").hidden = false; });
+  // ---- Recently deleted (30 days) ----
+  var TRASH_KEY = CO_PREFIX + "trash_v1";
+  function trashList(){ try{ return JSON.parse(localStorage.getItem(TRASH_KEY) || "[]"); }catch(e){ return []; } }
+  function trashSave(a){ localStorage.setItem(TRASH_KEY, JSON.stringify(a)); }
+  (function purgeTrash(){
+    var cut = Date.now() - 30 * 864e5, keep = [];
+    trashList().forEach(function(t){ if(t.deleted_at < cut){ photoDeleteForLead(t.lead.id); } else { keep.push(t); } });
+    trashSave(keep);
+  })();
+  function renderTrash(){
+    var tr = trashList(), box = document.getElementById("trashList");
+    document.getElementById("trashBox").style.display = tr.length ? "" : "none";
+    box.innerHTML = tr.map(function(t, i){
+      var l = t.lead;
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">' +
+        '<div style="flex:1;min-width:0;"><b>' + esc(l.homeowner_name || "Unnamed") + '</b><div style="font-size:12px;color:var(--text-muted);">' + esc(l.address || "") + ' \u00b7 deleted ' + fmtDate(t.deleted_at) + '</div></div>' +
+        '<button type="button" data-trash-restore="' + i + '" style="width:auto;margin:0;padding:8px 12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-weight:700;">Restore</button></div>';
+    }).join("");
+  }
+  document.getElementById("trashList").addEventListener("click", function(e){
+    var b = e.target.closest("[data-trash-restore]"); if(!b) return;
+    var tr = trashList(), t = tr.splice(+b.getAttribute("data-trash-restore"), 1)[0]; if(!t) return;
+    if(!leads.some(function(x){ return x.id === t.lead.id; })){ addLog(t.lead, "Restored from Recently deleted"); leads.push(t.lead); save(); }
+    trashSave(tr); renderTrash(); renderList();
+    alert("Restored: " + (t.lead.homeowner_name || "lead"));
+  });
   document.getElementById("backupCancel").addEventListener("click", function(){ document.getElementById("backupSheet").hidden = true; });
   document.getElementById("backupSheet").addEventListener("click", function(e){ if(e.target.id === "backupSheet" || e.target.id === "exportBtn" || e.target.id === "importBtn"){ document.getElementById("backupSheet").hidden = true; } });
 
@@ -3606,6 +3637,7 @@
   load();
   renderList();
   window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
+    trashedArena: function(){ try{ return JSON.parse(localStorage.getItem(CO_PREFIX + "trash_v1") || "[]").map(function(t){ return t.lead.arena_id; }).filter(Boolean); }catch(e){ return []; } },
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
@@ -3718,8 +3750,9 @@
     if (fixed){ LG.save(); LG.refresh(); }
   })();
   function onLeads(list){
-    var leads = LG.leads, changed = false, want = [];
+    var leads = LG.leads, changed = false, want = [], trashed = LG.trashedArena();
     list.forEach(function(x){
+      if (trashed.indexOf(x.id) !== -1) return;   // you deleted it here — don't bring it back
       var l = leads.find(function(y){ return y.arena_id === x.id; });
       if (!l){
         var nl = buildLead(x), twin = findTwin(nl);
