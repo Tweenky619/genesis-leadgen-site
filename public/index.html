@@ -1000,7 +1000,7 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Roof">Roof</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Fascia/Trim Boards">Fascia/Trim Boards</label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Paint/Stucco">Paint/Stucco</label>
-            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows">Windows</label>
+            <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Windows"><span class="win-lbl">Windows</span></label>
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other&nbsp;<span style="font-weight:600;opacity:.7">(non-core)</span></label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
@@ -1483,6 +1483,10 @@
     ["windows","🪟 Windows", function(l){ return hasProduct(l, /window/i); }],
     ["all","All", function(){ return true; }]
   ];
+  if(COMPANY !== "socal"){   // Villa Pacifica core: Roof, Paint/Stucco, High Performance Windows
+    TABS = TABS.filter(function(t){ return t[0] !== "fascia"; });
+    TABS.forEach(function(t){ if(t[0] === "windows") t[1] = "\ud83e\ude9f High Performance Windows"; });
+  }
   // ---- Today / Tomorrow ----
   var OUT_TYPES = ["sold","miss","noshow","ctc","nomr","blowout","rolled","represet"];
   function dayStart(iso){ var p = iso.split("-"); return new Date(+p[0], +p[1]-1, +p[2]).getTime(); }
@@ -3594,6 +3598,7 @@
     openDetail(b.getAttribute("data-open-lead"));
   }, true);
 
+  if(COMPANY !== "socal"){ Array.prototype.forEach.call(document.querySelectorAll(".win-lbl"), function(el){ el.textContent = "High Performance Windows"; }); }
   window.App = { company: COMPANY, showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
   document.getElementById("practiceBtn").addEventListener("click", function(){ if(window.openPractice){ window.openPractice(); } });
   document.getElementById("backFromPracticeBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
@@ -3604,8 +3609,8 @@
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
-<script src="playbook.js?v=4"></script>
-<script src="practice.js?v=49"></script>
+<script src="playbook.js?v=5"></script>
+<script src="practice.js?v=50"></script>
 <div id="arenaView" hidden>
   <div class="ar-bar">
     <button type="button" id="arenaBack">&#8592; Lead Gen</button>

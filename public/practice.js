@@ -151,10 +151,12 @@
       CLOSE
     ]
   };
-  var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
-
   // ---------- Art's formula (the door approach) ----------
   var VP = A.company !== "socal";
+  // My 3 core products: Roof, Paint/Stucco, High Performance Windows (SoCal archive keeps its 4)
+  var PRODUCTS = VP ? ["Roof", "Paint/Stucco", "Windows"] : ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
+  function pn(p){ return VP && p === "Windows" ? "High Performance Windows" : p; }
+  function pl(p){ return p === "Pitch" ? "My pitch" : pn(p); }
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
   var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your exterior paint and stucco", "Fascia/Trim Boards": "your fascia and trim boards", "Windows": "your windows" };
   var VP_COMPLIMENT = {
@@ -163,6 +165,7 @@
     "Fascia/Trim Boards": ["I see you put a new roof on — it looks great", "I love the new garage door", "The yard looks great — you can tell somebody takes care of it"],
     "Windows": ["I see you redid the roof — it looks great", "That paint job looks fresh — nice color", "I love the front door you put in"]
   };
+  VP_COMPLIMENT.Pitch = VP_COMPLIMENT.Roof.concat(VP_COMPLIMENT["Paint/Stucco"], VP_COMPLIMENT.Windows);
   var VP_PHASES = ["Greet", "Reason \u2192 Compliment", "Close"];
   function vpSteps(product){
     return [
@@ -175,13 +178,13 @@
         say: "The reason I'm in your neighborhood \u2014 my company, tomorrow we're leaving estimates on different services that we do. " + pick(VP_COMPLIMENT[product]) + " \u2014 so I know you have pride in ownership on your home!",
         tip: "One breath \u2014 don't stop after the reason. Bridge straight into pointing out work they've done and the compliment, so there's no gap for a \u201cno thanks.\u201d" },
       { type: "close", ph: 2, title: "Step 3 \u00b7 The opportunity + close", who: "You close", followWho: "You transition",
-        say: "I see a possible chance of earning your business on " + VP_WORD[product] + " \u2014 will you be home at 10am, or does 2pm sound good for you?",
+        say: "I see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am, or does 2pm sound good for you?",
         replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
         follow: "Perfect \u2014 I'll put you down. Excuse me \u2014 my name is Art, and you are? And how do I spell your last name?",
         tip: "Pushback (spouse, busy, not interested)? Use the Rebuttals tab. Alternative choice: two times, both yeses. Once they pick, go straight into the info script and the close script (spouse, set the stage, confirmation)." }
     ];
   }
-  var VP_CLOSE_SAY = "I see a possible chance of earning your business on your ___ \u2014 will you be home at 10am, or does 2pm sound good for you?";
+  var VP_CLOSE_SAY = "I see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am, or does 2pm sound good for you?";
 
   var REBUTTALS = [];
 
@@ -198,8 +201,8 @@
   var esc = A.esc;
 
   function header(){
-    var chips = ["Playbook"].concat(PRODUCTS, ["Mix", "QE", "Rebuttals", "Progress"]).map(function(p){
-      var lbl = p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
+    var chips = ["Playbook"].concat(VP ? ["Pitch"] : PRODUCTS.concat(["Mix"]), ["QE", "Rebuttals", "Progress"]).map(function(p){
+      var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
     var modes = (st.product === "Rebuttals" || st.product === "QE" || st.product === "Progress" || st.product === "Playbook") ? "" :
@@ -266,7 +269,7 @@
     var who = whoLabel(s, r.phase);
     var progress = steps.map(function(_, k){ return '<i class="' + (k < r.i ? "done" : k === r.i ? "now" : "") + '"></i>'; }).join("");
     var html = '<div class="pr-card">' +
-      '<div class="pr-top"><span class="pr-prod">' + esc(r.product) + '</span><span class="pr-dots">' + progress + '</span></div>' +
+      '<div class="pr-top"><span class="pr-prod">' + esc(pl(r.product)) + '</span><span class="pr-dots">' + progress + '</span></div>' +
       '<div class="pr-phase">' + phaseBar(s) + '</div>' +
       '<div class="pr-step">' + esc(stepTitle(s, r.phase)) + '</div>';
     if(r.phase === "follow" && r.reply){
@@ -294,8 +297,8 @@
   function summaryCard(){
     var r = st.run;
     var line = st.mode === "drill" ? '<div class="pr-big">' + r.score + ' / ' + r.total + '</div><div class="pr-sub">lines nailed</div>' : '<div class="pr-big">✔</div><div class="pr-sub">Run-through complete</div>';
-    return '<div class="pr-card pr-done"><div class="pr-step">' + esc(r.product) + ' — done</div>' + line +
-      '<div class="pr-sub">' + repsThisWeek(r.product) + ' ' + esc(r.product) + ' reps this week · ' + repsThisWeek() + ' total</div>' +
+    return '<div class="pr-card pr-done"><div class="pr-step">' + esc(pl(r.product)) + ' — done</div>' + line +
+      '<div class="pr-sub">' + repsThisWeek(r.product) + ' ' + esc(pl(r.product)) + ' reps this week · ' + repsThisWeek() + ' total</div>' +
       '<button type="button" class="pr-btn" data-pa="again">🔁 Run it again</button>' +
       (st.mode === "learn" ? '<button type="button" class="pr-btn alt" data-pa="todrill">🎯 Now drill it</button>' : '') +
       '</div>';
@@ -489,15 +492,15 @@
     var html = qeBar("learn") +
       '<div class="pr-card"><div class="pr-step">1. What Question → Education is</div><p class="rbm-what">It’s how you get the homeowner to <b>see</b> the damage and <b>understand</b> what it turns into — so the inspection makes sense before you ever ask for it. You don’t tell them they have a problem. You ask, they find it, and you explain it.</p></div>' +
       '<div class="pr-card"><div class="pr-step">2. The four core products</div><p class="rbm-p">Every house you knock has at least one:</p>' +
-        PRODUCTS.map(function(pr, i){ return '<div class="rbm-step"><span class="dk">' + (i + 1) + '</span>' + QE_ICON[pr] + ' ' + esc(pr) + '</div>'; }).join("") +
+        PRODUCTS.map(function(pr, i){ return '<div class="rbm-step"><span class="dk">' + (i + 1) + '</span>' + QE_ICON[pr] + ' ' + esc(pn(pr)) + '</div>'; }).join("") +
         '<p class="rbm-p" style="margin-top:10px">Your first job is to <b>spot the damage</b> before you knock — because your intro and every question after it depend on it.</p></div>' +
       '<div class="pr-card"><div class="pr-step">3. The five steps are one chain</div><p class="rbm-p">Each step sets up the next:</p>' +
         QE_STEPS.map(function(x, i){ return '<div class="rbm-why"><div class="rbm-h"><span class="acc">' + (i + 1) + '</span>' + esc(x[0]) + '</div><p>' + x[1] + '</p>' + (i < 4 ? '<div class="rbm-next">↓ sets up Step ' + (i + 2) + '</div>' : '') + '</div>'; }).join("") + '</div>';
     PRODUCTS.forEach(function(pr){
-      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' — how to spot it</div><ul class="rbm-say">' +
+      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pn(pr)) + ' — how to spot it</div><ul class="rbm-say">' +
           QE_SPOT[pr].map(function(q){ return '<li>' + esc(q) + '</li>'; }).join("") + '</ul>' +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 Only ask about damage you can <b>actually point to</b>. No visible damage? Skip that loop.</div></div>';
-      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' — how to handle it</div>' +
+      html += '<div class="pr-card"><div class="pr-step">' + QE_ICON[pr] + ' ' + esc(pn(pr)) + ' — how to handle it</div>' +
         qeLoops(pr).map(function(q, k){
           return '<div class="rbm-why qe-loop"><div class="rbm-h"><span class="acc">' + (k + 1) + '</span>Loop ' + (k + 1) + '</div>' +
             (q.cue ? '<div class="qe-row"><b>Point</b><span>' + esc(q.cue) + '</span></div>' : '') +
@@ -508,9 +511,9 @@
         }).join("") +
         '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div>' +
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
-          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY.replace("your ___", VP_WORD[pr]) : SOCAL_CLOSE.say) + '”</div></div>' +
+          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY : SOCAL_CLOSE.say) + '”</div></div>' +
           '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
-      html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' \u2014 more questions to ask</span></summary>' +
+      html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pn(pr)) + ' \u2014 more questions to ask</span></summary>' +
         QE_LOOPS.map(function(L){ return '<div class="rbm-sub">' + esc(L[1]) + '</div><ul class="rbm-say">' + QE_BANK[pr][L[0]].map(function(q){ return '<li>\u201c' + esc(q) + '\u201d</li>'; }).join("") + '</ul>'; }).join("") +
         '<div class="rbm-key" style="display:block;margin-top:8px">🔑 Point first, ask one, then stop. Follow every question with the education: what it <b>lets in</b> and what that <b>leads to</b>.</div></details>';
     });
@@ -526,7 +529,7 @@
     if(lp2.slickCap){ steps.push(["Show the slick", [].concat(lp2.slickCap).join(" + ")]); }
     steps.push(["Educate", "“" + lp2.follow + "”"]);
     steps.push(["Bridge", "React to their answer — then go to the next question (or the close)."]);
-    var html = qeBar("drill") + '<div class="pr-card"><div class="pr-step">Q→E drill · ' + QE_ICON[q.product] + ' ' + esc(q.product) + '</div>' +
+    var html = qeBar("drill") + '<div class="pr-card"><div class="pr-step">Q→E drill · ' + QE_ICON[q.product] + ' ' + esc(pn(q.product)) + '</div>' +
       '<div class="pr-ho pr-obj"><b>🏠 You see:</b> ' + esc(lp2.slickCap ? [].concat(lp2.slickCap)[0] : lp2.label) + '</div>';
     steps.forEach(function(sv, k){
       var open = k < q.shown;
@@ -541,7 +544,7 @@
   function qeQuick(){
     if(!st.qq){ var pr = pick(PRODUCTS), L = pick(QE_LOOPS); st.qq = { product: pr, loop: L, q: pick(QE_BANK[pr][L[0]]), shown: false, done: st.qqDone || 0 }; }
     var q = st.qq;
-    return '<div class="pr-card"><div class="pr-step">Question bank \u00b7 ' + QE_ICON[q.product] + ' ' + esc(q.product) + '</div>' +
+    return '<div class="pr-card"><div class="pr-step">Question bank \u00b7 ' + QE_ICON[q.product] + ' ' + esc(pn(q.product)) + '</div>' +
       '<div class="pr-ho pr-obj"><b>🎯 ' + esc(q.loop[1]) + '</b><br>Come up with a question out loud \u2014 then the education line that goes with it.</div>' +
       (q.shown ? '<div class="pr-rb open"><span>One you could ask</span><p>\u201c' + esc(q.q) + '\u201d</p></div><button type="button" class="pr-btn" data-pa="qqnew">🎲 Next</button>'
                : '<button type="button" class="pr-btn" data-pa="qqshow">Say yours, then reveal</button>') +
@@ -629,9 +632,10 @@
   }
 
   function startCard(){
-    var p = st.product === "Mix" ? "a random core product" : st.product;
+    var p = st.product === "Mix" ? "a random core product" : pl(st.product);
     return '<div class="pr-card pr-start"><div class="pr-step">Full pitch · ' + esc(p) + '</div>' +
-      '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>' +
+      (VP ? '<p class="pr-sub">Greet → why you’re here, bridged into a compliment → close on all 3 core products: <b>Roof, Paint/Stucco and High Performance Windows</b>.</p>'
+          : '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>') +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
       '<div class="pr-sub" style="margin-top:10px">' + repsThisWeek() + ' practice reps this week</div></div>';
