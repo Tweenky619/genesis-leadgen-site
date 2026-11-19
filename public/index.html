@@ -3234,7 +3234,7 @@
   function tcPunch(type){ var a = tcList(); a.push({ id: "p" + Date.now(), type: type, ts: Date.now() }); tcSave(a); renderClock(); }
   function renderClock(){
     var box = document.getElementById("timeClock"); if(!box) return;
-    if(COMPANY === "socal"){ box.hidden = true; return; }
+    if(COMPANY === "socal" || REP_APP){ box.hidden = true; return; }
     var today = tcDayISO(Date.now()), day = tcDay || today, isToday = day === today;
     var st = tcState(day), sm = tcSummary(day), btns = "";
     if(isToday){
