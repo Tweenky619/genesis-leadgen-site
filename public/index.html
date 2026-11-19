@@ -3559,7 +3559,8 @@
   // ---- Bridge: rep leads from Arena drop into Lead Gen; outcomes flow back ----
   var LG = window.LG; if (!LG) return;
   var ready = false, pendingKey = {}, askedPhotos = {};
-  function hello(){ try{ fr.contentWindow.postMessage({ type: "lg-hello" }, ARENA_ORIGIN); }catch(e){} }
+  function savedLogin(){ try{ return JSON.parse(localStorage.getItem("vp_arena_me") || "null"); }catch(e){ return null; } }
+  function hello(){ try{ fr.contentWindow.postMessage({ type: "lg-hello", me: savedLogin() }, ARENA_ORIGIN); }catch(e){} }
   fr.addEventListener("load", function(){ ready = false; hello(); setTimeout(hello, 1500); setTimeout(hello, 5000); });
   if (!fr.src) fr.src = ARENA_URL;   // load quietly in the background so new rep leads arrive on their own
 
@@ -3694,6 +3695,10 @@
     if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
+    else if (m.type === "arena-login" && m.me && m.me.code){
+      var cur = savedLogin() || {};
+      if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem("vp_arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} }
+    }
     else if (m.type === "arena-ack"){
       var l = LG.leads.find(function(y){ return y.arena_id === m.id; });
       if (l){ l.arena_remote = m.status; l.arena_synced = pendingKey[m.id] || keyOf(l); delete pendingKey[m.id]; LG.save(); }
