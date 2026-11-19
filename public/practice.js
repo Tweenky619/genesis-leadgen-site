@@ -1,4 +1,4 @@
-/* Pitch practice mode — Villa Pacifica formula (SoCal formula kept for the SoCal archive) */
+/* Pitch practice mode — Art's own formula (SoCal formula kept for the SoCal archive) */
 (function(){
   "use strict";
   var A = window.App;
@@ -153,7 +153,7 @@
   };
   var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
 
-  // ---------- Villa Pacifica formula (the door approach) ----------
+  // ---------- Art's formula (the door approach) ----------
   var VP = A.company !== "socal";
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
   var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your exterior paint and stucco", "Fascia/Trim Boards": "your fascia and trim boards", "Windows": "your windows" };

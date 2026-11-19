@@ -11,7 +11,7 @@
 
   var VPF = !(window.App && window.App.company === "socal");
   var VP_FORMULA =
-    '<p class="pb-lead">Villa Pacifica formula: <b>greet \u2192 why you\u2019re here \u2192 compliment their home \u2192 two times to choose from.</b></p>' +
+    '<p class="pb-lead">My formula: <b>greet \u2192 why you\u2019re here \u2192 compliment their home \u2192 two times to choose from.</b></p>' +
     '<ol class="pb-steps">' +
       '<li><b>Greet by time of day</b><div class="pb-ex">\u201cGood morning! / Good afternoon!\u201d</div></li>' +
       '<li><b>Introduce yourself and the company</b><div class="pb-ex">\u201cMy name is Art, I work with Villa Pacifica \u2014 how are you?\u201d</div></li>' +
@@ -133,7 +133,7 @@
 
   window.playbookHtml = function(){
     return '<div class="pb">' +
-      (VPF ? sec("🌴 Villa Pacifica formula", VP_FORMULA, true) + sec("🧠 Question \u2192 Education", FORMULA) : sec("🧠 The formula", FORMULA, true)) +
+      (VPF ? sec("⭐ My formula", VP_FORMULA, true) + sec("🧠 Question \u2192 Education", FORMULA) : sec("🧠 The formula", FORMULA, true)) +
       sec("📝 Q → E for each core product", PRODUCTS) +
       sec("🛠️ Build your own (8 examples)", BUILD) +
       sec("🌉 Bridges — using their answer", BRIDGES) +
