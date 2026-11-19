@@ -3530,7 +3530,7 @@
 
   load();
   renderList();
-  window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, statusOf: statusOf,
+  window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
@@ -3613,11 +3613,41 @@
     l.arena_remote = x.status; l.arena_synced = keyOf(l);
     return l;
   }
+  // Same house already in Lead Gen? (same phone, or same street number + street name)
+  function digits(p){ return String(p || "").replace(/\D/g, "").slice(-10); }
+  function addrKey(a){ var m = String(a || "").toLowerCase().match(/^\s*(\d+)\s+([a-z0-9]+)/); return m ? m[1] + " " + m[2] : ""; }
+  function sameHouse(a, b){
+    var pa = digits(a.phone), pb = digits(b.phone);
+    if (pa.length === 10 && pa === pb) return true;
+    var ka = addrKey(a.address), kb = addrKey(b.address);
+    return !!ka && ka === kb;
+  }
+  function findTwin(l){ return LG.leads.find(function(y){ return y !== l && !y.arena_id && sameHouse(y, l); }); }
+  function linkTwin(orig, dup){
+    ["arena_id", "arena_rep", "arena_remote", "arena_synced"].forEach(function(k){ orig[k] = dup[k]; });
+    orig.arena_photos = (orig.arena_photos || []).concat(dup.arena_photos || []);
+    LG.addLog(orig, "Linked to Canvassing Arena lead (set by " + (dup.arena_rep || "rep") + ")");
+    ["phone", "email", "alt_phone", "appt_date", "appt_time", "appt_day", "first_name", "last_name", "homeowner_name"].forEach(function(k){ if (!orig[k] && dup[k]) orig[k] = dup[k]; });
+    if (dup.id){
+      LG.photosFor(dup.id).then(function(ps){ ps.forEach(function(p){ p.leadId = orig.id; LG.photoPut(p); }); });
+      var i = LG.leads.indexOf(dup); if (i !== -1) LG.leads.splice(i, 1);
+    }
+  }
+  // clean up twins that were already imported
+  (function(){
+    var fixed = false;
+    LG.leads.slice().forEach(function(l){ if (l.source === "Arena" && l.arena_id){ var t = findTwin(l); if (t){ linkTwin(t, l); fixed = true; } } });
+    if (fixed){ LG.save(); LG.refresh(); }
+  })();
   function onLeads(list){
     var leads = LG.leads, changed = false, want = [];
     list.forEach(function(x){
       var l = leads.find(function(y){ return y.arena_id === x.id; });
-      if (!l){ l = buildLead(x); leads.push(l); changed = true; }
+      if (!l){
+        var nl = buildLead(x), twin = findTwin(nl);
+        if (twin){ nl.id = null; linkTwin(twin, nl); l = twin; } else { leads.push(nl); l = nl; }
+        changed = true;
+      }
       else if (x.status !== l.arena_remote){
         // changed inside Arena (not by Lead Gen) -> mirror it here
         if (x.status !== toArena(l) && FROM[x.status]){
