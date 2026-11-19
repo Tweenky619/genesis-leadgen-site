@@ -1,4 +1,4 @@
-/* Pitch 1 practice mode — SoCal Contractor Exchange lead app */
+/* Pitch practice mode — Villa Pacifica formula (SoCal formula kept for the SoCal archive) */
 (function(){
   "use strict";
   var A = window.App;
@@ -74,7 +74,7 @@
       { type: "q", label: "Question 2", say: "Have you noticed the missing shingles \u2014 right there?", cue: "Point to the bare spots.", slick: true,
         slickImg: "slicks/roof-missing-shingles.jpg", slickCap: "Missing shingles",
         replies: ["No, I can't see the roof from here.", "Oh wow, I didn't know that.", "Is that from the wind?", "How bad is that?"],
-        follow: "Did you know missing shingles allow moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "SoCal formula: point out damage + consequence of damage." },
+        follow: "Did you know missing shingles allow moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "Point out damage + consequence of damage." },
       { type: "q", label: "Question 3", say: "Have you noticed the ridge caps up top \u2014 see how they're cracked and lifting?", cue: "Point to the peak of the roof.", slick: true,
         slickImg: "slicks/roof-ridge-caps.jpg", slickCap: "Blown out ridge caps",
         replies: ["I never look up there.", "Yeah, I see it now.", "What's a ridge cap?", "Is that serious?"],
@@ -95,7 +95,7 @@
         follow: "Okay, so that's about right — that's usually when stucco starts letting go. Come take a look at this real quick — right over here.", tip: "Transition: walk them to the wall. Once they're standing at the damage, the questions sell themselves." },
       { type: "q", label: "Question 1", say: "Have you noticed this damage getting worse?", cue: "Point to the chipping and peeling.",
         replies: ["Yeah, it's spreading.", "It's been like that a while.", "I haven't really paid attention.", "Is it bad?"],
-        follow: "Did you know chipping and peeling allows moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "SoCal script: point out damage + consequence of damage." },
+        follow: "Did you know chipping and peeling allows moisture in, which can lead to dry rot, termites, and toxic mold?", tip: "Point out damage + consequence of damage." },
       { type: "q", label: "Question 2", say: "Have you seen this damage anywhere else on the home?", cue: "Point to the white, powdery stains near the bottom of the wall.", slick: true,
         slickImg: "slicks/stucco-efflorescence.jpg", slickCap: "Efflorescence aka stucco cancer",
         replies: ["There's some on the back side.", "By the garage, I think.", "I don't know.", "What's that white stuff?"],
@@ -153,6 +153,41 @@
   };
   var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
 
+  // ---------- Villa Pacifica formula (the door approach) ----------
+  var VP = A.company !== "socal";
+  function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
+  var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your exterior paint and stucco", "Fascia/Trim Boards": "your fascia and trim boards", "Windows": "your windows" };
+  var VP_COMPLIMENT = {
+    "Roof": ["I see you redid the landscaping out front — it looks great", "I love what you did with the front yard", "I see you painted the house recently — the color looks sharp"],
+    "Paint/Stucco": ["I see you put in new windows — they look great", "I love the landscaping you've got going out front", "That driveway looks brand new — nice work"],
+    "Fascia/Trim Boards": ["I see you put a new roof on — it looks great", "I love the new garage door", "The yard looks great — you can tell somebody takes care of it"],
+    "Windows": ["I see you redid the roof — it looks great", "That paint job looks fresh — nice color", "I love the front door you put in"]
+  };
+  var VP_PHASES = ["Greet", "Reason", "Compliment", "Close"];
+  function vpSteps(product){
+    return [
+      { type: "open", ph: 0, title: "Step 1 \u00b7 Greet & introduce", who: "You say", followWho: "You acknowledge",
+        say: greet() + "! My name is Art, I work with Villa Pacifica \u2014 how are you?",
+        replies: ["Good, and you?", "I'm alright. What's this about?", "Kind of busy right now.", "Fine, thanks."],
+        follow: "Glad to hear it! I'll be quick.",
+        tip: "Match the time of day. Whatever they say, acknowledge it before you move on \u2014 busy? \u201cI'll be quick.\u201d" },
+      { type: "q", ph: 1, title: "Step 2 \u00b7 Why you're here", who: "You say", followWho: "If they ask",
+        say: "The reason I'm in your neighborhood \u2014 my company, tomorrow we're leaving estimates on different services that we do.",
+        replies: ["What kind of services?", "What do you guys do?", "Estimates on what?", "Like what?"],
+        follow: "Roofing, exterior paint and stucco, fascia and trim boards, and windows. The estimate is free \u2014 we leave you a price in writing.",
+        tip: "Keep it short and casual \u2014 you're just letting them know you're in the area tomorrow." },
+      { type: "q", ph: 2, title: "Step 3 \u00b7 Point out their work & compliment", who: "You say", cue: "Point to something they've done to the house.",
+        say: pick(VP_COMPLIMENT[product]) + " \u2014 so I know you have pride in ownership on your home!",
+        tip: "Find something they actually did \u2014 new windows, paint, landscaping, a new roof. A real compliment lowers their guard." },
+      { type: "close", ph: 3, title: "Step 4 \u00b7 The opportunity + close", who: "You close", followWho: "You transition",
+        say: "I see a possible chance of earning your business on " + VP_WORD[product] + " \u2014 will you be home at 10am, or does 2pm sound good for you?",
+        replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
+        follow: "Perfect \u2014 I'll put you down. Excuse me \u2014 my name is Art, and you are? And how do I spell your last name?",
+        tip: "Pushback (spouse, busy, not interested)? Use the Rebuttals tab. Alternative choice: two times, both yeses. Once they pick, go straight into the info script and the close script (spouse, set the stage, confirmation)." }
+    ];
+  }
+  var VP_CLOSE_SAY = "I see a possible chance of earning your business on your ___ \u2014 will you be home at 10am, or does 2pm sound good for you?";
+
   var REBUTTALS = [];
 
   // ---------- State ----------
@@ -195,6 +230,7 @@
   // Practice only the Question -> Education phase (no opener / close)
   // Full flow: Intro -> transition -> Q/E x3 -> transition -> Close -> transition to info
   function runSteps(product){
+    if(VP){ if(!st.run || !st.run.vp || st.run.vpFor !== product){ if(st.run){ st.run.vp = vpSteps(product); st.run.vpFor = product; } else { return vpSteps(product); } } return st.run.vp; }
     var all = PITCHES[product];
     var intro = all.filter(function(x){ return x.type === "open"; })[0];
     var qs = all.filter(function(x){ return x.type === "q" && x.follow; }).slice(0, 3);
@@ -202,10 +238,12 @@
     return [intro].concat(qs, [toClose, SOCAL_CLOSE]);
   }
   function phaseBar(s){
+    if(s.ph !== undefined){ return VP_PHASES.map(function(n, i){ return '<span class="' + (i < s.ph ? "done" : i === s.ph ? "now" : "") + '">' + n + '</span>'; }).join(""); }
     var cur = s.type === "open" ? 0 : s.type === "q" ? 1 : 2;
     return ["Intro", "Question \u2192 Education", "Close"].map(function(n, i){ return '<span class="' + (i < cur ? "done" : i === cur ? "now" : "") + '">' + n + '</span>'; }).join("");
   }
   function stepTitle(s, phase){
+    if(s.title) return s.title;
     if(s.type === "open") return phase === "follow" ? "Transition \u2192 Phase 2" : "Phase 1 \u00b7 Intro";
     if(s.type === "q") return "Phase 2 \u00b7 " + s.label.replace("Question", phase === "follow" ? "Education" : "Question");
     if(s.type === "trans") return s.label;
@@ -213,6 +251,7 @@
     return s.label;
   }
   function whoLabel(s, phase){
+    if(s.who) return phase === "follow" ? (s.followWho || s.who) : s.who;
     if(s.type === "open") return phase === "follow" ? "You transition" : "You say";
     if(s.type === "q") return phase === "follow" ? "You educate" : "You ask";
     if(s.type === "trans") return "You transition";
@@ -433,7 +472,7 @@
     ["Point", "Get their eyes on the damage <b>before you say a word</b>. Turn toward it and point. If they don’t see it, nothing you say next lands."],
     ["Ask the Question", "“Have you noticed ___?” makes them <b>discover it themselves</b>. What they find on their own, they believe — and their answer tells you how much they already know."],
     ["Show the Slick", "The slick shows them <b>what it looks like when it gets worse</b>. Now they know what they’re looking at on their own house — and you look like the expert."],
-    ["Educate", "Say what it is, what it <b>lets in</b>, and what that <b>leads to</b>: moisture → dry rot, termites, and toxic mold. That’s SoCal’s formula: <b>point out damage + consequence of damage.</b>"],
+    ["Educate", "Say what it is, what it <b>lets in</b>, and what that <b>leads to</b>: moisture → dry rot, termites, and toxic mold. The formula: <b>point out damage + consequence of damage.</b>"],
     ["Bridge", "React to what they said, then lead into the next question. Each loop goes deeper — <b>what they see → what’s hidden → how it reaches them</b>. After the last loop, the cost of waiting bridges you into the close."]
   ];
   var QE_SPOT = {
@@ -474,7 +513,7 @@
         }).join("") +
         '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div>' +
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
-          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(SOCAL_CLOSE.say) + '”</div></div>' +
+          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY.replace("your ___", VP_WORD[pr]) : SOCAL_CLOSE.say) + '”</div></div>' +
           '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
       html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pr) + ' \u2014 more questions to ask</span></summary>' +
         QE_LOOPS.map(function(L){ return '<div class="rbm-sub">' + esc(L[1]) + '</div><ul class="rbm-say">' + QE_BANK[pr][L[0]].map(function(q){ return '<li>\u201c' + esc(q) + '\u201d</li>'; }).join("") + '</ul>'; }).join("") +

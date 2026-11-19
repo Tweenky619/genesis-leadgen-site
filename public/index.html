@@ -3594,7 +3594,7 @@
     openDetail(b.getAttribute("data-open-lead"));
   }, true);
 
-  window.App = { showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
+  window.App = { company: COMPANY, showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
   document.getElementById("practiceBtn").addEventListener("click", function(){ if(window.openPractice){ window.openPractice(); } });
   document.getElementById("backFromPracticeBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
 
@@ -3604,8 +3604,8 @@
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
-<script src="playbook.js?v=1"></script>
-<script src="practice.js?v=46"></script>
+<script src="playbook.js?v=2"></script>
+<script src="practice.js?v=47"></script>
 <div id="arenaView" hidden>
   <div class="ar-bar">
     <button type="button" id="arenaBack">&#8592; Lead Gen</button>

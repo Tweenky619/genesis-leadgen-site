@@ -9,8 +9,22 @@
   }
   function sec(title, body, open){ return '<details class="pb-sec"' + (open ? " open" : "") + '><summary>' + title + '</summary><div class="pb-body">' + body + '</div></details>'; }
 
+  var VPF = !(window.App && window.App.company === "socal");
+  var VP_FORMULA =
+    '<p class="pb-lead">Villa Pacifica formula: <b>greet \u2192 why you\u2019re here \u2192 compliment their home \u2192 two times to choose from.</b></p>' +
+    '<ol class="pb-steps">' +
+      '<li><b>Greet by time of day</b><div class="pb-ex">\u201cGood morning! / Good afternoon!\u201d</div></li>' +
+      '<li><b>Introduce yourself and the company</b><div class="pb-ex">\u201cMy name is Art, I work with Villa Pacifica \u2014 how are you?\u201d</div></li>' +
+      '<li><b>Acknowledge</b> whatever they say before moving on.<div class="pb-ex">\u201cGlad to hear it!\u201d / \u201cI\u2019ll be quick.\u201d</div></li>' +
+      '<li><b>The reason you\u2019re here</b><div class="pb-ex">\u201cThe reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do.\u201d</div></li>' +
+      '<li><b>Point out work they\u2019ve done and compliment it</b><div class="pb-ex">\u201cI see you redid the landscaping \u2014 it looks great \u2014 so I know you have pride in ownership on your home!\u201d</div></li>' +
+      '<li><b>The opportunity + alternative-choice close</b><div class="pb-ex">\u201cI see a possible chance of earning your business on your [product/project] \u2014 will you be home at 10am, or does 2pm sound good for you?\u201d</div></li>' +
+    '</ol>' +
+    '<p class="pb-sub">Full script:</p>' +
+    '<div class="pb-ex">\u201c[Good morning/afternoon]! My name is [Rep], I work with Villa Pacifica, how are you? [Acknowledge] The reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. [Point out work they\u2019ve done and compliment] so I know you have pride in ownership on your home! I see a possible chance of earning your business on [product/project] \u2014 will you be home at 10am or does 2pm sound good for you?\u201d</div>' +
+    '<p class="pb-sub" style="margin-top:12px">If they want to know what you saw, use Question \u2192 Education below.</p>';
   var FORMULA =
-    '<p class="pb-lead">SoCal’s formula: <b>point out damage + consequence of damage.</b></p>' +
+    '<p class="pb-lead">' + (VPF ? 'Question \u2192 Education' : 'SoCal\u2019s formula') + ': <b>point out damage + consequence of damage.</b></p>' +
     '<ol class="pb-steps">' +
       '<li><b>Question</b> — get them to <i>see</i> it. Point while you ask.<div class="pb-ex">“Have you noticed ___?”</div></li>' +
       '<li><b>Education</b> — say what it is and what it leads to.<div class="pb-ex">“Did you know ___ allows moisture in, which can lead to dry rot, termites, and toxic mold?”</div></li>' +
@@ -119,7 +133,7 @@
 
   window.playbookHtml = function(){
     return '<div class="pb">' +
-      sec("🧠 The formula", FORMULA, true) +
+      (VPF ? sec("🌴 Villa Pacifica formula", VP_FORMULA, true) + sec("🧠 Question \u2192 Education", FORMULA) : sec("🧠 The formula", FORMULA, true)) +
       sec("📝 Q → E for each core product", PRODUCTS) +
       sec("🛠️ Build your own (8 examples)", BUILD) +
       sec("🌉 Bridges — using their answer", BRIDGES) +
