@@ -170,7 +170,7 @@
   function joinAnd(a){ return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + (a.length > 2 ? "," : "") + " and " + a[a.length - 1]; }
   function vpScene(){
     var done = pick(PRODUCTS), rest = PRODUCTS.filter(function(p){ return p !== done; });
-    var need = Math.random() < 0.5 ? [pick(rest)] : rest.slice();
+    var need = [pick(rest)];   // one product/project per pitch
     return { done: done, need: need,
       text: "🏠 This house: " + VP_DONE_SEE[done] + " already done · needs: " + joinAnd(need.map(function(n){ return VP_NEED[n]; })) };
   }
@@ -190,7 +190,7 @@
         say: "I see a possible chance of earning your business on " + joinAnd(sc.need.map(function(n){ return VP_WORD[n]; })) + " — will you be home at 10am, or does 2pm sound good for you?",
         replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
         follow: "Perfect — I'll put you down. Excuse me — my name is Art, and you are? And how do I spell your last name?",
-        tip: "Pitch only what you actually see the house needs from the 3 core products. Pushback? Use the Rebuttals tab. Two times, both yeses — then straight into the info script." }
+        tip: "Pitch ONE product/project \u2014 the one you see the house needs most from the 3 core products. Pushback? Use the Rebuttals tab. Two times, both yeses — then straight into the info script." }
     ];
   }
   var VP_CLOSE_SAY = "I see a possible chance of earning your business on ___ — will you be home at 10am, or does 2pm sound good for you?";
