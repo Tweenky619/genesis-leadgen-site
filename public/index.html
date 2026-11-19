@@ -87,6 +87,11 @@
     cursor:pointer;
   }
   .icon-btn:active{background:#d6dde6;}
+  .slot{display:flex;gap:10px;align-items:stretch;margin-bottom:8px;}
+  .slot-t{flex:0 0 46px;font-weight:800;color:var(--accent);font-size:14px;padding-top:12px;text-align:right;}
+  .slot-b{flex:1;min-width:0;}
+  .slot-b .lead-row{margin-bottom:6px;}
+  .slot-open{border:1.5px dashed var(--border);border-radius:12px;padding:12px 14px;color:var(--text-muted);font-size:14px;}
   .day-box{background:#fff;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
   .day-box .dh{font-weight:800;color:var(--brand);font-size:15px;display:flex;justify-content:space-between;gap:8px;}
   .day-box .dh span{font-weight:600;color:var(--text-muted);font-size:13px;}
@@ -1506,6 +1511,19 @@
     chip(pending, "waiting on outcome", "warn");
     return '<div class="day-box"><div class="dh">\ud83d\udcc5 Today \u00b7 ' + fmtIsoDate(todayISO()) + ' <span>' + list.length + ' appointment' + (list.length === 1 ? '' : 's') + '</span></div><div class="dchips">' + (chips.join("") || '<span class="dchip">No appointments today</span>') + '</div></div>';
   }
+  // Tomorrow laid out as 10 AM - 6 PM spots
+  function slotsHtml(list){
+    var out = "", used = {};
+    for(var h = 10; h <= 18; h++){
+      var inSlot = list.filter(function(l){ return Math.floor(timeMins(l.appt_time) / 60) === h; });
+      inSlot.forEach(function(l){ used[l.id] = 1; });
+      out += '<div class="slot"><div class="slot-t">' + hourLabel(h).replace(":00", "") + '</div><div class="slot-b">' +
+        (inSlot.length ? inSlot.map(leadRowHtml).join("") : '<div class="slot-open">Open</div>') + '</div></div>';
+    }
+    var rest = list.filter(function(l){ return !used[l.id]; });
+    if(rest.length){ out += '<div class="slot"><div class="slot-t">Other</div><div class="slot-b">' + rest.map(leadRowHtml).join("") + '</div></div>'; }
+    return out;
+  }
   function fmtMoney(n){ return "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }); }
   function parseMoney(v){ var n = parseFloat(String(v || "").replace(/[^0-9.]/g, "")); return isNaN(n) ? "" : n; }
 
@@ -1542,7 +1560,7 @@
       leads.length + (leads.length === 1 ? " Lead" : " Leads") + " Captured";
 
     if(filtered.length === 0 && !q && (currentTab === "today" || currentTab === "tomorrow") && leads.length){
-      container.innerHTML = dayBanner(currentTab, []);
+      container.innerHTML = dayBanner(currentTab, []) + (currentTab === "tomorrow" ? slotsHtml([]) : "");
       return;
     }
     if(filtered.length === 0){
@@ -1586,7 +1604,7 @@
       var ctot = filtered.reduce(function(s2, l){ return s2 + (Number(l.cancelled_amount || l.sale_amount) || 0); }, 0);
       banner = '<div class="sold-total miss-total"><span>' + filtered.length + ' cancelled</span>' + esc(fmtMoney(ctot)) + '</div>';
     }
-    container.innerHTML = banner + filtered.map(leadRowHtml).join("");
+    container.innerHTML = banner + (currentTab === "tomorrow" && !q ? slotsHtml(filtered) : filtered.map(leadRowHtml).join(""));
     bindLeadRows(container, false);
   }
   function bindLeadRows(container, fromStats){
