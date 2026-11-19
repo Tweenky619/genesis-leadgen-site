@@ -661,7 +661,9 @@
     else if(!st.run){ body = startCard(); }
     else if(st.run.finished){ body = summaryCard(); }
     else { body = stepCard(); }
-    root.innerHTML = header() + body;
+    var html = header() + body, me = A.meFirst ? A.meFirst() : "Art";
+    if (me !== "Art") html = html.replace(/\bArt\b/g, me);
+    root.innerHTML = html;
     var sl = root.querySelector("[data-slick]"); if(sl){ fillOwnSlicks(sl.getAttribute("data-slick")); }
   }
 

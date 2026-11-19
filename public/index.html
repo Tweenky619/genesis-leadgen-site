@@ -4,6 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Villa Pacifica Construction Lead Gen</title>
+<script>
+  // Rep copy: /rep — same Lead Gen, rep-only Arena, no manager tools, its own storage
+  window.LG_REP = /^\/rep(\/|$)/.test(location.pathname);
+  if (window.LG_REP){
+    document.documentElement.className += " rep-app";
+    document.addEventListener("DOMContentLoaded", function(){
+      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-rep.webmanifest";
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = "VP Lead Gen";
+    });
+  }
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -99,6 +110,7 @@
   .dchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .dchip{background:#f1f0f6;border-radius:999px;padding:5px 10px;font-size:13px;color:#334155;}
   .dchip.ok{background:#dcfce7;color:#166534;} .dchip.warn{background:#fef3c7;color:#92400e;} .dchip.bad{background:#fee2e2;color:#991b1b;}
+  .rep-app .co-pick, .rep-app #arenaBell{display:none!important;}
   #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
   #arenaView[hidden]{display:none;}
   .ar-bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;background:#12344d;color:#fff;}
@@ -947,7 +959,7 @@
           <summary>Info script <span class="opt">(fill out the lead sheet)</span></summary>
           <div class="fs-bar"><span>Text size</span><button type="button" data-fs="-1" aria-label="Smaller text">A&minus;</button><button type="button" data-fs="1" aria-label="Bigger text">A+</button></div>
           <label class="step"><input type="checkbox"><div><span class="tag">Info</span>
-            <p>&ldquo;Excuse me &ndash; my name is <b>Art</b>, and you are? And how do I spell your last name? And how do I spell your spouse&rsquo;s name?&rdquo;</p>
+            <p>&ldquo;Excuse me &ndash; my name is <b class="me-first">Art</b>, and you are? And how do I spell your last name? And how do I spell your spouse&rsquo;s name?&rdquo;</p>
             <p>&ldquo;And your address is <b class="i-addr">___</b>, and this is <b class="i-zip">___</b>?&rdquo;</p>
             <p>&ldquo;Just in case we&rsquo;re running a little late &ndash; we value your time &ndash; the best number to get a hold of you is 619 or 760?&rdquo;</p></div></label>
         </details>
@@ -1270,9 +1282,16 @@
   "use strict";
 
   // ---- Company workspaces: Villa Pacifica (current) and SoCal Contractor Exchange (saved, untouched) ----
-  var COMPANY = "vp"; try { COMPANY = localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
+  var REP_APP = !!window.LG_REP;
+  var COMPANY = "vp"; try { COMPANY = !REP_APP && localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
   var CO_NAME = COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
-  var CO_PREFIX = COMPANY === "socal" ? "socal_" : "vp_";
+  var CO_PREFIX = REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
+  // Rep copy: texts and scripts use the rep's own first name (from their Arena sign-in)
+  function meFirst(){
+    if(!REP_APP) return "Art";
+    try{ var a = JSON.parse(localStorage.getItem("rep_arena_me") || "null"); var n = (a && a.name || "").trim().split(/\s+/)[0]; return n || "your rep"; }catch(e){ return "your rep"; }
+  }
+  function paintMe(){ Array.prototype.forEach.call(document.querySelectorAll(".me-first"), function(el){ el.textContent = meFirst(); }); }
   function setCompany(c){ try { localStorage.setItem("lg_company", c); } catch(e){} location.reload(); }
   var STORAGE_KEY = CO_PREFIX + "leads_v1"; // SoCal leads stay under "socal_leads_v1"
   var leads = [];
@@ -2211,7 +2230,7 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is Art with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
       "Just a heads-up \u2014 reaching out to reconfirm the visit our rep reset with you, you can thumbs up here or say \u201cgood to go\u201d so we know we\u2019re fine to go out " +
       dateTxt + (l.appt_time ? " at " + l.appt_time : "") + projTxt + ". " +
       "Please and Thank you!";
@@ -2225,7 +2244,7 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
       "Our office tried calling to confirm your appointment" + projTxt + (dateTxt ? " " + (when ? "" : "on ") + dateTxt : "") + (l.appt_time ? " at " + l.appt_time : "") + ". " +
       "Friendly reminder: we\u2019ll be calling from " + OFFICE_PHONE + " \u2014 please save the number and pick up when we call so we can lock in your visit. Thank you!";
   }
@@ -2234,7 +2253,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
     pr = pr.map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) : "project";
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " from Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " from Villa Pacifica Construction. " +
       "I just wanted to say thank you for having us out \u2014 I heard you\u2019re getting your " + proj + " done. " +
       "You\u2019re going to love how the house looks! If you ever have any questions, I\u2019m just a text away. Have a great day!";
   }
@@ -2276,7 +2295,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; })
       .map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
-    return "Hi" + (first ? " " + first : "") + ", this is " + "Art" + " with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
       "No worries at all about the visit" + proj + " \u2014 I know things come up. " +
       "Whenever you\u2019re ready, I\u2019m happy to find a time that works better for you. Just reply here. Thank you!";
   }
@@ -2519,7 +2538,7 @@
   function fullBackup(){
     var store = {}; for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
     var out = { app: "leadgen-full-backup", version: 1, created: new Date().toISOString(), storage: store, photos: {} };
-    return Promise.all(["vp_", "socal_"].map(function(pre){
+    return Promise.all(["vp_", "socal_", "rep_"].map(function(pre){
       return dbAll(pre + "lead_photos").then(function(list){
         return Promise.all(list.map(function(r){ return blobToData(r.blob).then(function(d){ return { id: r.id, leadId: r.leadId, ts: r.ts, data: d }; }); }))
           .then(function(arr){ out.photos[pre] = arr; });
@@ -3630,7 +3649,8 @@
   }, true);
 
   if(COMPANY !== "socal"){ Array.prototype.forEach.call(document.querySelectorAll(".win-lbl"), function(el){ el.textContent = "High Performance Windows"; }); }
-  window.App = { company: COMPANY, showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
+  paintMe();
+  window.App = { company: COMPANY, meFirst: meFirst, paintMe: paintMe, showView: showView, esc: esc, uid: uid, photoPut: photoPut, photosFor: photosFor, compressImage: compressImage, renderPhotos: renderPhotos };
   document.getElementById("practiceBtn").addEventListener("click", function(){ if(window.openPractice){ window.openPractice(); } });
   document.getElementById("backFromPracticeBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
 
@@ -3642,7 +3662,7 @@
 })();
 </script>
 <script src="playbook.js?v=10"></script>
-<script src="practice.js?v=55"></script>
+<script src="practice.js?v=56"></script>
 <div id="arenaView" hidden>
   <div class="ar-bar">
     <button type="button" id="arenaBack">&#8592; Lead Gen</button>
@@ -3655,12 +3675,13 @@
 </div>
 <script>
 (function(){
-  var ARENA_URL = "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
+  var AP = window.LG_REP ? "rep_" : "vp_";
+  var ARENA_URL = window.LG_REP ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
   if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
-  function openArena(){ if (!fr.src) fr.src = ARENA_URL; view.hidden = false; try{ localStorage.setItem("vp_arena_open","1"); }catch(e){} }
-  function closeArena(){ view.hidden = true; try{ localStorage.removeItem("vp_arena_open"); }catch(e){} }
+  function openArena(){ if (!fr.src) fr.src = ARENA_URL; view.hidden = false; try{ localStorage.setItem(AP + "arena_open","1"); }catch(e){} }
+  function closeArena(){ view.hidden = true; try{ localStorage.removeItem(AP + "arena_open"); }catch(e){} }
   btn.addEventListener("click", openArena);
   document.getElementById("arenaBack").addEventListener("click", closeArena);
   document.getElementById("arenaReload").addEventListener("click", function(){ fr.src = ARENA_URL + "?r=" + Date.now(); });
@@ -3668,7 +3689,7 @@
   // ---- Bridge: rep leads from Arena drop into Lead Gen; outcomes flow back ----
   var LG = window.LG; if (!LG) return;
   var ready = false, pendingKey = {}, askedPhotos = {};
-  function savedLogin(){ try{ return JSON.parse(localStorage.getItem("vp_arena_me") || "null"); }catch(e){ return null; } }
+  function savedLogin(){ try{ return JSON.parse(localStorage.getItem(AP + "arena_me") || "null"); }catch(e){ return null; } }
   function hello(){ try{ fr.contentWindow.postMessage({ type: "lg-hello", me: savedLogin() }, ARENA_ORIGIN); }catch(e){} }
   fr.addEventListener("load", function(){ ready = false; hello(); setTimeout(hello, 1500); setTimeout(hello, 5000); });
   if (!fr.src) fr.src = ARENA_URL;   // load quietly in the background so new rep leads arrive on their own
@@ -3804,7 +3825,7 @@
   function b64ToBytes(b){ b = b.replace(/-/g, "+").replace(/_/g, "/"); while(b.length % 4) b += "="; var r = atob(b), o = new Uint8Array(r.length); for(var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
   function sendSwAuth(){ var a = savedLogin(); if(swReg && a && a.mgr && navigator.serviceWorker.controller !== undefined){ navigator.serviceWorker.ready.then(function(r){ if(r.active) r.active.postMessage({ type: "auth", auth: { code: a.code, mgr: a.mgr } }); }); } }
   function bellState(){
-    var on = ("Notification" in window) && Notification.permission === "granted" && localStorage.getItem("vp_push_on") === "1";
+    var on = ("Notification" in window) && Notification.permission === "granted" && localStorage.getItem(AP + "push_on") === "1";
     bell.innerHTML = on ? "&#128276;" : "&#128277;"; bell.style.background = on ? "#7c3aed" : "";
   }
   if("serviceWorker" in navigator){ navigator.serviceWorker.register("/sw.js").then(function(r){ swReg = r; sendSwAuth(); }).catch(function(){}); }
@@ -3837,19 +3858,20 @@
     if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
-    else if (m.type === "arena-push-ok"){ clearTimeout(pushWait); localStorage.setItem("vp_push_on", "1"); bellState(); alertBox("\ud83d\udd14 New-lead alerts are on for this phone."); try{ swReg && swReg.showNotification("Alerts are working", { body: "New rep leads will pop up here, even when the app is closed.", icon: "/vp-icon.png?v=3" }).catch(function(){}); }catch(e){} }
+    else if (m.type === "arena-push-ok"){ clearTimeout(pushWait); localStorage.setItem(AP + "push_on", "1"); bellState(); alertBox("\ud83d\udd14 New-lead alerts are on for this phone."); try{ swReg && swReg.showNotification("Alerts are working", { body: "New rep leads will pop up here, even when the app is closed.", icon: "/vp-icon.png?v=3" }).catch(function(){}); }catch(e){} }
     else if (m.type === "arena-push-fail"){ clearTimeout(pushWait); alertBox("Couldn't turn on alerts: " + (m.error || "try again")); }
-    else if (m.type === "arena-logout"){ try{ localStorage.removeItem("vp_arena_me"); }catch(e){} }
+    else if (m.type === "arena-logout"){ try{ localStorage.removeItem(AP + "arena_me"); }catch(e){} }
     else if (m.type === "arena-login" && m.me && m.me.code){
       var cur = savedLogin() || {};
-      if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem("vp_arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} sendSwAuth(); }
+      if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem(AP + "arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} sendSwAuth(); if (window.App && App.paintMe) App.paintMe(); }
     }
     else if (m.type === "arena-ack"){
       var l = LG.leads.find(function(y){ return y.arena_id === m.id; });
       if (l){ l.arena_remote = m.status; l.arena_synced = pendingKey[m.id] || keyOf(l); delete pendingKey[m.id]; LG.save(); }
     }
   });
-  try{ if (localStorage.getItem("vp_arena_open")) openArena(); }catch(e){}
+  try{ if (localStorage.getItem(AP + "arena_open")) openArena(); }catch(e){}
+  if (window.LG_REP && !savedLogin()) setTimeout(function(){ if (!savedLogin()) openArena(); }, 1200);   // rep signs in once
 })();
 </script>
 </body>

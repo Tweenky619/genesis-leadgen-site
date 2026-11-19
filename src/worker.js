@@ -28,6 +28,13 @@ export default {
       await env.DB.prepare("INSERT INTO events (app, device, event) VALUES (?1, ?2, ?3)").bind(app, device, event).run();
       return new Response(null, { status: 204, headers: h });
     }
+    // Rep copy lives at /rep — same files, served from the root
+    if (url.pathname === "/rep" || url.pathname.startsWith("/rep/")) {
+      const rest = url.pathname.slice(4) || "/";
+      const target = new URL(rest === "/" ? "/" : rest, url);
+      target.search = url.search;
+      return env.ASSETS.fetch(new Request(target.toString(), request));
+    }
     return env.ASSETS.fetch(request);
   },
 };
