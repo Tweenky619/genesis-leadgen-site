@@ -11,17 +11,17 @@
 
   var VPF = !(window.App && window.App.company === "socal");
   var VP_FORMULA =
-    '<p class="pb-lead">My formula: <b>greet \u2192 why you\u2019re here, bridged into a compliment \u2192 two times to choose from.</b></p>' +
+    '<p class="pb-lead">My formula: <b>greet \u2192 why you\u2019re here, bridged into a compliment on what they\u2019ve done \u2192 pitch what the house needs \u2192 two times to choose from.</b></p>' +
     '<ol class="pb-steps">' +
       '<li><b>Greet by time of day</b><div class="pb-ex">\u201cGood morning! / Good afternoon!\u201d</div></li>' +
       '<li><b>Introduce yourself and the company</b><div class="pb-ex">\u201cMy name is Art, I work with Villa Pacifica \u2014 how are you?\u201d</div></li>' +
       '<li><b>Acknowledge</b> whatever they say before moving on.<div class="pb-ex">\u201cGlad to hear it!\u201d / \u201cI\u2019ll be quick.\u201d</div></li>' +
-      '<li><b>The reason you\u2019re here \u2192 bridge into the compliment</b> \u2014 one breath, no pause. Point out work they\u2019ve done as you bridge.<div class="pb-ex">\u201cThe reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. I see you redid the landscaping \u2014 it looks great \u2014 so I know you have pride in ownership on your home!\u201d</div></li>' +
-      '<li><b>The opportunity + alternative-choice close</b><div class="pb-ex">\u201cI see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am, or does 2pm sound good for you?\u201d</div></li>' +
+      '<li><b>The reason you\u2019re here \u2192 bridge into the compliment</b> \u2014 one breath, no pause. Compliment a core product they\u2019ve <b>already done</b> (new roof, fresh paint/stucco, new windows).<div class="pb-ex">\u201cThe reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. I see you put in new windows \u2014 they look great \u2014 so I know you have pride in ownership on your home!\u201d</div></li>' +
+      '<li><b>Pitch what the house needs + alternative-choice close</b> \u2014 only the core product(s) you actually see it needs.<div class="pb-ex">\u201cI see a possible chance of earning your business on your roof \u2014 will you be home at 10am, or does 2pm sound good for you?\u201d</div></li>' +
     '</ol>' +
-    '<p class="pb-sub">My 3 core products: <b>🏠 Roof \u00b7 🧱 Paint/Stucco \u00b7 🪟 High Performance Windows</b></p>' +
+    '<p class="pb-sub">My 3 core products: <b>🏠 Roof \u00b7 🧱 Paint/Stucco \u00b7 🪟 High Performance Windows</b> \u2014 compliment the ones they\u2019ve done, pitch the ones the house needs.</p>' +
     '<p class="pb-sub">Full script:</p>' +
-    '<div class="pb-ex">\u201c[Good morning/afternoon]! My name is [Rep], I work with Villa Pacifica, how are you? [Acknowledge] The reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. [Point out work they\u2019ve done and compliment] so I know you have pride in ownership on your home! I see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am or does 2pm sound good for you?\u201d</div>' +
+    '<div class="pb-ex">\u201c[Good morning/afternoon]! My name is [Rep], I work with Villa Pacifica, how are you? [Acknowledge] The reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. [Point out a core product they\u2019ve done and compliment] so I know you have pride in ownership on your home! I see a possible chance of earning your business on [core product the house needs] \u2014 will you be home at 10am or does 2pm sound good for you?\u201d</div>' +
     '<p class="pb-sub" style="margin-top:12px">If they want to know what you saw, use Question \u2192 Education below.</p>';
   var FORMULA =
     '<p class="pb-lead">' + (VPF ? 'Question \u2192 Education' : 'SoCal\u2019s formula') + ': <b>point out damage + consequence of damage.</b></p>' +

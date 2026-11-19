@@ -158,33 +158,42 @@
   function pn(p){ return VP && p === "Windows" ? "High Performance Windows" : p; }
   function pl(p){ return p === "Pitch" ? "My pitch" : pn(p); }
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
-  var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your exterior paint and stucco", "Fascia/Trim Boards": "your fascia and trim boards", "Windows": "your windows" };
-  var VP_COMPLIMENT = {
-    "Roof": ["I see you redid the landscaping out front — it looks great", "I love what you did with the front yard", "I see you painted the house recently — the color looks sharp"],
-    "Paint/Stucco": ["I see you put in new windows — they look great", "I love the landscaping you've got going out front", "That driveway looks brand new — nice work"],
-    "Fascia/Trim Boards": ["I see you put a new roof on — it looks great", "I love the new garage door", "The yard looks great — you can tell somebody takes care of it"],
-    "Windows": ["I see you redid the roof — it looks great", "That paint job looks fresh — nice color", "I love the front door you put in"]
+  // Pitch what the house NEEDS (from the 3 core products); compliment a core product they've already DONE.
+  var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your paint and stucco", "Windows": "high performance windows" };
+  var VP_DONE = {
+    "Roof": ["I see you put a new roof on — it looks great", "That roof looks brand new — nice work"],
+    "Paint/Stucco": ["I see you painted the house — the color looks sharp", "Your stucco looks fresh — nice job"],
+    "Windows": ["I see you put in new windows — they look great", "Those new windows look sharp"]
   };
-  VP_COMPLIMENT.Pitch = VP_COMPLIMENT.Roof.concat(VP_COMPLIMENT["Paint/Stucco"], VP_COMPLIMENT.Windows);
-  var VP_PHASES = ["Greet", "Reason \u2192 Compliment", "Close"];
+  var VP_NEED = { "Roof": "worn and missing shingles", "Paint/Stucco": "cracking, peeling stucco", "Windows": "old, foggy windows" };
+  var VP_DONE_SEE = { "Roof": "a new roof", "Paint/Stucco": "fresh paint and stucco", "Windows": "new windows" };
+  function joinAnd(a){ return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + (a.length > 2 ? "," : "") + " and " + a[a.length - 1]; }
+  function vpScene(){
+    var done = pick(PRODUCTS), rest = PRODUCTS.filter(function(p){ return p !== done; });
+    var need = Math.random() < 0.5 ? [pick(rest)] : rest.slice();
+    return { done: done, need: need,
+      text: "🏠 This house: " + VP_DONE_SEE[done] + " already done · needs: " + joinAnd(need.map(function(n){ return VP_NEED[n]; })) };
+  }
+  var VP_PHASES = ["Greet", "Reason → Compliment", "Close"];
   function vpSteps(product){
+    var sc = vpScene();
     return [
-      { type: "open", ph: 0, title: "Step 1 \u00b7 Greet & introduce", who: "You say", followWho: "You acknowledge",
-        say: greet() + "! My name is Art, I work with Villa Pacifica \u2014 how are you?",
+      { type: "open", ph: 0, scene: sc.text, title: "Step 1 · Greet & introduce", who: "You say", followWho: "You acknowledge",
+        say: greet() + "! My name is Art, I work with Villa Pacifica — how are you?",
         replies: ["Good, and you?", "Fine, thanks.", "Doing well.", "Not bad, you?"],
         follow: "Glad to hear it! I'm doing great, thank you.",
-        tip: "Match the time of day. Whatever they say, acknowledge it before you move on \u2014 busy? \u201cI'll be quick.\u201d" },
-      { type: "q", ph: 1, title: "Step 2 \u00b7 Why you're here \u2192 bridge into the compliment", who: "You say", cue: "Point to something they've done to the house as you bridge.",
-        say: "The reason I'm in your neighborhood \u2014 my company, tomorrow we're leaving estimates on different services that we do. " + pick(VP_COMPLIMENT[product]) + " \u2014 so I know you have pride in ownership on your home!",
-        tip: "One breath \u2014 don't stop after the reason. Bridge straight into pointing out work they've done and the compliment, so there's no gap for a \u201cno thanks.\u201d" },
-      { type: "close", ph: 2, title: "Step 3 \u00b7 The opportunity + close", who: "You close", followWho: "You transition",
-        say: "I see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am, or does 2pm sound good for you?",
+        tip: "Match the time of day. Whatever they say, acknowledge it before you move on — busy? “I'll be quick.”" },
+      { type: "q", ph: 1, scene: sc.text, title: "Step 2 · Why you're here → compliment what they've done", who: "You say", cue: "Point to their " + VP_DONE_SEE[sc.done].replace(/^an? /, "") + " as you bridge.",
+        say: "The reason I'm in your neighborhood — my company, tomorrow we're leaving estimates on different services that we do. " + pick(VP_DONE[sc.done]) + " — so I know you have pride in ownership on your home!",
+        tip: "One breath — bridge straight from the reason into the compliment. Compliment a core product they've already done (roof, paint/stucco or windows)." },
+      { type: "close", ph: 2, scene: sc.text, title: "Step 3 · Pitch what the house needs + close", who: "You close", followWho: "You transition",
+        say: "I see a possible chance of earning your business on " + joinAnd(sc.need.map(function(n){ return VP_WORD[n]; })) + " — will you be home at 10am, or does 2pm sound good for you?",
         replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
-        follow: "Perfect \u2014 I'll put you down. Excuse me \u2014 my name is Art, and you are? And how do I spell your last name?",
-        tip: "Pushback (spouse, busy, not interested)? Use the Rebuttals tab. Alternative choice: two times, both yeses. Once they pick, go straight into the info script and the close script (spouse, set the stage, confirmation)." }
+        follow: "Perfect — I'll put you down. Excuse me — my name is Art, and you are? And how do I spell your last name?",
+        tip: "Pitch only what you actually see the house needs from the 3 core products. Pushback? Use the Rebuttals tab. Two times, both yeses — then straight into the info script." }
     ];
   }
-  var VP_CLOSE_SAY = "I see a possible chance of earning your business on your roof, paint and stucco, and high performance windows \u2014 will you be home at 10am, or does 2pm sound good for you?";
+  var VP_CLOSE_SAY = "I see a possible chance of earning your business on ___ — will you be home at 10am, or does 2pm sound good for you?";
 
   var REBUTTALS = [];
 
@@ -271,6 +280,7 @@
     var html = '<div class="pr-card">' +
       '<div class="pr-top"><span class="pr-prod">' + esc(pl(r.product)) + '</span><span class="pr-dots">' + progress + '</span></div>' +
       '<div class="pr-phase">' + phaseBar(s) + '</div>' +
+      (s.scene ? '<div class="pr-cue" style="background:#ede9fe;color:#4c1d95">' + esc(s.scene) + '</div>' : '') +
       '<div class="pr-step">' + esc(stepTitle(s, r.phase)) + '</div>';
     if(r.phase === "follow" && r.reply){
       html += '<div class="pr-ho"><b>🏠 Homeowner:</b> “' + esc(r.reply) + '”</div>';
@@ -511,7 +521,7 @@
         }).join("") +
         '<div class="rbm-why"><div class="rbm-h"><span class="acc">→</span>Bridge to the close</div>' +
           '<div class="qe-row"><b>Bridge</b><div class="pb-ex">“' + esc(TO_CLOSE[pr]) + '”</div></div>' +
-          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY : SOCAL_CLOSE.say) + '”</div></div>' +
+          '<div class="qe-row"><b>Close</b><div class="pb-ex">“' + esc(VP ? VP_CLOSE_SAY.replace("___", VP_WORD[pr]) : SOCAL_CLOSE.say) + '”</div></div>' +
           '<p>The cost of waiting: it’s still the cheap fix right now — so you put them at the top of your list for a free inspection. Give two easy choices, then go straight into the close script.</p></div></div>';
       html += '<details class="pr-card qe-bank"><summary><span class="pr-step">' + QE_ICON[pr] + ' ' + esc(pn(pr)) + ' \u2014 more questions to ask</span></summary>' +
         QE_LOOPS.map(function(L){ return '<div class="rbm-sub">' + esc(L[1]) + '</div><ul class="rbm-say">' + QE_BANK[pr][L[0]].map(function(q){ return '<li>\u201c' + esc(q) + '\u201d</li>'; }).join("") + '</ul>'; }).join("") +
@@ -634,7 +644,7 @@
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : pl(st.product);
     return '<div class="pr-card pr-start"><div class="pr-step">Full pitch · ' + esc(p) + '</div>' +
-      (VP ? '<p class="pr-sub">Greet → why you’re here, bridged into a compliment → close on all 3 core products: <b>Roof, Paint/Stucco and High Performance Windows</b>.</p>'
+      (VP ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
           : '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>') +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
