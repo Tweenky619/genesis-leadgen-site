@@ -3695,6 +3695,7 @@
     if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
+    else if (m.type === "arena-logout"){ try{ localStorage.removeItem("vp_arena_me"); }catch(e){} }
     else if (m.type === "arena-login" && m.me && m.me.code){
       var cur = savedLogin() || {};
       if (cur.code !== m.me.code || cur.mgr !== m.me.mgr || cur.name !== m.me.name){ try{ localStorage.setItem("vp_arena_me", JSON.stringify({ name: m.me.name || "", code: m.me.code, mgr: m.me.mgr || "" })); }catch(e){} }
