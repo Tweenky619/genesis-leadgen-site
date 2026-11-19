@@ -1299,6 +1299,7 @@
   }
   function save(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+    if(window.LG_onSave){ try{ window.LG_onSave(); }catch(e){} }
   }
   function uid(){
     return "l_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
@@ -1557,6 +1558,7 @@
           '<div class="main">' +
             '<div class="name">' + esc(l.homeowner_name || "Unnamed") + '</div>' +
             '<div class="addr">' + esc(l.address || "No address") + '</div>' +
+            (l.arena_id ? '<div class="addr" style="color:#7c3aed;font-weight:700;">\ud83d\udccd Arena \u00b7 ' + esc(l.arena_rep || "rep") + '</div>' : '') +
             (tagLine ? '<div class="addr" style="color:var(--brand-dark);font-weight:600;">' + tagLine + '</div>' : '') +
           '</div>' +
           '<div class="meta">' +
@@ -3248,7 +3250,7 @@
     function add(key, l){ (L[key] = L[key] || []).push(l); }
     leads.forEach(function(l){
       var made = l.created_at || 0;
-      if(inR(made)){ c.leads++; add("leads", l); if(apptSetAtDoor(l)){ c.appts++; add("appts", l); } }
+      if(inR(made) && !l.arena_id){ c.leads++; add("leads", l); if(apptSetAtDoor(l)){ c.appts++; add("appts", l); } }
       var ev = leadEvents(l);
       Object.keys(ev).forEach(function(type){
         if(type === "sold") return;
@@ -3528,6 +3530,8 @@
 
   load();
   renderList();
+  window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, statusOf: statusOf,
+    refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
 <script src="playbook.js?v=1"></script>
@@ -3542,7 +3546,7 @@
 </div>
 <script>
 (function(){
-  var ARENA_URL = "https://canvassing-arena.pages.dev/";
+  var ARENA_URL = "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
   if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
@@ -3551,6 +3555,120 @@
   btn.addEventListener("click", openArena);
   document.getElementById("arenaBack").addEventListener("click", closeArena);
   document.getElementById("arenaReload").addEventListener("click", function(){ fr.src = ARENA_URL + "?r=" + Date.now(); });
+
+  // ---- Bridge: rep leads from Arena drop into Lead Gen; outcomes flow back ----
+  var LG = window.LG; if (!LG) return;
+  var ready = false, pendingKey = {}, askedPhotos = {};
+  function hello(){ try{ fr.contentWindow.postMessage({ type: "lg-hello" }, ARENA_ORIGIN); }catch(e){} }
+  fr.addEventListener("load", function(){ ready = false; hello(); setTimeout(hello, 1500); setTimeout(hello, 5000); });
+  if (!fr.src) fr.src = ARENA_URL;   // load quietly in the background so new rep leads arrive on their own
+
+  var FROM = { pending: null, confirmed: "Confirmed", rescheduled: "Rep Reset", no_answer: "Confirm NA", missed: "No Show",
+    cancelled: "Call to Cancel", sat: "Pitch & Miss", sold: "Sold", sold_cancelled: "Cancelled" };
+  function toArena(l){
+    var st = LG.statusOf(l);
+    if (st === "Sold") return Number(l.sale_amount) > 0 ? "sold" : null;   // wait until the sale amount is filled in
+    if (st === "Cancelled") return "sold_cancelled";
+    if (st === "Confirmed" || st === "Sent to Monday") return "confirmed";
+    if (st === "Rep Reset" || st === "Reset" || st === "Rolled") return "rescheduled";
+    if (st === "No Answer" || st === "Confirm NA") return "no_answer";
+    if (st === "No Show" || st === "Blow Out" || st === "No Mr./Mrs.") return "missed";
+    if (st === "Call to Cancel" || st === "Not Interested" || st === "Bad Number") return "cancelled";
+    if (st === "Pitch & Miss") return "sat";
+    return "pending";
+  }
+  function keyOf(l){ var a = toArena(l); return a ? a + "|" + (a === "sold" ? Number(l.sale_amount) : "") + "|" + (a === "rescheduled" ? (l.appt_date || "") + " " + (l.appt_time || "") : "") : null; }
+  function wd(iso){ return iso ? new Date(iso + "T12:00").toLocaleDateString("en-US", { weekday: "long" }) : ""; }
+  function relOf(r){ r = (r || "").trim(); var x = r.toLowerCase();
+    if (/wife|husband|spouse/.test(x)) return "Spouse"; if (/partner/.test(x)) return "Partner";
+    if (/mom|dad|mother|father|parent/.test(x)) return "Parent"; if (/son\b/.test(x)) return "Son"; if (/daughter/.test(x)) return "Daughter";
+    if (/brother|sister|sibling/.test(x)) return "Sibling"; if (/owner/.test(x)) return "Co-owner"; return r ? "Relative" : "Spouse"; }
+  var LABEL = { roof_age:"Age", roof_original:"Original?", roof_layers:"Layers", roof_solar:"Solar panels", roof_concerns:"Concerns",
+    win_count:"# windows", win_original:"Original?", win_age:"Age", win_doors:"Sliding/French doors", win_concerns:"Concerns",
+    paint_last:"Last painted", paint_colors:"Colors", paint_concerns:"Concerns", trim_age:"Age", trim_original:"Original?", trim_concerns:"Concerns", other_details:"Details" };
+  var PROJ = { roof:"Roof", win:"Windows", paint:"Paint/Stucco", trim:"Fascia/Trim Boards", other:"Other" };
+  function buildLead(x){
+    var L = x.lead || {}, D = L.details || {}, addr = L.address || x.address || "", zip = "";
+    var zm = addr.match(/,?\s*(\d{5})(-\d{4})?\s*$/); if (zm){ zip = zm[1]; addr = addr.slice(0, zm.index).trim(); }
+    var pn = {}; Object.keys(D).forEach(function(k){ var p = PROJ[k.split("_")[0]]; if (!p) return; pn[p] = (pn[p] ? pn[p] + " · " : "") + (LABEL[k] || k) + ": " + D[k]; });
+    var first = L.first || "", last = L.last || "";
+    var l = { id: LG.uid(), arena_id: x.id, arena_rep: x.rep, source: "Arena",
+      first_name: first, last_name: last, homeowner_name: [first, last].filter(Boolean).join(" "),
+      spouse: L.dm || "", dm_relation: relOf(L.dm_rel), owner_status: L.widow || "", sole_owner: !L.dm && !!L.widow, is_sole_owner: !L.dm && !!L.widow,
+      others: [], project_notes: pn, address: addr, zip: zip,
+      interests: (L.interests || []).map(function(i){ return i === "Fascia/Trim" ? "Fascia/Trim Boards" : (i === "Other" && L.other ? "Other: " + L.other : i); }),
+      phone: L.cell || "", alt_phone: L.alt || "", email: L.email || "", years_owned: L.years_owned || "",
+      roof_age: D.roof_age || "", roof_layers: D.roof_layers || "", solar_panel_count: D.roof_solar || "", leak_location: D.roof_concerns || "",
+      window_count: D.win_count || "", last_painted: D.paint_last || "", paint_colors: D.paint_colors || "", cracks: D.paint_concerns || "",
+      fascia: [D.trim_age, D.trim_concerns].filter(Boolean).join(" · "),
+      appt_day: wd(L.appt_date), appt_date: L.appt_date || "", appt_time: L.appt_time || "",
+      notes: x.notes || "", created_at: x.ts || Date.now(), log: [], arena_photos: [] };
+    if (x.lat && x.lng){ l.lat = x.lat; l.lng = x.lng; l.geo_src = "gps"; }
+    var st = FROM[x.status];
+    if (st){ l.status = st; l.next_followup = ""; }
+    else if (l.appt_date){ l.status = "Appt Set"; l.next_followup = ""; }
+    else { l.status = "New"; l.next_followup = new Date().toISOString().slice(0, 10); }
+    if (x.status === "sold" && x.amount) l.sale_amount = x.amount;
+    LG.addLog(l, "From Canvassing Arena — set by " + (x.rep || "rep") + (l.appt_date ? " (appointment set)" : ""));
+    l.arena_remote = x.status; l.arena_synced = keyOf(l);
+    return l;
+  }
+  function onLeads(list){
+    var leads = LG.leads, changed = false, want = [];
+    list.forEach(function(x){
+      var l = leads.find(function(y){ return y.arena_id === x.id; });
+      if (!l){ l = buildLead(x); leads.push(l); changed = true; }
+      else if (x.status !== l.arena_remote){
+        // changed inside Arena (not by Lead Gen) -> mirror it here
+        if (x.status !== toArena(l) && FROM[x.status]){
+          l.status = FROM[x.status];
+          if (x.status === "rescheduled" && x.lead && x.lead.appt_date){ l.appt_date = x.lead.appt_date; l.appt_time = x.lead.appt_time || l.appt_time; l.appt_day = wd(l.appt_date); }
+          if (x.status === "sold" && x.amount) l.sale_amount = x.amount;
+          LG.addLog(l, "Arena → " + l.status);
+        }
+        l.arena_remote = x.status; l.arena_synced = keyOf(l); changed = true;
+      }
+      l.arena_photos = l.arena_photos || [];
+      (x.photos || []).forEach(function(pid){ if (l.arena_photos.indexOf(pid) === -1 && !askedPhotos[pid]){ askedPhotos[pid] = 1; want.push({ id: pid, knock_id: x.id }); } });
+    });
+    if (changed){ LG.save(); LG.refresh(); }
+    if (want.length) fr.contentWindow.postMessage({ type: "lg-photos", want: want }, ARENA_ORIGIN);
+    pushStatuses();
+  }
+  function onPhoto(m){
+    var l = LG.leads.find(function(y){ return y.arena_id === m.knock_id; }); if (!l || !m.data) return;
+    fetch(m.data).then(function(r){ return r.blob(); }).then(function(blob){
+      return LG.photoPut({ id: "ar_" + m.id, leadId: l.id, ts: Date.now(), blob: blob });
+    }).then(function(){
+      l.arena_photos = l.arena_photos || []; if (l.arena_photos.indexOf(m.id) === -1) l.arena_photos.push(m.id);
+      LG.save();
+    }).catch(function(){ delete askedPhotos[m.id]; });
+  }
+  function pushStatuses(){
+    if (!ready) return;
+    LG.leads.forEach(function(l){
+      if (!l.arena_id) return;
+      var k = keyOf(l); if (!k || k === l.arena_synced || pendingKey[l.arena_id] === k) return;
+      pendingKey[l.arena_id] = k;
+      var a = toArena(l), msg = { type: "lg-status", id: l.arena_id, status: a };
+      if (a === "sold") msg.amount = Number(l.sale_amount);
+      if (a === "rescheduled"){ msg.appt_date = l.appt_date || ""; msg.appt_time = l.appt_time || ""; }
+      fr.contentWindow.postMessage(msg, ARENA_ORIGIN);
+      setTimeout(function(){ if (pendingKey[l.arena_id] === k) delete pendingKey[l.arena_id]; }, 30000);   // retry later if no answer
+    });
+  }
+  var t; window.LG_onSave = function(){ clearTimeout(t); t = setTimeout(pushStatuses, 400); };
+  window.addEventListener("message", function(e){
+    if (e.origin !== ARENA_ORIGIN || !e.data || typeof e.data !== "object") return;
+    var m = e.data;
+    if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
+    else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
+    else if (m.type === "arena-photo"){ onPhoto(m); }
+    else if (m.type === "arena-ack"){
+      var l = LG.leads.find(function(y){ return y.arena_id === m.id; });
+      if (l){ l.arena_remote = m.status; l.arena_synced = pendingKey[m.id] || keyOf(l); delete pendingKey[m.id]; LG.save(); }
+    }
+  });
   try{ if (localStorage.getItem("vp_arena_open")) openArena(); }catch(e){}
 })();
 </script>
