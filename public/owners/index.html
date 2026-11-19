@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12344d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="VP Results">
+<link rel="manifest" href="/owners/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/vp-icon.png?v=3">
+<title>Villa Pacifica · Appointment Results</title>
+<style>
+  :root{--navy:#12344d;--vp:#7c3aed;--vp-soft:#ede9fe;--bg:#f5f4f9;--line:#e4e2ec;--muted:#6b7086;--ok:#166534;--okbg:#dcfce7;--warn:#92400e;--warnbg:#fef3c7;--bad:#991b1b;--badbg:#fee2e2}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--navy);font-size:16px}
+  button,input,select,textarea{font:inherit;color:inherit}
+  button{cursor:pointer}
+  header{background:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 10px;border-bottom:3px solid var(--vp);position:sticky;top:0;z-index:5}
+  .hd{display:flex;align-items:center;gap:10px}
+  .hd img{height:38px}
+  .hd .t{flex:1}
+  .hd .t b{display:block;color:var(--vp);letter-spacing:.16em;font-size:11px}
+  .hd .t span{font-size:13px;color:var(--muted)}
+  .hd button{background:var(--vp-soft);border:none;border-radius:10px;padding:8px 10px;font-weight:700;color:#4c1d95;font-size:13px}
+  .tabs{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:2px}
+  .tabs button{flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-weight:700;font-size:14px}
+  .tabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tabs i{font-style:normal;opacity:.7;margin-left:4px}
+  main{padding:12px 14px 90px;max-width:640px;margin:0 auto}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  .card .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+  .card h3{margin:0;font-size:18px}
+  .when{font-weight:800;color:var(--vp);font-size:15px;text-align:right;white-space:nowrap}
+  .addr{color:var(--muted);font-size:14px;margin-top:3px}
+  .meta{font-size:14px;margin-top:8px;line-height:1.45}
+  .meta b{color:var(--navy)}
+  .notes{background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;white-space:pre-line;margin-top:8px;color:#334155}
+  .links{display:flex;gap:8px;margin-top:10px}
+  .links a{flex:1;text-align:center;text-decoration:none;border:1.5px solid var(--line);border-radius:12px;padding:9px;font-weight:700;color:var(--navy);font-size:14px}
+  .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .acts button{border:none;border-radius:12px;padding:12px 8px;font-weight:800;font-size:14px}
+  .b-in{background:var(--okbg);color:var(--ok)}
+  .b-res{background:var(--vp);color:#fff}
+  .b-ct{grid-column:1/-1;background:var(--warnbg);color:var(--warn)}
+  .pill{display:inline-block;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;margin-top:8px;margin-right:6px}
+  .p-in{background:var(--okbg);color:var(--ok)}
+  .p-res{background:var(--vp-soft);color:#4c1d95}
+  .p-ct{background:var(--warnbg);color:var(--warn)}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px}
+  .sync{text-align:center;color:var(--muted);font-size:12px;margin-top:6px}
+  /* sheets */
+  .bg{position:fixed;inset:0;background:#0007;z-index:20;display:none;align-items:flex-end;justify-content:center}
+  .bg.open{display:flex}
+  .sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom) + 18px)}
+  .sheet h2{margin:0 0 2px;font-size:20px}
+  .sheet .sub{color:var(--muted);font-size:14px;margin-bottom:12px}
+  .lbl{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.06em}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chips button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:9px 13px;font-weight:700;font-size:14px}
+  .chips button.on{background:var(--vp);border-color:var(--vp);color:#fff}
+  input[type=text],input[type=number],input[type=date],input[type=password],select,textarea{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;background:#fff;font-size:16px}
+  textarea{min-height:80px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .go{width:100%;background:var(--vp);color:#fff;border:none;border-radius:14px;padding:15px;font-weight:800;font-size:16px;margin-top:16px}
+  .go:disabled{opacity:.6}
+  .cancel{width:100%;background:none;border:none;color:var(--muted);padding:12px;font-weight:700}
+  .err{color:var(--bad);font-size:14px;min-height:18px;margin-top:8px}
+  .phs{display:flex;flex-wrap:wrap;gap:8px}
+  .phs .ph{width:70px;height:70px;border-radius:10px;overflow:hidden;position:relative;background:var(--bg)}
+  .phs .ph img{width:100%;height:100%;object-fit:cover}
+  .phs .ph button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:none;background:#000a;color:#fff;font-size:13px;line-height:22px;padding:0}
+  .phadd{display:inline-block;border:1.5px dashed var(--vp);color:var(--vp);border-radius:999px;padding:9px 14px;font-weight:700;font-size:14px}
+  /* sign in */
+  #signin{position:fixed;inset:0;background:linear-gradient(180deg,#f5f4f9,#ede9fe);z-index:30;overflow:auto;display:none}
+  #signin.open{display:block}
+  .si{max-width:420px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 44px) 22px 40px}
+  .si img{height:54px;display:block;margin:0 auto 4px}
+  .si .tag{text-align:center;color:var(--vp);font-weight:800;letter-spacing:.2em;font-size:12px;margin-bottom:22px}
+  .si .box{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px 18px;box-shadow:0 10px 30px #12344d14}
+  .si .box h2{margin:0 0 4px}
+  .si .link{display:block;margin:14px auto 0;background:none;border:none;color:var(--vp);font-weight:700;text-decoration:underline}
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 20px);transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 16px;border-radius:14px;font-size:14px;z-index:40;display:none;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <img src="/vp-logo.png?v=2" alt="Villa Pacifica Construction">
+    <div class="t"><b>APPOINTMENT RESULTS</b><span id="who"></span></div>
+    <button type="button" id="refresh">&#8635;</button>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="list"></main>
+
+<div class="bg" id="resBg"><div class="sheet">
+  <h2>Enter result</h2><div class="sub" id="resWho"></div>
+  <div class="lbl">Outcome</div>
+  <div class="chips" id="outChips">
+    <button type="button" data-o="sold">&#128176; Sold</button>
+    <button type="button" data-o="miss">&#10060; Pitch &amp; Miss</button>
+    <button type="button" data-o="noshow">&#128682; No Show</button>
+    <button type="button" data-o="reset">&#128257; Rep Reset</button>
+    <button type="button" data-o="nomr">&#128101; No Mr./Mrs.</button>
+    <button type="button" data-o="ctc">&#10062; Call to Cancel</button>
+  </div>
+  <div id="soldBox" hidden>
+    <div class="lbl">Contract amount ($)</div>
+    <input type="number" id="amount" inputmode="decimal" placeholder="e.g. 18500">
+    <div class="lbl">What they bought</div>
+    <div class="chips" id="prodChips">
+      <button type="button" data-p="Roof">Roof</button>
+      <button type="button" data-p="Paint/Stucco">Paint/Stucco</button>
+      <button type="button" data-p="High Performance Windows">High Performance Windows</button>
+      <button type="button" data-p="Fascia/Trim">Fascia/Trim</button>
+      <button type="button" data-p="Other">Other</button>
+    </div>
+    <div class="lbl">Payment</div>
+    <div class="chips" id="payChips">
+      <button type="button" data-y="Finance">Finance</button>
+      <button type="button" data-y="Cash">Cash</button>
+      <button type="button" data-y="Check/Card">Check/Card</button>
+    </div>
+  </div>
+  <div id="resetBox" hidden>
+    <div class="lbl">New date &amp; time</div>
+    <div class="row2"><input type="date" id="newDate"><select id="newTime"></select></div>
+  </div>
+  <div class="lbl">Notes</div>
+  <textarea id="resNotes" placeholder="What happened? Why no sale? Next steps?"></textarea>
+  <div class="lbl">Photos</div>
+  <div class="phs" id="resPhotos"></div>
+  <label class="phadd" style="margin-top:8px">&#128247; Add photos<input type="file" id="resPhotoIn" accept="image/*" multiple hidden></label>
+  <div class="err" id="resErr"></div>
+  <button type="button" class="go" id="resGo">Send result</button>
+  <button type="button" class="cancel" data-close>Cancel</button>
+</div></div>
+
+<div class="bg" id="ctBg"><div class="sheet">
+  <h2>Ask the manager to reach out</h2><div class="sub" id="ctWho"></div>
+  <div class="lbl">Who should they contact?</div>
+  <div class="chips" id="ctChips">
+    <button type="button" data-w="Homeowner" class="on">Homeowner</button>
+    <button type="button" data-w="Spouse">Spouse</button>
+    <button type="button" data-w="Other party">Other party</button>
+  </div>
+  <div class="lbl">What about?</div>
+  <textarea id="ctMsg" placeholder="e.g. Call the wife tonight — she wants to see financing options. Her number is …"></textarea>
+  <div class="err" id="ctErr"></div>
+  <button type="button" class="go" id="ctGo">Send to manager</button>
+  <button type="button" class="cancel" data-close>Cancel</button>
+</div></div>
+
+<div id="signin"><div class="si">
+  <img src="/vp-logo.png?v=2" alt="Villa Pacifica Construction">
+  <div class="tag">APPOINTMENT RESULTS</div>
+  <form class="box" id="siForm" autocomplete="on">
+    <h2 id="siTitle">Sign in</h2>
+    <div class="sub" id="siSub">For owners. One time on this phone — you'll stay signed in.</div>
+    <div class="lbl">Your name</div><input type="text" id="siName" autocomplete="name" placeholder="First and last name">
+    <div class="lbl">Team code</div><input type="text" id="siCode" autocapitalize="characters" autocomplete="off">
+    <div class="lbl" id="siMgrLbl">Owner code</div><input type="password" id="siMgr" autocapitalize="characters" autocomplete="current-password">
+    <div id="siSetBox" hidden><div class="lbl">Type it again</div><input type="password" id="siMgr2" autocapitalize="characters" autocomplete="new-password"></div>
+    <div class="err" id="siErr"></div>
+    <button type="submit" class="go" id="siGo">Sign in</button>
+  </form>
+  <button type="button" class="link" id="siMode">First time? Set my owner code</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var API = "https://canvassing-arena.pages.dev/api/";
+  var KEY = "vpo_me", me = {};
+  try{ me = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){}
+  var appts = [], tab = "today", cur = null, pend = [], setMode = false;
+  function $(id){ return document.getElementById(id); }
+  function esc(x){ return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function toast(m){ var t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(function(){ t.style.display = "none"; }, 3500); }
+  function api(path, opts){
+    opts = opts || {};
+    var h = { "Content-Type": "application/json", "X-Team-Code": me.code || "" };
+    if (me.mgr) h["X-Manager-Code"] = me.mgr;
+    return fetch(API + path, { method: opts.method || "GET", headers: h, body: opts.body }).then(function(r){
+      return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok){ var e = new Error(j.error || ("HTTP " + r.status)); e.status = r.status; throw e; } return j; });
+    });
+  }
+  function iso(d){ var x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); }
+  function today(){ return iso(new Date()); }
+  function mins(t){ var m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return 9999; return (+m[1] % 12 + (/pm/i.test(m[3]) ? 12 : 0)) * 60 + +m[2]; }
+  function fmtDay(d){ if (!d) return "No date"; if (d === today()) return "Today"; var t = new Date(); t.setDate(t.getDate() + 1); if (d === iso(t)) return "Tomorrow"; return new Date(d + "T12:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); }
+  function money(n){ return "$" + Math.round(Number(n) || 0).toLocaleString("en-US"); }
+  var OUT = { sold: "Sold", miss: "Pitch & Miss", noshow: "No Show", reset: "Rep Reset", nomr: "No Mr./Mrs.", ctc: "Call to Cancel" };
+
+  // ---------- sign in ----------
+  function openSignin(msg){ $("siName").value = me.name || ""; $("siCode").value = me.code || ""; $("siErr").textContent = msg || ""; $("signin").classList.add("open"); }
+  function paintMode(){
+    $("siTitle").textContent = setMode ? "Set your owner code" : "Sign in";
+    $("siSub").textContent = setMode ? "Your manager allowed you. Pick your own code — you'll use it to sign in." : "For owners. One time on this phone — you'll stay signed in.";
+    $("siMgrLbl").textContent = setMode ? "Pick your owner code" : "Owner code";
+    $("siSetBox").hidden = !setMode; $("siGo").textContent = setMode ? "Save my code" : "Sign in";
+    $("siMode").textContent = setMode ? "I already have a code" : "First time? Set my owner code";
+  }
+  $("siMode").onclick = function(){ setMode = !setMode; paintMode(); $("siErr").textContent = ""; };
+  $("siForm").onsubmit = function(e){
+    e.preventDefault();
+    var name = $("siName").value.trim(), code = $("siCode").value.trim().toUpperCase(), mgr = $("siMgr").value.trim().toUpperCase();
+    if (!name) return ($("siErr").textContent = "Enter your name");
+    if (!code) return ($("siErr").textContent = "Enter the team code");
+    if (mgr.length < 4) return ($("siErr").textContent = "Enter your owner code");
+    if (setMode && mgr !== $("siMgr2").value.trim().toUpperCase()) return ($("siErr").textContent = "The two codes don't match");
+    $("siGo").disabled = true; $("siErr").textContent = "";
+    var prev = me; me = { name: name, code: code };
+    var step = setMode ? api("co-manager", { method: "POST", body: JSON.stringify({ action: "set", name: name, code: mgr }) }) : Promise.resolve();
+    step.then(function(){ me.mgr = mgr; return api("appt?since=0"); }).then(function(j){
+      localStorage.setItem(KEY, JSON.stringify(me)); $("signin").classList.remove("open"); setMode = false; paintMode();
+      appts = j.appts; render(); toast("Signed in");
+    }).catch(function(err){
+      me = prev;
+      $("siErr").textContent = err.status === 401 ? "Wrong team code" : err.status === 403 ? (setMode ? err.message : "Owner code not accepted") : err.status ? err.message : "Couldn't sign in — check your connection";
+    }).then(function(){ $("siGo").disabled = false; });
+  };
+
+  // ---------- list ----------
+  function bucket(a){
+    var d = a.data || {}, t = today();
+    if (a.result && a.result.outcome) return "done";
+    if (d.appt_date && d.appt_date < t) return "needs";
+    if (d.appt_date === t) return "today";
+    return "upcoming";
+  }
+  var TABS = [["today", "📅 Today"], ["needs", "⏳ Needs result"], ["upcoming", "📆 Upcoming"], ["done", "✅ Done"]];
+  function render(){
+    $("who").textContent = me.name ? me.name + " · Team " + me.code : "";
+    var counts = {}; appts.forEach(function(a){ var b = bucket(a); counts[b] = (counts[b] || 0) + 1; });
+    $("tabs").innerHTML = TABS.map(function(t){ return '<button type="button" data-t="' + t[0] + '" class="' + (tab === t[0] ? "on" : "") + '">' + t[1] + '<i>' + (counts[t[0]] || 0) + '</i></button>'; }).join("");
+    var list = appts.filter(function(a){ return bucket(a) === tab; });
+    list.sort(function(a, b){ var x = (a.data.appt_date || "") + String(1e4 + mins(a.data.appt_time)), y = (b.data.appt_date || "") + String(1e4 + mins(b.data.appt_time)); return tab === "done" ? (b.result_at || 0) - (a.result_at || 0) : x.localeCompare(y); });
+    if (!list.length){ $("list").innerHTML = '<div class="empty">' + (tab === "today" ? "No appointments today." : tab === "needs" ? "Nothing waiting on a result." : tab === "upcoming" ? "No upcoming appointments yet." : "No results yet.") + '</div><div class="sync" id="syncLine"></div>'; return; }
+    $("list").innerHTML = list.map(card).join("") + '<div class="sync" id="syncLine"></div>';
+  }
+  function card(a){
+    var d = a.data || {}, r = a.result || {}, tel = String(d.phone || "").replace(/[^\d+]/g, "");
+    var maps = d.address ? "https://maps.apple.com/?q=" + encodeURIComponent(d.address) : "";
+    var pills = "";
+    if (a.got_in_at) pills += '<span class="pill p-in">✅ Got in ' + new Date(a.got_in_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) + (a.got_in_by ? " · " + esc(a.got_in_by) : "") + '</span>';
+    if (r.outcome) pills += '<span class="pill p-res">' + esc(OUT[r.outcome]) + (r.outcome === "sold" ? " " + money(r.amount) : "") + (a.result_by ? " · " + esc(a.result_by) : "") + '</span>';
+    if (r.contact) pills += '<span class="pill p-ct">📞 Manager asked to contact the ' + esc(String(r.contact.who).toLowerCase()) + '</span>';
+    return '<div class="card" data-id="' + esc(a.id) + '">' +
+      '<div class="top"><div><h3>' + esc(d.name || "Homeowner") + '</h3><div class="addr">' + esc(d.address || "") + '</div></div>' +
+      '<div class="when">' + esc(fmtDay(d.appt_date)) + '<br>' + esc(d.appt_time || "") + '</div></div>' +
+      '<div class="meta">' + (d.products && d.products.length ? '<b>Project:</b> ' + esc(d.products.join(", ")) + '<br>' : "") +
+        (d.spouse ? '<b>' + esc(d.dm_relation || "Spouse") + ':</b> ' + esc(d.spouse) + '<br>' : (d.owner_status ? '<b>Owner:</b> ' + esc(d.owner_status) + '<br>' : "")) +
+        (d.set_by ? '<b>Set by:</b> ' + esc(d.set_by) : "") + '</div>' +
+      (d.notes ? '<div class="notes">' + esc(d.notes) + '</div>' : "") + pills +
+      '<div class="links">' + (tel ? '<a href="tel:' + tel + '">Call</a><a href="sms:' + tel + '">Text</a>' : "") + (maps ? '<a href="' + maps + '">Map</a>' : "") + '</div>' +
+      '<div class="acts">' +
+        '<button type="button" class="b-in" data-a="gotin">' + (a.got_in_at ? "✅ Got in" : "✅ I got in") + '</button>' +
+        '<button type="button" class="b-res" data-a="result">' + (r.outcome ? "Edit result" : "Enter result") + '</button>' +
+        '<button type="button" class="b-ct" data-a="contact">📞 Ask the manager to contact someone</button>' +
+      '</div></div>';
+  }
+  $("tabs").onclick = function(e){ var b = e.target.closest("[data-t]"); if (!b) return; tab = b.dataset.t; render(); };
+  $("list").onclick = function(e){
+    var b = e.target.closest("[data-a]"); if (!b) return;
+    var id = b.closest(".card").dataset.id; cur = appts.find(function(a){ return a.id === id; }); if (!cur) return;
+    if (b.dataset.a === "gotin"){
+      if (cur.got_in_at && !confirm("Send “got in” again?")) return;
+      b.disabled = true;
+      api("appt-result", { method: "POST", body: JSON.stringify({ id: id, action: "gotin", by: me.name }) }).then(function(){ toast("Manager notified — you got in"); load(); }).catch(function(err){ toast(err.message || "Couldn't send"); b.disabled = false; });
+    }
+    if (b.dataset.a === "result") openResult();
+    if (b.dataset.a === "contact"){ $("ctWho").textContent = (cur.data.name || "Homeowner") + " · " + (cur.data.address || ""); $("ctMsg").value = ""; $("ctErr").textContent = ""; $("ctBg").classList.add("open"); }
+  };
+  document.querySelectorAll("[data-close]").forEach(function(b){ b.onclick = function(){ b.closest(".bg").classList.remove("open"); }; });
+
+  // ---------- result sheet ----------
+  var sel = { o: "", p: [], y: "" };
+  (function times(){ var o = ""; for (var m = 8 * 60; m <= 20 * 60; m += 30){ var h = Math.floor(m / 60), mm = m % 60, lab = (h % 12 || 12) + ":" + (mm ? "30" : "00") + " " + (h < 12 ? "AM" : "PM"); o += '<option>' + lab + '</option>'; } $("newTime").innerHTML = o; })();
+  function chipSet(box, key, multi){
+    box.onclick = function(e){ var b = e.target.closest("button"); if (!b) return; var v = b.dataset[key];
+      if (multi){ var i = sel.p.indexOf(v); if (i === -1) sel.p.push(v); else sel.p.splice(i, 1); }
+      else if (key === "o") sel.o = v; else sel.y = v;
+      paintRes(); };
+  }
+  chipSet($("outChips"), "o"); chipSet($("prodChips"), "p", true); chipSet($("payChips"), "y");
+  function paintRes(){
+    document.querySelectorAll("#outChips button").forEach(function(b){ b.classList.toggle("on", b.dataset.o === sel.o); });
+    document.querySelectorAll("#prodChips button").forEach(function(b){ b.classList.toggle("on", sel.p.indexOf(b.dataset.p) !== -1); });
+    document.querySelectorAll("#payChips button").forEach(function(b){ b.classList.toggle("on", b.dataset.y === sel.y); });
+    $("soldBox").hidden = sel.o !== "sold"; $("resetBox").hidden = sel.o !== "reset";
+  }
+  function openResult(){
+    var r = cur.result || {}, d = cur.data || {};
+    sel = { o: r.outcome || "", p: (r.products || []).slice(), y: r.payment || "" };
+    $("resWho").textContent = (d.name || "Homeowner") + " · " + fmtDay(d.appt_date) + " " + (d.appt_time || "");
+    $("amount").value = r.amount || ""; $("resNotes").value = r.notes || ""; $("newDate").value = r.appt_date || ""; if (r.appt_time) $("newTime").value = r.appt_time;
+    pend = []; drawPend(); $("resErr").textContent = ""; paintRes(); $("resBg").classList.add("open");
+  }
+  function shrink(file){
+    return new Promise(function(res, rej){
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload = function(){ var sc = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.7)); };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(); }; img.src = url;
+    });
+  }
+  function drawPend(){
+    $("resPhotos").innerHTML = pend.map(function(p, i){ return '<div class="ph"><img src="' + p + '" alt=""><button type="button" data-i="' + i + '">×</button></div>'; }).join("");
+    $("resPhotos").querySelectorAll("button").forEach(function(b){ b.onclick = function(){ pend.splice(+b.dataset.i, 1); drawPend(); }; });
+  }
+  $("resPhotoIn").onchange = function(e){
+    var files = Array.prototype.slice.call(e.target.files, 0, 8 - pend.length);
+    files.reduce(function(p, f){ return p.then(function(){ return shrink(f).then(function(d){ pend.push(d); }).catch(function(){}); }); }, Promise.resolve()).then(function(){ e.target.value = ""; drawPend(); });
+  };
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  $("resGo").onclick = function(){
+    if (!sel.o) return ($("resErr").textContent = "Pick an outcome");
+    var amt = Number($("amount").value);
+    if (sel.o === "sold" && !(amt > 0)) return ($("resErr").textContent = "Enter the contract amount");
+    if (sel.o === "reset" && !$("newDate").value) return ($("resErr").textContent = "Pick the new date");
+    var body = { id: cur.id, action: "result", by: me.name, result: { outcome: sel.o, amount: amt, products: sel.p, payment: sel.y, appt_date: $("newDate").value, appt_time: $("newTime").value, notes: $("resNotes").value.trim() } };
+    $("resGo").disabled = true; $("resErr").textContent = "";
+    var id = cur.id, photos = pend.slice();
+    api("appt-result", { method: "POST", body: JSON.stringify(body) }).then(function(){
+      return photos.reduce(function(p, data){ return p.then(function(){ return api("photo", { method: "POST", body: JSON.stringify({ id: uid(), knock_id: "appt:" + id, data: data }) }); }); }, Promise.resolve());
+    }).then(function(){ $("resBg").classList.remove("open"); toast("Result sent to the manager"); load(); })
+      .catch(function(err){ $("resErr").textContent = err.status ? err.message : "Couldn't send — check your connection"; })
+      .then(function(){ $("resGo").disabled = false; });
+  };
+
+  // ---------- contact request ----------
+  var ctWho = "Homeowner";
+  $("ctChips").onclick = function(e){ var b = e.target.closest("button"); if (!b) return; ctWho = b.dataset.w; document.querySelectorAll("#ctChips button").forEach(function(x){ x.classList.toggle("on", x === b); }); };
+  $("ctGo").onclick = function(){
+    var msg = $("ctMsg").value.trim(); if (!msg) return ($("ctErr").textContent = "Say what it's about");
+    $("ctGo").disabled = true;
+    api("appt-result", { method: "POST", body: JSON.stringify({ id: cur.id, action: "contact", by: me.name, contact: { who: ctWho, msg: msg } }) })
+      .then(function(){ $("ctBg").classList.remove("open"); toast("Manager notified"); load(); })
+      .catch(function(err){ $("ctErr").textContent = err.message || "Couldn't send"; })
+      .then(function(){ $("ctGo").disabled = false; });
+  };
+
+  // ---------- load ----------
+  function load(){
+    if (!me.mgr) return;
+    api("appt?since=0").then(function(j){ appts = j.appts; render(); var s = $("syncLine"); if (s) s.textContent = "Updated " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); })
+      .catch(function(err){ if (err.status === 403 || err.status === 401){ me.mgr = ""; openSignin("Please sign in again"); } else toast("Offline — showing the last list"); });
+  }
+  $("refresh").onclick = load;
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) load(); });
+  setInterval(load, 30000);
+  paintMode();
+  if (!me.mgr) openSignin(); else { render(); load(); }
+})();
+</script>
+</body>
+</html>

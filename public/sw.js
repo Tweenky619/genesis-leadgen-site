@@ -11,19 +11,13 @@ async function getAuth() {
 }
 self.addEventListener('push', e => {
   e.waitUntil((async () => {
-    let title = 'New lead from your team', body = 'Tap to confirm the appointment', tag = 'lead';
+    let title = 'Villa Pacifica update', body = 'Tap to open', tag = 'alert';
     try {
       const a = await getAuth();
       if (a && a.code && a.mgr) {
-        const r = await fetch(ARENA + '/api/latest-lead', { headers: { 'X-Team-Code': a.code, 'X-Manager-Code': a.mgr } });
+        const r = await fetch(ARENA + '/api/latest-event', { headers: { 'X-Team-Code': a.code, 'X-Manager-Code': a.mgr } });
         const j = await r.json();
-        if (j && j.lead) {
-          const L = j.lead, name = [L.first, L.last].filter(Boolean).join(' ') || 'Homeowner';
-          const appt = L.appt_date ? new Date(L.appt_date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + (L.appt_time ? ' ' + L.appt_time : '') : '';
-          title = 'New lead from ' + (j.rep || 'a rep');
-          body = [name, L.cell, appt ? 'Appt ' + appt : '', j.address].filter(Boolean).join(' · ');
-          tag = 'lead-' + j.id;
-        }
+        if (j && j.title) { title = j.title; body = j.body || ''; tag = j.tag || 'alert'; }
       }
     } catch {}
     await self.registration.showNotification(title, { body, tag, icon: '/vp-icon.png?v=3', badge: '/vp-icon.png?v=3', data: { url: '/?arena=leads' } });

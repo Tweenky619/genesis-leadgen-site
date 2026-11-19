@@ -112,6 +112,10 @@
   .dchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .dchip{background:#f1f0f6;border-radius:999px;padding:5px 10px;font-size:13px;color:#334155;}
   .dchip.ok{background:#dcfce7;color:#166534;} .dchip.warn{background:#fef3c7;color:#92400e;} .dchip.bad{background:#fee2e2;color:#991b1b;}
+  .own-send{width:100%;background:#7c3aed;color:#fff;border:none;border-radius:14px;padding:14px;font-weight:800;font-size:16px;margin:0 0 10px;}
+  .own-send.sent{background:#ede9fe;color:#4c1d95;}
+  .own-contact{background:#fef3c7;color:#92400e;border-radius:14px;padding:12px 14px;margin:0 0 10px;font-size:14px;}
+  .own-contact button{margin-top:8px;background:#92400e;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700;}
   .rep-app .co-pick, .rep-app:not(.mgr-copy) #arenaBell, .rep-app #practiceBtn{display:none!important;}
   #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
   #arenaView[hidden]{display:none;}
@@ -120,7 +124,7 @@
   .ar-bar .ar-t{flex:1;font-weight:700;font-size:15px;}
   .ar-bar .ar-r{background:rgba(255,255,255,.15);padding:7px 10px;}
   #arenaFrame{flex:1;width:100%;border:0;background:#fff;}
-  #arToast{position:absolute;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);z-index:5;background:#12344d;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px #0004;}
+  #arToast{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 58px);z-index:4000;background:#12344d;color:#fff;border-radius:14px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px #0004;}
   #arToast[hidden]{display:none;}
   #arenaView{position:fixed;}
 
@@ -1191,6 +1195,10 @@
     <section class="view" id="view-detail">
       <div class="back-row" id="backFromDetailBtn">&larr; All Leads</div>
       <div class="detail-card" id="detailCard"></div>
+      <div id="ownersBox" hidden>
+        <div class="own-contact" id="ownContact" hidden></div>
+        <button type="button" class="btn own-send" id="ownersBtn">&#128228; Send to owners</button>
+      </div>
       <div class="form-actions">
         <button class="btn btn-secondary" id="editBtn">Edit</button>
         <button class="btn btn-danger" id="deleteBtn">Delete</button>
@@ -1662,6 +1670,8 @@
           '<div class="meta">' +
             ((currentTab === "today" || currentTab === "tomorrow") && l.appt_time ? '<div class="date" style="font-weight:800;color:var(--brand);font-size:15px;">' + esc(l.appt_time) + '</div>' : '<div class="date">' + fmtDate(l.created_at) + '</div>') +
             '<span class="badge ' + statusClass(statusOf(l)) + '">' + esc(statusOf(l)) + (statusOf(l)==="Sold" && l.sale_amount ? ' \u00b7 ' + esc(fmtMoney(l.sale_amount)) : '') + '</span>' +
+            (l.contact_request && !l.contact_done ? '<div class="due" style="color:#b45309;font-weight:800;">\ud83d\udcde Contact the ' + esc(String(l.contact_request.who || "homeowner").toLowerCase()) + '</div>' : '') +
+            (l.owners_gotin && !l.owners_result_at && l.appt_date === todayISO() ? '<div class="due" style="color:#166534;font-weight:800;">\u2705 Owner got in</div>' : '') +
             (currentTab === "today" && l.appt_date === todayISO() && BOOKED_ST.indexOf(statusOf(l)) !== -1 ? '<div class="due" style="color:#b45309;font-weight:700;">Needs outcome</div>' : '') +
             dueLabel(l) + clearLabel(l) + badLabel(l) + outcomeLabel(l) +
           '</div>' +
@@ -3660,6 +3670,7 @@
   renderList();
   window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
     trashedArena: function(){ try{ return JSON.parse(localStorage.getItem(CO_PREFIX + "trash_v1") || "[]").map(function(t){ return t.lead.arena_id; }).filter(Boolean); }catch(e){ return []; } },
+    viewing: function(){ return viewingId; }, refreshDetail: function(){ try{ refreshDetail(); }catch(e){} }, todayISO: todayISO,
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
@@ -3802,7 +3813,7 @@
     pushStatuses();
   }
   function onPhoto(m){
-    var l = LG.leads.find(function(y){ return y.arena_id === m.knock_id; }); if (!l || !m.data) return;
+    var l = LG.leads.find(function(y){ return y.arena_id === m.knock_id || "appt:" + y.id === m.knock_id; }); if (!l || !m.data) return;
     fetch(m.data).then(function(r){ return r.blob(); }).then(function(blob){
       return LG.photoPut({ id: "ar_" + m.id, leadId: l.id, ts: Date.now(), blob: blob });
     }).then(function(){
@@ -3855,13 +3866,87 @@
   if("serviceWorker" in navigator){ navigator.serviceWorker.addEventListener("message", function(e){ if(e.data && e.data.type === "open-arena-leads") openArenaLeads(); }); }
   if(/[?&]arena=leads/.test(location.search)){ history.replaceState(null, "", "/"); openArenaLeads(); }
 
-  var t; window.LG_onSave = function(){ clearTimeout(t); t = setTimeout(pushStatuses, 400); };
+  // ---- Owners: send appointments, get "got in", results, photos and contact requests back ----
+  document.body.appendChild(document.getElementById("arToast"));   // so messages show outside the Arena screen too
+  var ownBox = document.getElementById("ownersBox"), ownBtn = document.getElementById("ownersBtn"), ownContact = document.getElementById("ownContact");
+  var canOwners = !window.LG_REP || !!window.LG_PRESET;   // you and Ruben (managers)
+  function apptData(l){
+    var pn = l.project_notes || {}, notes = [l.notes || ""].concat(Object.keys(pn).map(function(k){ return pn[k] ? k + ": " + pn[k] : ""; })).filter(Boolean).join("\n");
+    return { name: l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" "), phone: l.phone || "", alt_phone: l.alt_phone || "", email: l.email || "",
+      address: [l.address, l.zip].filter(Boolean).join(", "), lat: l.lat || null, lng: l.lng || null,
+      appt_date: l.appt_date || "", appt_time: l.appt_time || "", products: (l.interests || []).slice(),
+      spouse: l.spouse || "", dm_relation: l.dm_relation || "", owner_status: l.owner_status || "", years_owned: l.years_owned || "",
+      notes: notes, set_by: l.arena_rep || (window.App && App.meFirst ? App.meFirst() : "Art") };
+  }
+  function apptKey(l){ var d = apptData(l); return [d.name, d.phone, d.address, d.appt_date, d.appt_time, d.products.join("|"), d.notes].join("~"); }
+  function sendAppt(l){ if (!ready){ return false; } fr.contentWindow.postMessage({ type: "lg-appt", id: l.id, data: apptData(l), key: apptKey(l) }, ARENA_ORIGIN); return true; }
+  function paintOwners(){
+    var id = LG.viewing(), l = id && LG.leads.find(function(x){ return x.id === id; });
+    if (!canOwners || !l){ ownBox.hidden = true; return; }
+    ownBox.hidden = false;
+    ownBtn.className = "btn own-send" + (l.owners_sent ? " sent" : "");
+    ownBtn.innerHTML = l.owners_sent ? "\u2705 Sent to owners \u00b7 tap to resend" : "\ud83d\udce4 Send to owners";
+    if (l.contact_request && !l.contact_done){
+      ownContact.hidden = false;
+      ownContact.innerHTML = "<b>\ud83d\udcde " + LG_esc(l.contact_request.by || "Owner") + " asked you to contact the " + LG_esc(String(l.contact_request.who || "homeowner").toLowerCase()) + "</b>" + (l.contact_request.msg ? "<br>" + LG_esc(l.contact_request.msg) : "") + '<br><button type="button" id="ownContactDone">Done \u2014 I contacted them</button>';
+      document.getElementById("ownContactDone").onclick = function(){ l.contact_done = Date.now(); LG.addLog(l, "Contacted (owner request)"); LG.save(); paintOwners(); LG.refreshDetail(); };
+    } else ownContact.hidden = true;
+  }
+  function LG_esc(x){ return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  new MutationObserver(paintOwners).observe(document.getElementById("detailCard"), { childList: true });
+  ownBtn.addEventListener("click", function(){
+    var id = LG.viewing(), l = id && LG.leads.find(function(x){ return x.id === id; }); if (!l) return;
+    if (!l.appt_date){ alertBox("Set the appointment date and time first (Edit)."); return; }
+    if (!sendAppt(l)){ alertBox("Open \ud83d\udccd once and sign in as Manager, then try again."); return; }
+    ownBtn.innerHTML = "Sending\u2026";
+  });
+  var OUT_LG = { sold: "Sold", miss: "Pitch & Miss", noshow: "No Show", reset: "Rep Reset", nomr: "No Mr./Mrs.", ctc: "Call to Cancel" };
+  function money0(n){ return "$" + Math.round(Number(n) || 0).toLocaleString("en-US"); }
+  function onAppts(list){
+    var changed = false, want = [];
+    list.forEach(function(a){
+      var l = LG.leads.find(function(x){ return x.id === a.id; }); if (!l) return;
+      if (a.got_in_at && a.got_in_at > (l.owners_gotin || 0)){ l.owners_gotin = a.got_in_at; LG.addLog(l, "\u2705 " + (a.got_in_by || "Owner") + " got in"); changed = true; }
+      var r = a.result || {};
+      if (a.result_at && a.result_at > (l.owners_result_at || 0) && OUT_LG[r.outcome]){
+        l.owners_result_at = a.result_at; l.status = OUT_LG[r.outcome]; l.next_followup = "";
+        if (r.outcome === "sold"){ l.sale_amount = r.amount; if (!l.sold_date){ var tt = LG.todayISO(); l.sold_date = (l.appt_date && l.appt_date <= tt) ? l.appt_date : tt; } }
+        if (r.outcome === "reset" && r.appt_date){ l.appt_date = r.appt_date; l.appt_time = r.appt_time || l.appt_time; l.appt_day = wd(r.appt_date); }
+        if (r.products && r.products.length) l.products_sold = r.products;
+        if (r.payment) l.payment = r.payment;
+        LG.addLog(l, "Owner result (" + (a.result_by || "owner") + "): " + l.status + (r.outcome === "sold" ? " " + money0(r.amount) : "") +
+          [r.products && r.products.length ? r.products.join(", ") : "", r.payment, r.outcome === "reset" && r.appt_date ? "new " + r.appt_date + " " + (r.appt_time || "") : "", r.notes].filter(Boolean).map(function(x){ return " \u00b7 " + x; }).join(""));
+        changed = true;
+      }
+      if (r.contact && r.contact.at > (l.contact_req_at || 0)){
+        l.contact_req_at = r.contact.at; l.contact_request = r.contact; l.contact_done = 0; l.next_followup = LG.todayISO();
+        LG.addLog(l, "\ud83d\udcde " + (r.contact.by || "Owner") + ": please contact the " + String(r.contact.who || "homeowner").toLowerCase() + (r.contact.msg ? " \u2014 " + r.contact.msg : ""));
+        changed = true;
+      }
+      l.arena_photos = l.arena_photos || [];
+      (a.photos || []).forEach(function(pid){ if (l.arena_photos.indexOf(pid) === -1 && !askedPhotos[pid]){ askedPhotos[pid] = 1; want.push({ id: pid, knock_id: "appt:" + a.id }); } });
+    });
+    if (changed){ LG.save(); LG.refresh(); LG.refreshDetail(); paintOwners(); }
+    if (want.length) fr.contentWindow.postMessage({ type: "lg-photos", want: want }, ARENA_ORIGIN);
+  }
+  function resendChanged(){
+    if (!ready || !canOwners) return;
+    LG.leads.forEach(function(l){ if (l.owners_sent && l.owners_key !== apptKey(l)) sendAppt(l); });
+  }
+
+  var t; window.LG_onSave = function(){ clearTimeout(t); t = setTimeout(function(){ pushStatuses(); resendChanged(); }, 400); };
   window.addEventListener("message", function(e){
     if (e.origin !== ARENA_ORIGIN || !e.data || typeof e.data !== "object") return;
     var m = e.data;
     if (m.type === "arena-ready"){ ready = !!m.manager; pushStatuses(); }
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
+    else if (m.type === "arena-appts" && Array.isArray(m.appts)){ onAppts(m.appts); }
+    else if (m.type === "arena-appt-ok"){
+      var la = LG.leads.find(function(y){ return y.id === m.id; });
+      if (la && !m.unsend){ var first = !la.owners_sent; la.owners_sent = Date.now(); la.owners_key = m.key; if (first) LG.addLog(la, "\ud83d\udce4 Sent to owners"); LG.save(); if (LG.viewing() === la.id){ LG.refreshDetail(); paintOwners(); alertBox(first ? "\ud83d\udce4 Sent to the owners" : "Updated for the owners"); } }
+    }
+    else if (m.type === "arena-appt-fail"){ paintOwners(); alertBox("Couldn't send: " + (m.error || "try again")); }
     else if (m.type === "arena-push-ok"){ clearTimeout(pushWait); localStorage.setItem(AP + "push_on", "1"); bellState(); alertBox("\ud83d\udd14 New-lead alerts are on for this phone."); try{ swReg && swReg.showNotification("Alerts are working", { body: "New rep leads will pop up here, even when the app is closed.", icon: "/vp-icon.png?v=3" }).catch(function(){}); }catch(e){} }
     else if (m.type === "arena-push-fail"){ clearTimeout(pushWait); alertBox("Couldn't turn on alerts: " + (m.error || "try again")); }
     else if (m.type === "arena-logout"){ try{ localStorage.removeItem(AP + "arena_me"); }catch(e){} }
