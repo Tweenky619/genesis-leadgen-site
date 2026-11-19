@@ -29,8 +29,9 @@ export default {
       return new Response(null, { status: 204, headers: h });
     }
     // Rep copy lives at /rep — same files, served from the root
-    if (url.pathname === "/rep" || url.pathname.startsWith("/rep/")) {
-      const rest = url.pathname.slice(4) || "/";
+    const repM = url.pathname.match(/^\/(rep|ruben)(\/.*)?$/);
+    if (repM) {
+      const rest = repM[2] || "/";
       const target = new URL(rest === "/" ? "/" : rest, url);
       target.search = url.search;
       return env.ASSETS.fetch(new Request(target.toString(), request));

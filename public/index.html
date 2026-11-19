@@ -6,11 +6,13 @@
 <title>Villa Pacifica Construction Lead Gen</title>
 <script>
   // Rep copy: /rep — same Lead Gen, rep-only Arena, no manager tools, its own storage
-  window.LG_REP = /^\/rep(\/|$)/.test(location.pathname);
+  window.LG_REP = /^\/(rep|ruben)(\/|$)/.test(location.pathname);
+  // Ruben's personal copy: already signed in as him
+  window.LG_PRESET = /^\/ruben(\/|$)/.test(location.pathname) ? { name: "Ruben Gutierrez", code: "VILLPC", mgr: "" } : null;
   if (window.LG_REP){
     document.documentElement.className += " rep-app";
     document.addEventListener("DOMContentLoaded", function(){
-      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-rep.webmanifest";
+      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_PRESET ? "/manifest-ruben.webmanifest" : "/manifest-rep.webmanifest";
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = "VP Lead Gen";
     });
   }
@@ -1289,7 +1291,7 @@
   // Rep copy: texts and scripts use the rep's own first name (from their Arena sign-in)
   function meFirst(){
     if(!REP_APP) return "Art";
-    try{ var a = JSON.parse(localStorage.getItem("rep_arena_me") || "null"); var n = (a && a.name || "").trim().split(/\s+/)[0]; return n || "your rep"; }catch(e){ return "your rep"; }
+    try{ var a = JSON.parse(localStorage.getItem("rep_arena_me") || "null") || window.LG_PRESET; var n = (a && a.name || "").trim().split(/\s+/)[0]; return n || "your rep"; }catch(e){ return "your rep"; }
   }
   function paintMe(){ Array.prototype.forEach.call(document.querySelectorAll(".me-first"), function(el){ el.textContent = meFirst(); }); }
   function setCompany(c){ try { localStorage.setItem("lg_company", c); } catch(e){} location.reload(); }
@@ -3676,6 +3678,7 @@
 <script>
 (function(){
   var AP = window.LG_REP ? "rep_" : "vp_";
+  if (window.LG_PRESET){ try{ if (!localStorage.getItem(AP + "arena_me")) localStorage.setItem(AP + "arena_me", JSON.stringify(window.LG_PRESET)); }catch(e){} }
   var ARENA_URL = window.LG_REP ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
