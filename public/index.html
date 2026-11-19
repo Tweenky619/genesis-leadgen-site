@@ -10,7 +10,7 @@
   // Ruben's personal copy: already signed in as him
   window.LG_PRESET = /^\/ruben(\/|$)/.test(location.pathname) ? { name: "Ruben Gutierrez", code: "VILLPC", mgr: "" } : null;
   if (window.LG_REP){
-    document.documentElement.className += " rep-app";
+    document.documentElement.className += " rep-app" + (window.LG_PRESET ? " mgr-copy" : "");
     document.addEventListener("DOMContentLoaded", function(){
       var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_PRESET ? "/manifest-ruben.webmanifest" : "/manifest-rep.webmanifest";
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = "VP Lead Gen";
@@ -112,7 +112,7 @@
   .dchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .dchip{background:#f1f0f6;border-radius:999px;padding:5px 10px;font-size:13px;color:#334155;}
   .dchip.ok{background:#dcfce7;color:#166534;} .dchip.warn{background:#fef3c7;color:#92400e;} .dchip.bad{background:#fee2e2;color:#991b1b;}
-  .rep-app .co-pick, .rep-app #arenaBell, .rep-app #practiceBtn{display:none!important;}
+  .rep-app .co-pick, .rep-app:not(.mgr-copy) #arenaBell, .rep-app #practiceBtn{display:none!important;}
   #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
   #arenaView[hidden]{display:none;}
   .ar-bar{display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 6px) 10px 6px;background:#12344d;color:#fff;}
@@ -3679,7 +3679,8 @@
 (function(){
   var AP = window.LG_REP ? "rep_" : "vp_";
   if (window.LG_PRESET){ try{ if (!localStorage.getItem(AP + "arena_me")) localStorage.setItem(AP + "arena_me", JSON.stringify(window.LG_PRESET)); }catch(e){} }
-  var ARENA_URL = window.LG_REP ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
+  // Ruben (part owner) gets the full Arena so he can sign in as Manager; other reps get rep-only
+  var ARENA_URL = window.LG_REP && !window.LG_PRESET ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
   if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
