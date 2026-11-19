@@ -163,23 +163,18 @@
     "Fascia/Trim Boards": ["I see you put a new roof on — it looks great", "I love the new garage door", "The yard looks great — you can tell somebody takes care of it"],
     "Windows": ["I see you redid the roof — it looks great", "That paint job looks fresh — nice color", "I love the front door you put in"]
   };
-  var VP_PHASES = ["Greet", "Reason", "Compliment", "Close"];
+  var VP_PHASES = ["Greet", "Reason \u2192 Compliment", "Close"];
   function vpSteps(product){
     return [
       { type: "open", ph: 0, title: "Step 1 \u00b7 Greet & introduce", who: "You say", followWho: "You acknowledge",
         say: greet() + "! My name is Art, I work with Villa Pacifica \u2014 how are you?",
-        replies: ["Good, and you?", "I'm alright. What's this about?", "Kind of busy right now.", "Fine, thanks."],
-        follow: "Glad to hear it! I'll be quick.",
+        replies: ["Good, and you?", "Fine, thanks.", "Doing well.", "Not bad, you?"],
+        follow: "Glad to hear it! I'm doing great, thank you.",
         tip: "Match the time of day. Whatever they say, acknowledge it before you move on \u2014 busy? \u201cI'll be quick.\u201d" },
-      { type: "q", ph: 1, title: "Step 2 \u00b7 Why you're here", who: "You say", followWho: "If they ask",
-        say: "The reason I'm in your neighborhood \u2014 my company, tomorrow we're leaving estimates on different services that we do.",
-        replies: ["What kind of services?", "What do you guys do?", "Estimates on what?", "Like what?"],
-        follow: "Roofing, exterior paint and stucco, fascia and trim boards, and windows. The estimate is free \u2014 we leave you a price in writing.",
-        tip: "Keep it short and casual \u2014 you're just letting them know you're in the area tomorrow." },
-      { type: "q", ph: 2, title: "Step 3 \u00b7 Point out their work & compliment", who: "You say", cue: "Point to something they've done to the house.",
-        say: pick(VP_COMPLIMENT[product]) + " \u2014 so I know you have pride in ownership on your home!",
-        tip: "Find something they actually did \u2014 new windows, paint, landscaping, a new roof. A real compliment lowers their guard." },
-      { type: "close", ph: 3, title: "Step 4 \u00b7 The opportunity + close", who: "You close", followWho: "You transition",
+      { type: "q", ph: 1, title: "Step 2 \u00b7 Why you're here \u2192 bridge into the compliment", who: "You say", cue: "Point to something they've done to the house as you bridge.",
+        say: "The reason I'm in your neighborhood \u2014 my company, tomorrow we're leaving estimates on different services that we do. " + pick(VP_COMPLIMENT[product]) + " \u2014 so I know you have pride in ownership on your home!",
+        tip: "One breath \u2014 don't stop after the reason. Bridge straight into pointing out work they've done and the compliment, so there's no gap for a \u201cno thanks.\u201d" },
+      { type: "close", ph: 2, title: "Step 3 \u00b7 The opportunity + close", who: "You close", followWho: "You transition",
         say: "I see a possible chance of earning your business on " + VP_WORD[product] + " \u2014 will you be home at 10am, or does 2pm sound good for you?",
         replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
         follow: "Perfect \u2014 I'll put you down. Excuse me \u2014 my name is Art, and you are? And how do I spell your last name?",

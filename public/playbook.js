@@ -11,13 +11,12 @@
 
   var VPF = !(window.App && window.App.company === "socal");
   var VP_FORMULA =
-    '<p class="pb-lead">My formula: <b>greet \u2192 why you\u2019re here \u2192 compliment their home \u2192 two times to choose from.</b></p>' +
+    '<p class="pb-lead">My formula: <b>greet \u2192 why you\u2019re here, bridged into a compliment \u2192 two times to choose from.</b></p>' +
     '<ol class="pb-steps">' +
       '<li><b>Greet by time of day</b><div class="pb-ex">\u201cGood morning! / Good afternoon!\u201d</div></li>' +
       '<li><b>Introduce yourself and the company</b><div class="pb-ex">\u201cMy name is Art, I work with Villa Pacifica \u2014 how are you?\u201d</div></li>' +
       '<li><b>Acknowledge</b> whatever they say before moving on.<div class="pb-ex">\u201cGlad to hear it!\u201d / \u201cI\u2019ll be quick.\u201d</div></li>' +
-      '<li><b>The reason you\u2019re here</b><div class="pb-ex">\u201cThe reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do.\u201d</div></li>' +
-      '<li><b>Point out work they\u2019ve done and compliment it</b><div class="pb-ex">\u201cI see you redid the landscaping \u2014 it looks great \u2014 so I know you have pride in ownership on your home!\u201d</div></li>' +
+      '<li><b>The reason you\u2019re here \u2192 bridge into the compliment</b> \u2014 one breath, no pause. Point out work they\u2019ve done as you bridge.<div class="pb-ex">\u201cThe reason I\u2019m in your neighborhood \u2014 my company, tomorrow we\u2019re leaving estimates on different services that we do. I see you redid the landscaping \u2014 it looks great \u2014 so I know you have pride in ownership on your home!\u201d</div></li>' +
       '<li><b>The opportunity + alternative-choice close</b><div class="pb-ex">\u201cI see a possible chance of earning your business on your [product/project] \u2014 will you be home at 10am, or does 2pm sound good for you?\u201d</div></li>' +
     '</ol>' +
     '<p class="pb-sub">Full script:</p>' +
