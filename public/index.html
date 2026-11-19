@@ -593,6 +593,10 @@
   .tc-row button{width:36px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#b3261e;font-weight:800;}
   .tc-add{width:100%;padding:10px;border:1px dashed var(--border);border-radius:10px;background:#fff;font-weight:700;color:var(--text);}
   .tc-sub{font-size:13px;color:var(--text-muted);}
+  .full-bk{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--border);}
+  .full-bk .co-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
+  .full-bk button{display:block;width:100%;margin-bottom:6px;}
+  .full-bk p{font-size:12.5px;color:var(--text-muted);margin:4px 0 0;}
   .co-pick{margin:14px 0 6px;padding-top:12px;border-top:1px solid var(--border);}
   .co-pick .co-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:6px;}
   .co-pick button{display:block;width:100%;margin-bottom:6px;text-align:left;}
@@ -1196,6 +1200,13 @@
     <p>Your leads are saved on this phone. Export a backup at the end of each day.</p>
     <button type="button" id="exportBtn">&#8659; Export backup (CSV)</button>
     <button type="button" id="importBtn">&#8657; Import leads (CSV)</button>
+    <div class="full-bk">
+      <div class="co-lbl">Full backup &mdash; everything</div>
+      <button type="button" id="fullSaveBtn">&#128190; Save full backup</button>
+      <button type="button" id="fullRestoreBtn">&#128260; Restore full backup</button>
+      <input type="file" id="fullRestoreFile" accept=".json,application/json" hidden>
+      <p>Both companies: leads, photos, stats, time clock, hours, gas &amp; miles, settings. Do this before deleting or re-adding the app icon.</p>
+    </div>
     <div class="co-pick">
       <div class="co-lbl">Company</div>
       <button type="button" data-co="vp" id="coVp">&#127796; Villa Pacifica Construction</button>
@@ -2389,6 +2400,71 @@
   function photoDeleteForLead(leadId){
     return photosFor(leadId).then(function(list){ return Promise.all(list.map(function(p){ return photoDelete(p.id); })); });
   }
+  // ---- Full backup: every saved setting + both companies' photos in one file ----
+  function dbAll(name){
+    return new Promise(function(res){
+      try {
+        var r = indexedDB.open(name, 1);
+        r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
+        r.onsuccess = function(){ var db = r.result; try { var q = db.transaction("photos", "readonly").objectStore("photos").getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; } catch(e){ res([]); } };
+        r.onerror = function(){ res([]); };
+      } catch(e){ res([]); }
+    });
+  }
+  function blobToData(b){ return new Promise(function(res){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ res(""); }; fr.readAsDataURL(b); }); }
+  function dataToBlob(d){ var p = d.split(","), m = (p[0].match(/:(.*?);/) || [])[1] || "image/jpeg", bin = atob(p[1] || ""), u = new Uint8Array(bin.length); for(var i = 0; i < bin.length; i++){ u[i] = bin.charCodeAt(i); } return new Blob([u], { type: m }); }
+  function fullBackup(){
+    var store = {}; for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
+    var out = { app: "leadgen-full-backup", version: 1, created: new Date().toISOString(), storage: store, photos: {} };
+    return Promise.all(["vp_", "socal_"].map(function(pre){
+      return dbAll(pre + "lead_photos").then(function(list){
+        return Promise.all(list.map(function(r){ return blobToData(r.blob).then(function(d){ return { id: r.id, leadId: r.leadId, ts: r.ts, data: d }; }); }))
+          .then(function(arr){ out.photos[pre] = arr; });
+      });
+    })).then(function(){ return out; });
+  }
+  function fullRestore(obj){
+    if(!obj || obj.app !== "leadgen-full-backup"){ alert("That file isn\u2019t a full backup from this app."); return Promise.resolve(false); }
+    Object.keys(obj.storage || {}).forEach(function(k){ try { localStorage.setItem(k, obj.storage[k]); } catch(e){} });
+    return Promise.all(Object.keys(obj.photos || {}).map(function(pre){
+      return new Promise(function(res){
+        var r = indexedDB.open(pre + "lead_photos", 1);
+        r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
+        r.onsuccess = function(){ var db = r.result, tx = db.transaction("photos", "readwrite"), st = tx.objectStore("photos");
+          (obj.photos[pre] || []).forEach(function(p){ if(p.data){ st.put({ id: p.id, leadId: p.leadId, ts: p.ts, blob: dataToBlob(p.data) }); } });
+          tx.oncomplete = function(){ res(); }; tx.onerror = function(){ res(); }; };
+        r.onerror = function(){ res(); };
+      });
+    })).then(function(){ return true; });
+  }
+  document.getElementById("fullSaveBtn").addEventListener("click", function(){
+    var btn = this; btn.textContent = "Preparing\u2026";
+    fullBackup().then(function(obj){
+      var name = "leadgen-full-backup-" + todayISO() + ".json";
+      var file = new File([JSON.stringify(obj)], name, { type: "application/json" });
+      var nLeads = 0; try { nLeads = JSON.parse(obj.storage.vp_leads_v1 || "[]").length + JSON.parse(obj.storage.socal_leads_v1 || "[]").length; } catch(e){}
+      var nPics = (obj.photos.vp_ || []).length + (obj.photos.socal_ || []).length;
+      btn.textContent = "\ud83d\udcbe Save full backup";
+      if(navigator.canShare && navigator.canShare({ files: [file] })){
+        navigator.share({ files: [file], title: name }).catch(function(){});
+      } else {
+        var a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+      }
+      try { localStorage.setItem("lg_last_full_backup", new Date().toISOString() + "|" + nLeads + "|" + nPics); } catch(e){}
+    });
+  });
+  document.getElementById("fullRestoreBtn").addEventListener("click", function(){ document.getElementById("fullRestoreFile").click(); });
+  document.getElementById("fullRestoreFile").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0]; if(!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var obj; try { obj = JSON.parse(fr.result); } catch(err){ alert("Couldn\u2019t read that file."); return; }
+      var n = 0; try { n = JSON.parse((obj.storage || {}).vp_leads_v1 || "[]").length + JSON.parse((obj.storage || {}).socal_leads_v1 || "[]").length; } catch(err){}
+      if(!confirm("Restore this backup from " + (obj.created || "").slice(0,10) + "? (" + n + " leads across both companies). It replaces what\u2019s on this phone now.")) return;
+      fullRestore(obj).then(function(ok){ if(ok){ location.reload(); } });
+    };
+    fr.readAsText(f); e.target.value = "";
+  });
   function compressImage(file){
     return new Promise(function(res, rej){
       var url = URL.createObjectURL(file);
