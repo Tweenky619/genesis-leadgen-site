@@ -24,7 +24,8 @@
     cfg.isNew = !c0;
     // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
     if (/goldenbee\s*malaj/i.test(cfg.company)){
-      if (!cfg.logo || cfg.logo === "/goldenbee-malaj-platinum.png") cfg.logo = "/goldenbee-hc-platinum.png";
+      if (!cfg.logo || /^\/goldenbee-(malaj|hc)-platinum\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo.png";
+      cfg.icon = "/goldenbee-hc-icon.png";
       if (cfg.brand === WL_DEF.brand && cfg.accent === WL_DEF.accent){ cfg.brand = "#1d1f23"; cfg.accent = "#7d838c"; }
     }
     window.LG_CFG = cfg;
@@ -34,7 +35,7 @@
     document.addEventListener("DOMContentLoaded", function(){
       var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-app.webmanifest";
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
-      document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.logo || "/app-icon-180.png"; });
+      document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.icon || cfg.logo || "/app-icon-180.png"; });
     });
   }
 </script>
@@ -162,7 +163,7 @@
   .own-contact button{margin-top:8px;background:#92400e;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700;}
   .wl-app .co-pick, .wl-app #arenaBell, .wl-app #arenaBtn, .wl-app #coBanner{display:none!important;}
   .wl-no-stats #statsBtn, .wl-no-map #leadMapBtn, .wl-no-practice #practiceBtn, .wl-no-clock #timeClock, .wl-no-share .lead-share{display:none!important;}
-  .wl-app .topbar .logo{max-height:46px;max-width:190px;width:auto;object-fit:contain;}
+  .wl-app .topbar .logo{max-height:60px;max-width:190px;width:auto;object-fit:contain;}
   .wl-word{font-weight:900;font-size:20px;color:var(--brand);letter-spacing:-.01em;line-height:1.1;}
   #wlSetup{position:fixed;inset:0;z-index:5000;background:#f5f6f8;overflow:auto;display:none;}
   #wlSetup.open{display:block;}
@@ -1380,7 +1381,7 @@
           if(/^vp_/.test(mk) && !/^vp_(arena|push)/.test(mk)){ var nk = "wl_" + mk.slice(3); if(localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(mk)); }
         }
         localStorage.setItem("wl_migrate_photos", "1");
-        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-platinum.png", brand: "#1d1f23", accent: "#7d838c" }));
+        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-logo.png", brand: "#1d1f23", accent: "#7d838c" }));
       }
       localStorage.setItem("wl_migrated", "1");
     }catch(e){}
