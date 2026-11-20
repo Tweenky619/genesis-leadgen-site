@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Villa Pacifica Construction Lead Gen</title>
 <script>
+  // villapacifica-leadgen.pages.dev (Ruben / reps / owners links) was shut down by Art on Nov 19, 2026
+  if (location.hostname === "villapacifica-leadgen.pages.dev" && !/^\/owners\/art(\/|$)/.test(location.pathname)) {
+    document.open();
+    document.write('<!DOCTYPE html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Villa Pacifica</title><body style="margin:0;font-family:-apple-system,sans-serif;background:#f5f4f9;color:#12344d;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px"><div><img src="/vp-logo.png?v=2" style="height:60px" alt=""><h2>This app is no longer available</h2><p style="color:#6b7086">Contact Art for access.</p></div></body>');
+    document.close();
+    throw new Error("shut down");
+  }
+</script>
+
+<script>
   // Rep copy: /rep — same Lead Gen, rep-only Arena, no manager tools, its own storage
   window.LG_REP = /^\/(rep|ruben)(\/|$)/.test(location.pathname);
   // Ruben's personal copy: already signed in as him, in Manager mode (his own co-manager code — remove him under Arena → Co-managers to cut it off)
