@@ -8,10 +8,15 @@
   "theme_color": "#12344d",
   "icons": [
     {
-      "src": "/vp-icon.png?v=3",
-      "sizes": "180x180",
+      "src": "/app-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/app-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ]
 }
