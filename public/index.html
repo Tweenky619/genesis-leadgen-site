@@ -27,10 +27,15 @@
     cfg.isNew = !c0;
     if (window.LG_MINE){   // Art's program: name, logo and colors are fixed
       cfg.company = "Goldenbee MALAJ Home Connectors"; cfg.logo = ""; cfg.brand = WL_DEF.brand; cfg.accent = WL_DEF.accent;
-      if (!cfg.rep) cfg.rep = "Arturo Delgado Mora";
+      if (!cfg.rep) cfg.rep = "Art Delgado Mora";
+      if (!localStorage.getItem("wl_art_solar_v1")){   // one-time: go by "Art" + add Solar to products
+        if (/^Arturo\b/.test(cfg.rep)) cfg.rep = cfg.rep.replace(/^Arturo\b/, "Art");
+        if (!cfg.products.some(function(x){ return /^solar$/i.test(x); })) cfg.products = cfg.products.concat(["Solar"]);
+        try{ var c2 = JSON.parse(localStorage.getItem("wl_config") || "null") || {}; c2.rep = cfg.rep; c2.products = cfg.products; localStorage.setItem("wl_config", JSON.stringify(c2)); localStorage.setItem("wl_art_solar_v1", "1"); }catch(e){}
+      }
       cfg.tag = "";   // the logo already says Home Connectors
       cfg.features.clock = false;   // Art: no time clock on his program
-      if (!localStorage.getItem("wl_practice_on")){ cfg.features.practice = true; try{ var c1 = c0 || {}; c1.features = c1.features || {}; c1.features.practice = true; localStorage.setItem("wl_config", JSON.stringify(c1)); localStorage.setItem("wl_practice_on", "1"); }catch(e){} }
+      if (!localStorage.getItem("wl_practice_on")){ cfg.features.practice = true; try{ var c1 = JSON.parse(localStorage.getItem("wl_config") || "null") || {}; c1.features = c1.features || {}; c1.features.practice = true; localStorage.setItem("wl_config", JSON.stringify(c1)); localStorage.setItem("wl_practice_on", "1"); }catch(e){} }
       cfg.isNew = false;
     }
     // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
