@@ -29,6 +29,7 @@
       cfg.company = "Goldenbee MALAJ Home Connectors"; cfg.logo = ""; cfg.brand = WL_DEF.brand; cfg.accent = WL_DEF.accent;
       if (!cfg.rep) cfg.rep = "Arturo Delgado Mora";
       cfg.tag = "";   // the logo already says Home Connectors
+      cfg.features.clock = false;   // Art: no time clock on his program
       cfg.isNew = false;
     }
     // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
@@ -3853,7 +3854,7 @@
         try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
-      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connectors \u2014 your program."; }
+      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connectors \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
   }
