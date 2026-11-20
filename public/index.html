@@ -24,8 +24,8 @@
     cfg.isNew = !c0;
     // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
     if (/goldenbee\s*malaj/i.test(cfg.company)){
-      if (!cfg.logo || /^\/goldenbee-(malaj|hc)-platinum\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo.png";
-      cfg.icon = "/goldenbee-hc-icon.png";
+      if (!cfg.logo || /^\/goldenbee-(malaj-platinum|hc-platinum|hc-logo)\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo-v2.png";
+      cfg.icon = "/goldenbee-hc-icon-v2.png";
       if (cfg.brand === WL_DEF.brand && cfg.accent === WL_DEF.accent){ cfg.brand = "#1d1f23"; cfg.accent = "#7d838c"; }
     }
     window.LG_CFG = cfg;
@@ -1381,7 +1381,7 @@
           if(/^vp_/.test(mk) && !/^vp_(arena|push)/.test(mk)){ var nk = "wl_" + mk.slice(3); if(localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(mk)); }
         }
         localStorage.setItem("wl_migrate_photos", "1");
-        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-logo.png", brand: "#1d1f23", accent: "#7d838c" }));
+        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-logo-v2.png", brand: "#1d1f23", accent: "#7d838c" }));
       }
       localStorage.setItem("wl_migrated", "1");
     }catch(e){}
@@ -3858,7 +3858,7 @@
 <script src="practice.js?v=56"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v2.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
     <h2 id="wlTitle">Set up your lead gen app</h2>
     <div class="sub">Make it yours — you can change any of this later with &#9881;&#65039;.</div>
     <div class="wl-card"><h3>Company</h3>
