@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Villa Pacifica Construction Lead Gen</title>
 <script>
+  // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
+  window.LG_WL = /^\/app(\/|$)/.test(location.pathname);
+  window.LG_CFG = null;
+  if (window.LG_WL){
+    var WL_DEF = { company: "", tag: "LEAD GEN", logo: "", brand: "#12344d", accent: "#2563eb", rep: "", phone: "",
+      products: ["Roof", "Paint/Stucco", "Windows"],
+      hours: { wkStart: 10, wkEnd: 19, sat: true, satStart: 10, satEnd: 17, sun: false, sunStart: 11, sunEnd: 16 },
+      features: { stats: true, map: true, clock: true, gas: true, share: true, practice: false } };
+    var c0 = null; try{ c0 = JSON.parse(localStorage.getItem("wl_config") || "null"); }catch(e){}
+    var cfg = JSON.parse(JSON.stringify(WL_DEF));
+    if (c0){ for (var k in c0) if (c0[k] != null && typeof c0[k] !== "object") cfg[k] = c0[k];
+      if (c0.products && c0.products.length) cfg.products = c0.products;
+      if (c0.hours) for (var h in c0.hours) cfg.hours[h] = c0.hours[h];
+      if (c0.features) for (var f in c0.features) cfg.features[f] = c0.features[f]; }
+    cfg.isNew = !c0;
+    window.LG_CFG = cfg;
+    var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
+    document.documentElement.className += cls;
+    document.title = (cfg.company || "Lead Gen") + " Lead Gen";
+    document.addEventListener("DOMContentLoaded", function(){
+      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-app.webmanifest";
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
+      if (cfg.logo){ document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.logo; }); }
+    });
+  }
+</script>
+<script>
   // villapacifica-leadgen.pages.dev (Ruben / reps / owners links) was shut down by Art on Nov 19, 2026
   if (location.hostname === "villapacifica-leadgen.pages.dev" || /^\/(rep|ruben)(\/|$)/.test(location.pathname)) {   // all rep copies shut down
     document.open();
@@ -126,6 +153,33 @@
   .own-send.sent{background:#ede9fe;color:#4c1d95;}
   .own-contact{background:#fef3c7;color:#92400e;border-radius:14px;padding:12px 14px;margin:0 0 10px;font-size:14px;}
   .own-contact button{margin-top:8px;background:#92400e;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700;}
+  .wl-app .co-pick, .wl-app #arenaBell, .wl-app #arenaBtn, .wl-app #ownersBox, .wl-app #coBanner{display:none!important;}
+  .wl-no-stats #statsBtn, .wl-no-map #leadMapBtn, .wl-no-practice #practiceBtn, .wl-no-clock #timeClock, .wl-no-share .lead-share{display:none!important;}
+  .wl-app .topbar .logo{max-height:46px;max-width:190px;width:auto;object-fit:contain;}
+  .wl-word{font-weight:900;font-size:20px;color:var(--brand);letter-spacing:-.01em;line-height:1.1;}
+  #wlSetup{position:fixed;inset:0;z-index:5000;background:#f5f6f8;overflow:auto;display:none;}
+  #wlSetup.open{display:block;}
+  .wl-wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px 40px;}
+  .wl-wrap h2{margin:0 0 4px;font-size:24px;color:#12344d;}
+  .wl-wrap .sub{color:#6b7086;font-size:14px;margin-bottom:14px;}
+  .wl-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;margin-bottom:12px;}
+  .wl-card h3{margin:0 0 10px;font-size:15px;color:#12344d;}
+  .wl-f{margin-bottom:10px;}
+  .wl-f label{display:block;font-size:12px;font-weight:700;color:#6b7086;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+  .wl-f input[type=text],.wl-f input[type=tel],.wl-f textarea,.wl-f select{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:11px;font-size:16px;background:#fff;}
+  .wl-f textarea{min-height:110px;}
+  .wl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .wl-row select{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:11px;font-size:16px;background:#fff;margin-bottom:6px;}
+  .wl-app .icon-btn{background:#eef1f5;}
+  .wl-colors{display:flex;gap:14px;}
+  .wl-colors input{width:56px;height:40px;border:none;background:none;padding:0;}
+  .wl-logo{display:flex;align-items:center;gap:12px;}
+  .wl-logo img{max-height:54px;max-width:170px;border:1px solid #e5e7eb;border-radius:8px;padding:4px;background:#fff;}
+  .wl-logo label.btnl{border:1.5px dashed #94a3b8;border-radius:999px;padding:9px 14px;font-weight:700;font-size:14px;color:#334155;}
+  .wl-chk{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:15px;}
+  .wl-chk input{width:20px;height:20px;}
+  .wl-save{width:100%;border:none;border-radius:14px;padding:15px;font-weight:800;font-size:16px;color:#fff;background:#12344d;margin-top:6px;}
+  .wl-cancel{width:100%;border:none;background:none;color:#6b7086;padding:12px;font-weight:700;}
   .rep-app .co-pick, .rep-app:not(.mgr-copy) #arenaBell, .rep-app #practiceBtn{display:none!important;}
   #arenaView{position:fixed;inset:0;z-index:3000;background:#000;display:flex;flex-direction:column;}
   #arenaView[hidden]{display:none;}
@@ -931,14 +985,18 @@
   .own-chip{padding:11px 4px;border:2px solid var(--border);border-radius:10px;background:var(--card);font-weight:700;font-size:14px;color:var(--text);}
   .own-chip.on{border-color:var(--brand);background:var(--brand);color:#fff;}
 </style>
+<script>
+  if (window.LG_WL && window.LG_CFG){ var st0 = document.createElement("style"); st0.textContent = ":root{--brand:" + window.LG_CFG.brand + ";--accent:" + window.LG_CFG.accent + ";}"; document.head.appendChild(st0); }
+</script>
 </head>
 <body>
 <div id="app">
 
   <header class="topbar">
     <div style="min-width:0;flex:1;margin-right:10px;">
-      <img class="logo" src="vp-logo.png?v=2" alt="Villa Pacifica Construction">
-      <div class="lg-tag">LEAD GEN</div>
+      <img class="logo" id="hdrLogo" src="vp-logo.png?v=2" alt="Villa Pacifica Construction">
+      <div class="wl-word" id="hdrWord" hidden></div>
+      <div class="lg-tag" id="hdrTag">LEAD GEN</div>
       <div class="subtitle" id="headerSubtitle">Lead Tracker</div>
     </div>
     <div class="header-actions">
@@ -947,6 +1005,7 @@
       <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
       <button class="icon-btn" id="arenaBtn" title="Canvassing Arena">&#128205;</button>
       <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
+      <button class="icon-btn" id="wlGear" title="Company settings" hidden>&#9881;&#65039;</button>
       <input type="file" id="importInput" accept=".csv,text/csv" hidden>
       <button class="icon-btn" id="newBtnTop" title="New lead">+</button>
     </div>
@@ -1303,11 +1362,13 @@
 
   // ---- Company workspaces: Villa Pacifica (current) and SoCal Contractor Exchange (saved, untouched) ----
   var REP_APP = !!window.LG_REP;
+  var WL = !!window.LG_WL, CFG = window.LG_CFG || {};
   var COMPANY = "vp"; try { COMPANY = !REP_APP && localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
-  var CO_NAME = COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
-  var CO_PREFIX = REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
+  var CO_NAME = WL ? (CFG.company || "our company") : COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
+  var CO_PREFIX = WL ? "wl_" : REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
   // Rep copy: texts and scripts use the rep's own first name (from their Arena sign-in)
   function meFirst(){
+    if(WL) return (CFG.rep || "").trim().split(/\s+/)[0] || "your rep";
     if(!REP_APP) return "Art";
     try{ var a = JSON.parse(localStorage.getItem("rep_arena_me") || "null") || window.LG_PRESET; var n = (a && a.name || "").trim().split(/\s+/)[0]; return n || "your rep"; }catch(e){ return "your rep"; }
   }
@@ -1526,7 +1587,12 @@
     ["windows","🪟 Windows", function(l){ return hasProduct(l, /window/i); }],
     ["all","All", function(){ return true; }]
   ];
-  if(COMPANY !== "socal"){   // Villa Pacifica core: Roof, Paint/Stucco, High Performance Windows
+  if(WL){   // white-label: product tabs come from the company's own product list
+    var allT = TABS.pop();
+    TABS = TABS.filter(function(t){ return ["roof","paint","fascia","windows"].indexOf(t[0]) === -1; });
+    (CFG.products || []).forEach(function(pn, i){ TABS.push(["p" + i, pn, function(l){ return (l.interests || []).indexOf(pn) !== -1; }]); });
+    TABS.push(allT);
+  } else if(COMPANY !== "socal"){   // Villa Pacifica core: Roof, Paint/Stucco, High Performance Windows
     TABS = TABS.filter(function(t){ return t[0] !== "fascia"; });
     TABS.forEach(function(t){ if(t[0] === "windows") t[1] = "\ud83e\ude9f High Performance Windows"; });
   }
@@ -2110,7 +2176,7 @@
     try {
       var file = new File([csv], filename, { type: "text/csv" });
       if(navigator.canShare && navigator.canShare({ files: [file] })){
-        navigator.share({ files: [file], title: "Villa Pacifica Construction Leads Export" }).catch(function(){});
+        navigator.share({ files: [file], title: CO_NAME + " Leads Export" }).catch(function(){});
         return;
       }
     } catch(e){}
@@ -2252,12 +2318,12 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with " + CO_NAME + ". " +
       "Just a heads-up \u2014 reaching out to reconfirm the visit our rep reset with you, you can thumbs up here or say \u201cgood to go\u201d so we know we\u2019re fine to go out " +
       dateTxt + (l.appt_time ? " at " + l.appt_time : "") + projTxt + ". " +
       "Please and Thank you!";
   }
-  var OFFICE_PHONE = "(619) 393-5297";
+  var OFFICE_PHONE = WL ? (CFG.phone || "our office") : "(619) 393-5297";
   function naText(l){
     var first = (l.first_name || (l.homeowner_name || "").split(" ")[0] || "").trim();
     var when = l.appt_date === addDaysISO(1) ? "tomorrow" : l.appt_date === todayISO() ? "today" : "";
@@ -2266,7 +2332,7 @@
     var projTxt = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
     var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     var dateTxt = (when ? when + ", " : "") + (p.length === 3 ? dayName + ", " + MON[+p[1]-1] + " " + (+p[2]) : "");
-    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with " + CO_NAME + ". " +
       "Our office tried calling to confirm your appointment" + projTxt + (dateTxt ? " " + (when ? "" : "on ") + dateTxt : "") + (l.appt_time ? " at " + l.appt_time : "") + ". " +
       "Friendly reminder: we\u2019ll be calling from " + OFFICE_PHONE + " \u2014 please save the number and pick up when we call so we can lock in your visit. Thank you!";
   }
@@ -2275,7 +2341,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; });
     pr = pr.map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) : "project";
-    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " from Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " from " + CO_NAME + ". " +
       "I just wanted to say thank you for having us out \u2014 I heard you\u2019re getting your " + proj + " done. " +
       "You\u2019re going to love how the house looks! If you ever have any questions, I\u2019m just a text away. Have a great day!";
   }
@@ -2317,7 +2383,7 @@
     var pr = (l.interests || []).map(function(i){ return String(i).replace(/^Other:\s*/, ""); }).filter(function(i){ return i && i !== "Other"; })
       .map(function(x){ return x.replace(/\s*\/\s*/g, " and "); });
     var proj = pr.length ? " for your " + (pr.length > 1 ? pr.slice(0, -1).join(", ") + " and " + pr[pr.length - 1] : pr[0]) + " project" : "";
-    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with Villa Pacifica Construction. " +
+    return "Hi" + (first ? " " + first : "") + ", this is " + meFirst() + " with " + CO_NAME + ". " +
       "No worries at all about the visit" + proj + " \u2014 I know things come up. " +
       "Whenever you\u2019re ready, I\u2019m happy to find a time that works better for you. Just reply here. Thank you!";
   }
@@ -2560,7 +2626,7 @@
   function fullBackup(){
     var store = {}; for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
     var out = { app: "leadgen-full-backup", version: 1, created: new Date().toISOString(), storage: store, photos: {} };
-    return Promise.all(["vp_", "socal_", "rep_"].map(function(pre){
+    return Promise.all(["vp_", "socal_", "rep_", "wl_"].map(function(pre){
       return dbAll(pre + "lead_photos").then(function(list){
         return Promise.all(list.map(function(r){ return blobToData(r.blob).then(function(d){ return { id: r.id, leadId: r.leadId, ts: r.ts, data: d }; }); }))
           .then(function(arr){ out.photos[pre] = arr; });
@@ -2757,6 +2823,14 @@
 
   // ---- Appointment schedule ----
   var SCHEDULE = { Monday:[10,19], Tuesday:[13,19], Wednesday:[10,19], Thursday:[10,19], Friday:[10,18], Saturday:[10,17] };
+  if(WL){
+    var Hc = CFG.hours || {}; SCHEDULE = {};
+    ["Monday","Tuesday","Wednesday","Thursday","Friday"].forEach(function(d){ SCHEDULE[d] = [+Hc.wkStart || 10, +Hc.wkEnd || 19]; });
+    if(Hc.sat) SCHEDULE.Saturday = [+Hc.satStart || 10, +Hc.satEnd || 17];
+    if(Hc.sun) SCHEDULE.Sunday = [+Hc.sunStart || 11, +Hc.sunEnd || 16];
+    var daySel = document.getElementById("f_appt_day");
+    if(daySel){ Array.prototype.slice.call(daySel.options).forEach(function(o){ if(o.value && !SCHEDULE[o.value]) o.remove(); }); if(SCHEDULE.Sunday){ var so = document.createElement("option"); so.textContent = "Sunday"; daySel.appendChild(so); } }
+  }
   var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   function hourLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":00 " + ap; }
   function halfLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":30 " + ap; }
@@ -3432,8 +3506,8 @@
           '<div class="tap net" data-k="sold" data-t="Net production"><small>Net production</small><b>' + esc(fmtMoney(c.money)) + '</b><span>' + (gross ? Math.round(c.money / gross * 100) + '% stuck' : '\u2014') + '</span></div>' +
           '</div>';
       })() +
-      (COMPANY !== "socal" ? '' : statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
-      gasHtml();
+      (COMPANY !== "socal" || WL ? '' : statPeriod === "week" ? pointsHtml(c) : '<div class="st-h">Pay points</div><div class="st-pts"><div class="sub">Points reset every week \u2014 tap <b>Week</b> to see your points and tier.</div></div>') +
+      (WL && CFG.features && !CFG.features.gas ? '' : gasHtml());
     var body = document.getElementById("statsBody");
     if(statDrill){
       var keys = statDrill.k.split(","), seen = {}, list = [];
@@ -3678,6 +3752,66 @@
 
   load();
   renderList();
+  // ---------- white-label setup ----------
+  if(WL){
+    document.addEventListener("DOMContentLoaded", function(){   // the setup screen sits at the end of the page
+      var logo = document.getElementById("hdrLogo"), word = document.getElementById("hdrWord");
+      if(CFG.logo){ logo.src = CFG.logo; logo.alt = CFG.company || ""; }
+      else { logo.hidden = true; word.hidden = false; word.textContent = CFG.company || "Lead Gen"; }
+      document.getElementById("hdrTag").textContent = CFG.tag || "";
+      document.getElementById("hdrTag").style.color = CFG.accent;
+      document.querySelector(".topbar") && (document.querySelector(".topbar").style.borderBottomColor = CFG.accent);
+      // product checkboxes on the New Lead form
+      var box = document.querySelector(".f_interest") && document.querySelector(".f_interest").closest("label").parentNode;
+      if(box){
+        var other = Array.prototype.slice.call(box.querySelectorAll("label.interest-toggle")).filter(function(lb){ return lb.querySelector('.f_interest[value="Other"]'); })[0];
+        Array.prototype.slice.call(box.querySelectorAll("label.interest-toggle")).forEach(function(lb){ if(lb !== other) lb.remove(); });
+        (CFG.products || []).forEach(function(pn){ var lb = document.createElement("label"); lb.className = "interest-toggle"; lb.innerHTML = '<input type="checkbox" class="f_interest" value="' + esc(pn) + '">' + esc(pn); box.insertBefore(lb, other || null); });
+      }
+      var gear = document.getElementById("wlGear"); gear.hidden = false;
+      var hrs = ""; for(var h = 6; h <= 22; h++) hrs += '<option value="' + h + '">' + hourLabel(h) + '</option>';
+      ["wlWkS","wlWkE","wlSatS","wlSatE","wlSunS","wlSunE"].forEach(function(id){ document.getElementById(id).innerHTML = hrs; });
+      var logoData = CFG.logo || "";
+      function $w(id){ return document.getElementById(id); }
+      function paintLogo(){ $w("wlLogoPrev").hidden = !logoData; $w("wlLogoClear").hidden = !logoData; if(logoData) $w("wlLogoPrev").src = logoData; }
+      function syncRows(){ $w("wlSatRow").style.display = $w("wlSat").checked ? "" : "none"; $w("wlSunRow").style.display = $w("wlSun").checked ? "" : "none"; }
+      function openSetup(){
+        var H = CFG.hours || {};
+        $w("wlTitle").textContent = CFG.isNew ? "Set up your lead gen app" : "Company settings";
+        $w("wlCompany").value = CFG.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.brand; $w("wlAccent").value = CFG.accent;
+        $w("wlRep").value = CFG.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
+        $w("wlWkS").value = H.wkStart; $w("wlWkE").value = H.wkEnd; $w("wlSat").checked = !!H.sat; $w("wlSatS").value = H.satStart; $w("wlSatE").value = H.satEnd;
+        $w("wlSun").checked = !!H.sun; $w("wlSunS").value = H.sunStart; $w("wlSunE").value = H.sunEnd;
+        document.querySelectorAll("[data-wlf]").forEach(function(c){ c.checked = !!(CFG.features || {})[c.getAttribute("data-wlf")]; });
+        $w("wlCancel").hidden = !!CFG.isNew;
+        logoData = CFG.logo || ""; paintLogo(); syncRows(); $w("wlSetup").classList.add("open");
+      }
+      $w("wlSat").onchange = syncRows; $w("wlSun").onchange = syncRows;
+      $w("wlLogoIn").onchange = function(e){
+        var f = e.target.files[0]; if(!f) return;
+        var img = new Image(), url = URL.createObjectURL(f);
+        img.onload = function(){ var sc = Math.min(1, 512 / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); logoData = c.toDataURL("image/png"); paintLogo(); };
+        img.src = url; e.target.value = "";
+      };
+      $w("wlLogoClear").onclick = function(){ logoData = ""; paintLogo(); };
+      $w("wlCancel").onclick = function(){ $w("wlSetup").classList.remove("open"); };
+      gear.onclick = openSetup;
+      $w("wlSave").onclick = function(){
+        var name = $w("wlCompany").value.trim(); if(!name){ alert("Enter your company name"); return; }
+        var prods = $w("wlProducts").value.split(/\n/).map(function(x){ return x.trim(); }).filter(function(x){ return x && !/^other$/i.test(x); });
+        if(!prods.length){ alert("Add at least one product or service"); return; }
+        var feats = {}; document.querySelectorAll("[data-wlf]").forEach(function(c){ feats[c.getAttribute("data-wlf")] = c.checked; });
+        var out = { company: name, tag: $w("wlTag").value.trim(), logo: logoData, brand: $w("wlBrand").value, accent: $w("wlAccent").value,
+          rep: $w("wlRep").value.trim(), phone: $w("wlPhone").value.trim(), products: prods,
+          hours: { wkStart: +$w("wlWkS").value, wkEnd: +$w("wlWkE").value, sat: $w("wlSat").checked, satStart: +$w("wlSatS").value, satEnd: +$w("wlSatE").value, sun: $w("wlSun").checked, sunStart: +$w("wlSunS").value, sunEnd: +$w("wlSunE").value },
+          features: feats };
+        try{ localStorage.setItem("wl_config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
+        location.reload();
+      };
+      if(CFG.isNew) openSetup();
+    });
+  }
+
   window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
     trashedArena: function(){ try{ return JSON.parse(localStorage.getItem(CO_PREFIX + "trash_v1") || "[]").map(function(t){ return t.lead.arena_id; }).filter(Boolean); }catch(e){ return []; } },
     viewing: function(){ return viewingId; }, refreshDetail: function(){ try{ refreshDetail(); }catch(e){} }, todayISO: todayISO,
@@ -3686,6 +3820,42 @@
 </script>
 <script src="playbook.js?v=10"></script>
 <script src="practice.js?v=56"></script>
+<div id="wlSetup">
+  <div class="wl-wrap">
+    <h2 id="wlTitle">Set up your lead gen app</h2>
+    <div class="sub">Make it yours — you can change any of this later with &#9881;&#65039;.</div>
+    <div class="wl-card"><h3>Company</h3>
+      <div class="wl-f"><label>Company name</label><input type="text" id="wlCompany" placeholder="e.g. Sunrise Home Solutions"></div>
+      <div class="wl-f"><label>Tagline under the logo</label><input type="text" id="wlTag" placeholder="LEAD GEN"></div>
+      <div class="wl-f"><label>Logo</label><div class="wl-logo"><img id="wlLogoPrev" alt="" hidden><label class="btnl">&#128247; Upload logo<input type="file" id="wlLogoIn" accept="image/*" hidden></label><button type="button" id="wlLogoClear" class="wl-cancel" style="width:auto;padding:6px" hidden>Remove</button></div></div>
+      <div class="wl-f"><label>Colors</label><div class="wl-colors"><div><input type="color" id="wlBrand"><div style="font-size:12px;color:#6b7086">Main</div></div><div><input type="color" id="wlAccent"><div style="font-size:12px;color:#6b7086">Accent</div></div></div></div>
+    </div>
+    <div class="wl-card"><h3>You</h3>
+      <div class="wl-f"><label>Your name (used in texts and scripts)</label><input type="text" id="wlRep" placeholder="e.g. Maria Lopez"></div>
+      <div class="wl-f"><label>Office phone (in the &ldquo;please answer our call&rdquo; text)</label><input type="tel" id="wlPhone" placeholder="(555) 123-4567"></div>
+    </div>
+    <div class="wl-card"><h3>Products / services</h3>
+      <div class="wl-f"><label>One per line &mdash; they become checkboxes and lead tabs</label><textarea id="wlProducts"></textarea></div>
+    </div>
+    <div class="wl-card"><h3>Appointment hours (30-minute slots)</h3>
+      <div class="wl-f"><label>Monday &ndash; Friday</label><div class="wl-row"><select id="wlWkS"></select><select id="wlWkE"></select></div></div>
+      <label class="wl-chk"><input type="checkbox" id="wlSat"> Saturday</label>
+      <div class="wl-row" id="wlSatRow"><select id="wlSatS"></select><select id="wlSatE"></select></div>
+      <label class="wl-chk"><input type="checkbox" id="wlSun"> Sunday</label>
+      <div class="wl-row" id="wlSunRow"><select id="wlSunS"></select><select id="wlSunE"></select></div>
+    </div>
+    <div class="wl-card"><h3>Features</h3>
+      <label class="wl-chk"><input type="checkbox" data-wlf="stats"> &#128202; Stats</label>
+      <label class="wl-chk"><input type="checkbox" data-wlf="map"> &#128506;&#65039; Map with address search</label>
+      <label class="wl-chk"><input type="checkbox" data-wlf="clock"> &#9201;&#65039; Time clock (clock in, breaks, lunch)</label>
+      <label class="wl-chk"><input type="checkbox" data-wlf="gas"> &#9981; Gas &amp; miles in Stats</label>
+      <label class="wl-chk"><input type="checkbox" data-wlf="share"> &#128228; Share-lead button (WhatsApp, text, email)</label>
+      <label class="wl-chk"><input type="checkbox" data-wlf="practice"> &#127919; Practice (door-pitch training)</label>
+    </div>
+    <button type="button" class="wl-save" id="wlSave">Save</button>
+    <button type="button" class="wl-cancel" id="wlCancel">Cancel</button>
+  </div>
+</div>
 <div id="arenaView" hidden>
   <div class="ar-bar">
     <button type="button" id="arenaBack">&#8592; Lead Gen</button>
@@ -3704,7 +3874,7 @@
   var ARENA_URL = window.LG_REP && !window.LG_PRESET ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
-  if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
+  if (window.LG_WL || (typeof COMPANY !== "undefined" && COMPANY === "socal")) { btn.style.display = "none"; return; }
   function openArena(){ if (!fr.src) fr.src = ARENA_URL; view.hidden = false; try{ localStorage.setItem(AP + "arena_open","1"); }catch(e){} }
   function closeArena(){ view.hidden = true; try{ localStorage.removeItem(AP + "arena_open"); }catch(e){} }
   btn.addEventListener("click", openArena);
