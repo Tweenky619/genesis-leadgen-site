@@ -3942,6 +3942,16 @@
     else if (m.type === "arena-leads" && Array.isArray(m.leads)){ ready = true; onLeads(m.leads); }
     else if (m.type === "arena-photo"){ onPhoto(m); }
     else if (m.type === "arena-appts" && Array.isArray(m.appts)){ onAppts(m.appts); }
+    else if (m.type === "arena-deleted" && Array.isArray(m.ids)){
+      // leads deleted in Arena: drop the ones that came from Arena; just unlink ones that were merged into your own lead
+      var gone = 0;
+      for (var i = LG.leads.length - 1; i >= 0; i--){
+        var ld = LG.leads[i]; if (!ld.arena_id || m.ids.indexOf(ld.arena_id) === -1) continue;
+        if (ld.source === "Arena"){ LG.leads.splice(i, 1); gone++; }
+        else { ["arena_id", "arena_rep", "arena_remote", "arena_synced"].forEach(function(k){ delete ld[k]; }); gone++; }
+      }
+      if (gone){ LG.save(); LG.refresh(); }
+    }
     else if (m.type === "arena-appt-ok"){
       var la = LG.leads.find(function(y){ return y.id === m.id; });
       if (la && !m.unsend){ var first = !la.owners_sent; la.owners_sent = Date.now(); la.owners_key = m.key; if (first) LG.addLog(la, "\ud83d\udce4 Sent to owners"); LG.save(); if (LG.viewing() === la.id){ LG.refreshDetail(); paintOwners(); alertBox(first ? "\ud83d\udce4 Sent to the owners" : "Updated for the owners"); } }
