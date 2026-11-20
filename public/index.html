@@ -25,7 +25,7 @@
     window.LG_CFG = cfg;
     var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
     document.documentElement.className += cls;
-    document.title = (cfg.company || "Lead Gen") + " Lead Gen";
+    document.title = cfg.company ? cfg.company + " Lead Gen" : "Goldenbee MALAJ Home Connectors";
     document.addEventListener("DOMContentLoaded", function(){
       var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-app.webmanifest";
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
@@ -155,7 +155,7 @@
   .own-send.sent{background:color-mix(in srgb, var(--accent) 14%, white);color:#4c1d95;}
   .own-contact{background:#fef3c7;color:#92400e;border-radius:14px;padding:12px 14px;margin:0 0 10px;font-size:14px;}
   .own-contact button{margin-top:8px;background:#92400e;color:#fff;border:none;border-radius:10px;padding:8px 12px;font-weight:700;}
-  .wl-app .co-pick, .wl-app #arenaBell, .wl-app #arenaBtn, .wl-app #ownersBox, .wl-app #coBanner{display:none!important;}
+  .wl-app .co-pick, .wl-app #arenaBell, .wl-app #arenaBtn, .wl-app #coBanner{display:none!important;}
   .wl-no-stats #statsBtn, .wl-no-map #leadMapBtn, .wl-no-practice #practiceBtn, .wl-no-clock #timeClock, .wl-no-share .lead-share{display:none!important;}
   .wl-app .topbar .logo{max-height:46px;max-width:190px;width:auto;object-fit:contain;}
   .wl-word{font-weight:900;font-size:20px;color:var(--brand);letter-spacing:-.01em;line-height:1.1;}
@@ -1375,6 +1375,7 @@
           if(/^vp_/.test(mk) && !/^vp_(arena|push)/.test(mk)){ var nk = "wl_" + mk.slice(3); if(localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(mk)); }
         }
         localStorage.setItem("wl_migrate_photos", "1");
+        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora" }));
       }
       localStorage.setItem("wl_migrated", "1");
     }catch(e){}
@@ -3806,8 +3807,9 @@
       function openSetup(){
         var H = CFG.hours || {};
         $w("wlTitle").textContent = CFG.isNew ? "Set up your lead gen app" : "Company settings";
-        $w("wlCompany").value = CFG.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.brand; $w("wlAccent").value = CFG.accent;
-        $w("wlRep").value = CFG.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
+        var pre = {}; try{ pre = JSON.parse(localStorage.getItem("wl_prefill") || "{}"); }catch(e){}
+        $w("wlCompany").value = CFG.company || pre.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.brand; $w("wlAccent").value = CFG.accent;
+        $w("wlRep").value = CFG.rep || pre.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
         $w("wlWkS").value = H.wkStart; $w("wlWkE").value = H.wkEnd; $w("wlSat").checked = !!H.sat; $w("wlSatS").value = H.satStart; $w("wlSatE").value = H.satEnd;
         $w("wlSun").checked = !!H.sun; $w("wlSunS").value = H.sunStart; $w("wlSunE").value = H.sunEnd;
         document.querySelectorAll("[data-wlf]").forEach(function(c){ c.checked = !!(CFG.features || {})[c.getAttribute("data-wlf")]; });
@@ -3850,6 +3852,7 @@
 <script src="practice.js?v=56"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#b8860b;margin-bottom:6px">GOLDENBEE MALAJ HOME CONNECTORS</div>
     <h2 id="wlTitle">Set up your lead gen app</h2>
     <div class="sub">Make it yours — you can change any of this later with &#9881;&#65039;.</div>
     <div class="wl-card"><h3>Company</h3>
@@ -3880,6 +3883,12 @@
       <label class="wl-chk"><input type="checkbox" data-wlf="share"> &#128228; Share-lead button (WhatsApp, text, email)</label>
       <label class="wl-chk"><input type="checkbox" data-wlf="practice"> &#127919; Practice (door-pitch training)</label>
     </div>
+    <div class="wl-card" id="wlOwnCard" hidden><h3>&#128101; Owners app (connected)</h3>
+      <div class="sub" style="margin:0 0 8px">Send this link to the owners who run your appointments. Leads you tap <b>&#128228; Send to owners</b> on show up for them; their got-ins, results, photos and contact requests come back to your leads.</div>
+      <div class="wl-f"><input type="text" id="wlOwnLink" readonly></div>
+      <div class="wl-row"><button type="button" class="wl-save" style="margin:0;background:#334155" id="wlOwnCopy">Copy link</button><button type="button" class="wl-save" style="margin:0;background:#334155" id="wlOwnShare">Share&hellip;</button></div>
+      <button type="button" class="wl-save" style="background:#0f766e" id="wlBell">&#128276; Turn on alerts on this phone</button>
+    </div>
     <button type="button" class="wl-save" id="wlSave">Save</button>
     <button type="button" class="wl-cancel" id="wlCancel">Cancel</button>
   </div>
@@ -3895,6 +3904,127 @@
   <iframe id="arenaFrame" title="Canvassing Arena" allow="geolocation; clipboard-write; web-share"></iframe>
 </div>
 <script>
+// ===== White-label: connected owners app (company backend at /wl-api) =====
+function wlOwners(){
+  var LG = window.LG, CFG = window.LG_CFG || {}; if (!LG || CFG.isNew) return;
+  var API = "https://canvassing-arena.pages.dev/wl-api/";
+  var co = null; try{ co = JSON.parse(localStorage.getItem("wl_company") || "null"); }catch(e){}
+  var brand = { company: CFG.company, tag: CFG.tag, logo: CFG.logo, brand: CFG.brand, accent: CFG.accent };
+  function call(path, opts){
+    opts = opts || {};
+    return fetch(API + path, { method: opts.method || "GET", headers: { "Content-Type": "application/json", "X-WL-Company": co ? co.id : "", "X-WL-Key": co ? co.mkey : "" }, body: opts.body ? JSON.stringify(opts.body) : undefined })
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok){ var e = new Error(j.error || "HTTP " + r.status); e.status = r.status; throw e; } return j; }); });
+  }
+  function toast(m){ var t = document.getElementById("arToast"); document.body.appendChild(t); t.textContent = m; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function(){ t.hidden = true; }, 4500); }
+  function ready(){
+    if (co) return Promise.resolve(co);
+    return call("company", { method: "POST", body: { brand: brand } }).then(function(j){ co = j; localStorage.setItem("wl_company", JSON.stringify(co)); localStorage.setItem("wl_brand_sent", JSON.stringify(brand)); return co; });
+  }
+  ready().then(function(){
+    if (localStorage.getItem("wl_brand_sent") !== JSON.stringify(brand)) call("brand", { method: "POST", body: { brand: brand } }).then(function(){ localStorage.setItem("wl_brand_sent", JSON.stringify(brand)); }).catch(function(){});
+    paintCard(); poll(); sendAuth();
+  }).catch(function(){});
+  // settings card: owners link + alerts
+  function ownersLink(){ return co ? location.origin + "/owners/?c=" + encodeURIComponent(co.id) + "&k=" + encodeURIComponent(co.okey) : ""; }
+  function paintCard(){
+    var card = document.getElementById("wlOwnCard"); if (!card || !co) return;
+    card.hidden = false; document.getElementById("wlOwnLink").value = ownersLink();
+    document.getElementById("wlOwnCopy").onclick = function(){ navigator.clipboard && navigator.clipboard.writeText(ownersLink()).then(function(){ toast("Owners link copied"); }); };
+    document.getElementById("wlOwnShare").onclick = function(){ var t = (CFG.company || "Our company") + " \u2014 appointment results app: " + ownersLink(); if (navigator.share) navigator.share({ text: t }).catch(function(){}); else { navigator.clipboard.writeText(t); toast("Copied"); } };
+    document.getElementById("wlBell").onclick = turnOnAlerts;
+  }
+  function b64ToBytes(b){ b = b.replace(/-/g, "+").replace(/_/g, "/"); while (b.length % 4) b += "="; var r = atob(b), o = new Uint8Array(r.length); for (var i = 0; i < r.length; i++) o[i] = r.charCodeAt(i); return o; }
+  function sendAuth(){ if (!("serviceWorker" in navigator) || !co) return; navigator.serviceWorker.register("/sw.js").then(function(){ return navigator.serviceWorker.ready; }).then(function(r){ r.active && r.active.postMessage({ type: "auth", auth: { wl: { id: co.id, mkey: co.mkey } } }); }).catch(function(){}); }
+  function turnOnAlerts(){
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){ alert("Add this app to your Home Screen from Safari first (Share \u2192 Add to Home Screen), then try again from the Home Screen icon."); return; }
+    Notification.requestPermission().then(function(p){
+      if (p !== "granted"){ alert("Alerts are blocked \u2014 turn them on in Settings \u2192 Notifications."); return; }
+      return Promise.all([call("vapid"), navigator.serviceWorker.register("/sw.js").then(function(){ return navigator.serviceWorker.ready; })]).then(function(a){
+        var key = a[0].key, reg = a[1]; sendAuth();
+        return reg.pushManager.getSubscription().then(function(s){ return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(key) }); })
+          .then(function(sub){ return call("push", { method: "POST", body: { endpoint: sub.endpoint } }); })
+          .then(function(){ toast("\ud83d\udd14 Alerts are on \u2014 you'll hear when an owner gets in, sends a result or needs you to call someone"); reg.showNotification("Alerts are working", { body: "Owner updates will pop up here.", icon: CFG.logo || "/app-icon-180.png" }).catch(function(){}); });
+      });
+    }).catch(function(){ alert("Couldn't turn on alerts. Try again."); });
+  }
+  // lead screen: Send to owners
+  var box = document.getElementById("ownersBox"), btn = document.getElementById("ownersBtn"), contact = document.getElementById("ownContact");
+  function esc2(x){ return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function data(l){
+    var pn = l.project_notes || {}, notes = [l.notes || ""].concat(Object.keys(pn).map(function(k){ return pn[k] ? k + ": " + pn[k] : ""; })).filter(Boolean).join("\n");
+    return { name: l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" "), phone: l.phone || "", address: [l.address, l.zip].filter(Boolean).join(", "),
+      appt_date: l.appt_date || "", appt_time: l.appt_time || "", products: (l.interests || []).slice(), spouse: l.spouse || "", dm_relation: l.dm_relation || "",
+      owner_status: l.owner_status || "", notes: notes, set_by: CFG.rep || "" };
+  }
+  function key(l){ var d = data(l); return [d.name, d.phone, d.address, d.appt_date, d.appt_time, d.products.join("|"), d.notes].join("~"); }
+  function cur(){ var id = LG.viewing(); return id && LG.leads.find(function(x){ return x.id === id; }); }
+  function paint(){
+    var l = cur(); if (!l || !co){ box.hidden = true; return; }
+    box.hidden = false;
+    btn.className = "btn own-send" + (l.owners_sent ? " sent" : "");
+    btn.innerHTML = l.owners_sent ? "\u2705 Sent to owners \u00b7 tap to resend" : "\ud83d\udce4 Send to owners";
+    if (l.contact_request && !l.contact_done){
+      contact.hidden = false;
+      contact.innerHTML = "<b>\ud83d\udcde " + esc2(l.contact_request.by || "Owner") + " asked you to contact the " + esc2(String(l.contact_request.who || "homeowner").toLowerCase()) + "</b>" + (l.contact_request.msg ? "<br>" + esc2(l.contact_request.msg) : "") + '<br><button type="button" id="ownContactDone">Done \u2014 I contacted them</button>';
+      document.getElementById("ownContactDone").onclick = function(){ l.contact_done = Date.now(); LG.addLog(l, "Contacted (owner request)"); LG.save(); paint(); LG.refreshDetail(); };
+    } else contact.hidden = true;
+  }
+  new MutationObserver(paint).observe(document.getElementById("detailCard"), { childList: true });
+  function send(l, quiet){
+    return call("appt", { method: "POST", body: { id: l.id, data: data(l) } }).then(function(){
+      var first = !l.owners_sent; l.owners_sent = Date.now(); l.owners_key = key(l); if (first) LG.addLog(l, "\ud83d\udce4 Sent to owners"); LG.save();
+      if (!quiet){ LG.refreshDetail(); paint(); toast(first ? "\ud83d\udce4 Sent to the owners" : "Updated for the owners"); }
+    });
+  }
+  btn.addEventListener("click", function(){
+    var l = cur(); if (!l) return;
+    if (!l.appt_date){ toast("Set the appointment date and time first (Edit)."); return; }
+    btn.innerHTML = "Sending\u2026"; send(l).catch(function(){ paint(); toast("Couldn't send \u2014 check your connection"); });
+  });
+  var tSave; window.LG_onSave = function(){ clearTimeout(tSave); tSave = setTimeout(function(){ LG.leads.forEach(function(l){ if (l.owners_sent && l.owners_key !== key(l)) send(l, true).catch(function(){}); }); }, 600); };
+  // results coming back
+  var OUT = { sold: "Sold", miss: "Pitch & Miss", noshow: "No Show", reset: "Rep Reset", nomr: "No Mr./Mrs.", ctc: "Call to Cancel" };
+  function wd(iso){ return iso ? new Date(iso + "T12:00").toLocaleDateString("en-US", { weekday: "long" }) : ""; }
+  function money0(n){ return "$" + Math.round(Number(n) || 0).toLocaleString("en-US"); }
+  var since = 0, asked = {};
+  function poll(){
+    if (!co) return;
+    call("appts?since=" + since).then(function(j){
+      since = j.now - 5000; var changed = false;
+      j.appts.forEach(function(a){
+        var l = LG.leads.find(function(x){ return x.id === a.id; }); if (!l) return;
+        if (a.got_in_at && a.got_in_at > (l.owners_gotin || 0)){ l.owners_gotin = a.got_in_at; LG.addLog(l, "\u2705 " + (a.got_in_by || "Owner") + " got in"); changed = true; }
+        var r = a.result || {};
+        if (a.result_at && a.result_at > (l.owners_result_at || 0) && OUT[r.outcome]){
+          l.owners_result_at = a.result_at; l.status = OUT[r.outcome]; l.next_followup = "";
+          if (r.outcome === "sold"){ l.sale_amount = r.amount; if (!l.sold_date){ var tt = LG.todayISO(); l.sold_date = (l.appt_date && l.appt_date <= tt) ? l.appt_date : tt; } }
+          if (r.outcome === "reset" && r.appt_date){ l.appt_date = r.appt_date; l.appt_time = r.appt_time || l.appt_time; l.appt_day = wd(r.appt_date); }
+          if (r.products && r.products.length) l.products_sold = r.products;
+          if (r.payment) l.payment = r.payment;
+          LG.addLog(l, "Owner result (" + (a.result_by || "owner") + "): " + l.status + (r.outcome === "sold" ? " " + money0(r.amount) : "") +
+            [r.products && r.products.length ? r.products.join(", ") : "", r.payment, r.outcome === "reset" && r.appt_date ? "new " + r.appt_date + " " + (r.appt_time || "") : "", r.notes].filter(Boolean).map(function(x){ return " \u00b7 " + x; }).join(""));
+          changed = true;
+        }
+        if (r.contact && r.contact.at > (l.contact_req_at || 0)){
+          l.contact_req_at = r.contact.at; l.contact_request = r.contact; l.contact_done = 0; l.next_followup = LG.todayISO();
+          LG.addLog(l, "\ud83d\udcde " + (r.contact.by || "Owner") + ": please contact the " + String(r.contact.who || "homeowner").toLowerCase() + (r.contact.msg ? " \u2014 " + r.contact.msg : ""));
+          changed = true;
+        }
+        l.arena_photos = l.arena_photos || [];
+        (a.photos || []).forEach(function(pid){
+          if (l.arena_photos.indexOf(pid) !== -1 || asked[pid]) return; asked[pid] = 1;
+          call("photo?id=" + encodeURIComponent(pid)).then(function(p){ return fetch(p.data).then(function(r2){ return r2.blob(); }); })
+            .then(function(blob){ return LG.photoPut({ id: "wl_" + pid, leadId: l.id, ts: Date.now(), blob: blob }); })
+            .then(function(){ l.arena_photos.push(pid); LG.save(); }).catch(function(){ delete asked[pid]; });
+        });
+      });
+      if (changed){ LG.save(); LG.refresh(); LG.refreshDetail(); paint(); }
+    }).catch(function(){});
+  }
+  setInterval(poll, 30000);
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden) poll(); });
+}
+
 (function(){
   var AP = window.LG_REP ? "rep_" : "vp_";
   if (window.LG_PRESET){ try{ var cur0 = JSON.parse(localStorage.getItem(AP + "arena_me") || "null"); if (!cur0 || cur0.mgr !== window.LG_PRESET.mgr || cur0.name !== window.LG_PRESET.name) localStorage.setItem(AP + "arena_me", JSON.stringify(window.LG_PRESET)); }catch(e){} }
@@ -3902,7 +4032,8 @@
   var ARENA_URL = window.LG_REP && !window.LG_PRESET ? "https://canvassing-arena.pages.dev/rep/" : "https://canvassing-arena.pages.dev/", ARENA_ORIGIN = "https://canvassing-arena.pages.dev";
   var view = document.getElementById("arenaView"), fr = document.getElementById("arenaFrame");
   var btn = document.getElementById("arenaBtn");
-  if (window.LG_WL || (typeof COMPANY !== "undefined" && COMPANY === "socal")) { btn.style.display = "none"; return; }
+  if (window.LG_WL){ btn.style.display = "none"; wlOwners(); return; }
+  if (typeof COMPANY !== "undefined" && COMPANY === "socal") { btn.style.display = "none"; return; }
   function openArena(){ if (!fr.src) fr.src = ARENA_URL; view.hidden = false; try{ localStorage.setItem(AP + "arena_open","1"); }catch(e){} }
   function closeArena(){ view.hidden = true; try{ localStorage.removeItem(AP + "arena_open"); }catch(e){} }
   btn.addEventListener("click", openArena);

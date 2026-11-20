@@ -12,7 +12,7 @@
 <title>Villa Pacifica · Appointment Results</title>
 <script>
   // villapacifica-leadgen.pages.dev (Ruben / reps / owners links) was shut down by Art on Nov 19, 2026
-  if (!/^\/owners\/art(\/|$)/.test(location.pathname)) {   // shared owners app shut down; only Art's /owners/art stays
+  if (!/^\/owners\/art(\/|$)/.test(location.pathname) && !/[?&]c=/.test(location.search) && !localStorage.getItem("wlo")) {   // shared owners app shut down; only Art's /owners/art stays
     document.open();
     document.write('<!DOCTYPE html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Villa Pacifica</title><body style="margin:0;font-family:-apple-system,sans-serif;background:#f5f4f9;color:#12344d;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px"><div><img src="/vp-logo.png?v=2" style="height:60px" alt=""><h2>This app is no longer available</h2><p style="color:#6b7086">Contact Art for access.</p></div></body>');
     document.close();
@@ -103,6 +103,7 @@
   <div class="tabs" id="tabs"></div>
 </header>
 <main id="list"></main>
+<div style="text-align:center;color:#9aa0b4;font-size:11px;padding:0 0 calc(env(safe-area-inset-bottom) + 16px)">Powered by Goldenbee MALAJ Home Connectors</div>
 
 <div class="bg" id="resBg"><div class="sheet">
   <h2>Enter result</h2><div class="sub" id="resWho"></div>
@@ -189,12 +190,39 @@
   var SHARED = { code: "VILLPC", mgr: "OWKN1FCINLS1" };
   if (!PRESET && me.mgr !== SHARED.mgr){ me = { name: me.name || "Owner", code: SHARED.code, mgr: SHARED.mgr }; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} }
   if (PRESET){ if (me.mgr !== PRESET.mgr){ me = PRESET; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} } var mf = document.querySelector('link[rel="manifest"]'); if (mf) mf.href = "/owners/manifest-art.webmanifest"; }
+  // ---- Connected to a white-label Lead Gen company: /owners/?c=COMPANY&k=OWNERKEY (no sign-in) ----
+  var WLA = "https://canvassing-arena.pages.dev/wl-api/", wlo = null;
+  (function(){
+    var q = new URLSearchParams(location.search), c = q.get("c"), k = q.get("k");
+    try{ if (c && k){ wlo = { c: c, k: k }; localStorage.setItem("wlo", JSON.stringify(wlo)); } else if (!PRESET) wlo = JSON.parse(localStorage.getItem("wlo") || "null"); }catch(e){}
+    if (wlo){
+      var mf = document.querySelector('link[rel="manifest"]'); if (mf) mf.remove();   // so Add to Home Screen keeps this exact link
+      me = { name: (JSON.parse(localStorage.getItem("wlo_me") || "{}").name) || "Owner", code: "", mgr: "wl" };
+      fetch(WLA + "brand?c=" + encodeURIComponent(wlo.c)).then(function(r){ return r.json(); }).then(function(j){
+        var b = j.brand || {}; if (!b.company) return;
+        document.title = b.company + " \u00b7 Appointment Results";
+        var img = document.querySelector(".hd img");
+        if (b.logo){ img.src = b.logo; } else { img.style.display = "none"; var w = document.createElement("div"); w.textContent = b.company; w.style.cssText = "font-weight:900;font-size:18px;color:" + (b.brand || "#12344d"); img.parentNode.insertBefore(w, img); }
+        var st = document.createElement("style"); st.textContent = ":root{--navy:" + (b.brand || "#12344d") + ";--vp:" + (b.accent || "#2563eb") + ";--vp-soft:color-mix(in srgb," + (b.accent || "#2563eb") + " 14%,white)}header{border-bottom-color:" + (b.accent || "#2563eb") + "}"; document.head.appendChild(st);
+        var at = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (at) at.content = (b.company.split(" ")[0]) + " Results";
+        if (b.logo) document.querySelectorAll('link[rel="apple-touch-icon"]').forEach(function(l){ l.href = b.logo; });
+      }).catch(function(){});
+    }
+  })();
   var appts = [], tab = "today", cur = null, pend = [], setMode = false;
   function $(id){ return document.getElementById(id); }
   function esc(x){ return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function toast(m){ var t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(function(){ t.style.display = "none"; }, 3500); }
   function api(path, opts){
     opts = opts || {};
+    if (wlo){   // white-label company backend
+      var wp = path.indexOf("appt?") === 0 ? "appts?" + path.split("?")[1] : path === "appt-result" ? "result" : path;
+      var wb = opts.body;
+      if (path === "photo" && wb){ var pb = JSON.parse(wb); wb = JSON.stringify({ id: pb.id, appt_id: String(pb.knock_id || "").replace(/^appt:/, ""), data: pb.data }); }
+      return fetch(WLA + wp, { method: opts.method || "GET", headers: { "Content-Type": "application/json", "X-WL-Company": wlo.c, "X-WL-Key": wlo.k }, body: wb }).then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(j){ if (!r.ok){ var e = new Error(j.error || ("HTTP " + r.status)); e.status = r.status; throw e; } return j; });
+      });
+    }
     var h = { "Content-Type": "application/json", "X-Team-Code": me.code || "" };
     if (me.mgr) h["X-Manager-Code"] = me.mgr;
     return fetch(API + path, { method: opts.method || "GET", headers: h, body: opts.body }).then(function(r){
@@ -346,14 +374,14 @@
   function load(){
     if (!me.mgr) return;
     api("appt?since=0").then(function(j){ appts = j.appts; render(); var s = $("syncLine"); if (s) s.textContent = "Updated " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); })
-      .catch(function(err){ if (err.status === 403 || err.status === 401) toast("Access was turned off — ask Art"); else toast("Offline — showing the last list"); });
+      .catch(function(err){ if (err.status === 403 || err.status === 401) toast(wlo ? "This owners link was turned off" : "Access was turned off — ask Art"); else toast("Offline — showing the last list"); });
   }
   $("refresh").onclick = load;
   document.addEventListener("visibilitychange", function(){ if (!document.hidden) load(); });
   setInterval(load, 30000);
   paintMode();
   render(); load();   // no sign-in — straight in
-  $("who").onclick = function(){ if (PRESET) return; var n = prompt("Your name (shows on the results you send):", me.name === "Owner" ? "" : me.name); if (n != null){ me.name = n.trim() || "Owner"; localStorage.setItem(KEY, JSON.stringify(me)); render(); } };
+  $("who").onclick = function(){ if (PRESET) return; var n = prompt("Your name (shows on the results you send):", me.name === "Owner" ? "" : me.name); if (n != null){ me.name = n.trim() || "Owner"; if (wlo) localStorage.setItem("wlo_me", JSON.stringify({ name: me.name })); else localStorage.setItem(KEY, JSON.stringify(me)); render(); } };
 })();
 </script>
 </body>
