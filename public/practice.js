@@ -157,7 +157,7 @@
   var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
   var VP_CORE = ["Roof", "Paint/Stucco", "Windows"];   // my pitch: 3 core products
   function pn(p){ return VP && p === "Windows" ? "High Performance Windows" : p; }
-  function pl(p){ return p === "Pitch" ? "My pitch" : pn(p); }
+  function pl(p){ return p === "Pitch" ? "My pitch" : p === "Cancel" ? "Cancel call" : pn(p); }
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
   // Pitch what the house NEEDS (from the 3 core products); compliment a core product they've already DONE.
   var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your paint and stucco", "Windows": "high performance windows" };
@@ -198,6 +198,57 @@
 
   var REBUTTALS = [];
 
+  // ---------- Cancel call: homeowner calls back after the "you missed our call" text, wanting to cancel ----------
+  var CX_PRODUCT = ["your roof", "your paint and stucco", "your windows"];
+  var CX_REASONS = [
+    { reply: "We're just too busy this week.", label: "Too busy / bad timing",
+      say: "Totally get it — that's why we keep it quick. Would a weekday evening or a Saturday morning work better for you?",
+      tip: "Timing is the easiest one to save. Offer two new windows of time, not a yes/no." },
+    { reply: "We're not interested anymore.", label: "Not interested anymore",
+      say: "Fair enough — can I ask what changed? When I was at your door you mentioned {p} — that usually doesn't fix itself.",
+      tip: "Ask what changed, then tie it back to the damage they already saw. Stay curious, not pushy." },
+    { reply: "My husband doesn't want to do it.", label: "Spouse isn't on board",
+      say: "That makes sense — it's a decision for both of you. Let's set it for when you're both home, so they hear it firsthand and can ask their own questions.",
+      tip: "Never go around the spouse — invite them in." },
+    { reply: "We already got a quote from someone else.", label: "Already got a quote",
+      say: "Good — that means you're taking care of your home. A second opinion costs you nothing and gives you something to compare. Want me to keep your spot?",
+      tip: "Compliment the action, then make the second opinion the smart move." },
+    { reply: "We don't have the money right now.", label: "Money / not ready",
+      say: "Understood — the estimate's free and there's no commitment. You'll just know your numbers when you are ready.",
+      tip: "Don't talk price on the phone — keep the estimate as the next step." }
+  ];
+  var CX_PHASES = ["Open", "Find the reason", "Handle", "Close"];
+  function cxSteps(){
+    var R = pick(CX_REASONS), p = pick(CX_PRODUCT);
+    var scene = "📞 Homeowner calling back to cancel · reason: " + R.label;
+    return [
+      { type: "open", ph: 0, scene: scene, title: "Step 1 · Open warm", who: "You say",
+        say: "Hey [Name], thanks for calling me back — I appreciate that! This is Art. Most people don't even call back, so you're already ahead of the game.",
+        tip: "Smile when you say it — don't defend the appointment yet." },
+      { type: "q", ph: 1, scene: scene, title: "Step 2 · Find the real reason", who: "You ask", followWho: "You handle it",
+        say: "No problem at all — just so I note it right, did something come up with timing, or did something change with " + p + "?",
+        replies: [R.reply], follow: R.say.replace("{p}", p), tip: R.tip + " Ask, then stop talking and let them answer." },
+      { type: "close", ph: 3, scene: scene, title: "Step 3 · Close with two choices", who: "You close", followWho: "If it's a firm no",
+        say: "My company's still leaving estimates in your area this week — would [day] at 10am work, or does [day] at 2pm sound better?",
+        replies: ["No, we're really not interested."],
+        follow: "No problem, [Name]. I'll note it so nobody bothers you. If anything changes with " + p + ", just text this number. Thanks again for calling me back.",
+        tip: "Leave the door open — log the outcome and reason in the lead right after you hang up." }
+    ];
+  }
+  function cxPlan(){
+    var rows = [
+      ["Right away", "Log the outcome in the lead — <b>Rescheduled</b>, <b>Follow-up</b>, or <b>Not interested</b> — and note the reason."],
+      ["Same day", "Rescheduled: text the day and time. Soft no: “Thanks for calling back, [Name] — your spot's open whenever you're ready. – Art”"],
+      ["Day 2–3", "One check-in text — only if they said “maybe” or “bad timing.”"],
+      ["Day 7", "Call or text tied to their actual issue — e.g. “Rain's coming next week — want us to look at that roof before it hits?”"],
+      ["Day 30", "One more touch. No reply → mark the lead <b>Cold</b>."],
+      ["Day 90 / season change", "One message about the season (rain, heat, holidays). Then stop."]
+    ];
+    return '<div class="pr-card"><div class="pr-step">📅 Follow-up after the call</div>' +
+      rows.map(function(x){ return '<div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid #eee"><b style="min-width:92px;font-size:13px">' + x[0] + '</b><span style="font-size:14px">' + x[1] + '</span></div>'; }).join("") +
+      '<div class="pr-tip" style="margin-top:10px">⚖️ “Stop” or “don\u2019t call” = mark Do Not Contact, never reach out again. Call/text only 8am–9pm their time. Text only people who gave you their number. No pricing or discount promises on the phone.</div></div>';
+  }
+
   // ---------- State ----------
   var LOG_KEY = "socal_practice_log";
   var st = { product: "Playbook", mode: "learn", run: null, rb: null, rbView: "learn" };
@@ -211,8 +262,8 @@
   var esc = A.esc;
 
   function header(){
-    var chips = ["Playbook"].concat(VP ? ["Pitch"] : [], PRODUCTS, ["Mix", "QE", "Rebuttals", "Progress"]).map(function(p){
-      var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
+    var chips = ["Playbook"].concat(VP ? ["Pitch"] : [], PRODUCTS, ["Mix", "QE", "Rebuttals", "Cancel", "Progress"]).map(function(p){
+      var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Cancel" ? "📞 Cancel call" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
     var modes = (st.product === "Rebuttals" || st.product === "QE" || st.product === "Progress" || st.product === "Playbook") ? "" :
@@ -238,6 +289,7 @@
   // Practice only the Question -> Education phase (no opener / close)
   // Full flow: Intro -> transition -> Q/E x3 -> transition -> Close -> transition to info
   function runSteps(product){
+    if(product === "Cancel"){ if(st.run){ if(!st.run.cx) st.run.cx = cxSteps(); return st.run.cx; } return cxSteps(); }
     if(product === "Pitch"){ if(!st.run || !st.run.vp || st.run.vpFor !== product){ if(st.run){ st.run.vp = vpSteps(product); st.run.vpFor = product; } else { return vpSteps(product); } } return st.run.vp; }
     var all = PITCHES[product];
     var intro = all.filter(function(x){ return x.type === "open"; })[0];
@@ -246,7 +298,7 @@
     return [intro].concat(qs, [toClose, SOCAL_CLOSE]);
   }
   function phaseBar(s){
-    if(s.ph !== undefined){ return VP_PHASES.map(function(n, i){ return '<span class="' + (i < s.ph ? "done" : i === s.ph ? "now" : "") + '">' + n + '</span>'; }).join(""); }
+    if(s.ph !== undefined){ return (s.scene && s.scene.indexOf("📞") === 0 ? CX_PHASES : VP_PHASES).map(function(n, i){ return '<span class="' + (i < s.ph ? "done" : i === s.ph ? "now" : "") + '">' + n + '</span>'; }).join(""); }
     var cur = s.type === "open" ? 0 : s.type === "q" ? 1 : 2;
     return ["Intro", "Question \u2192 Education", "Close"].map(function(n, i){ return '<span class="' + (i < cur ? "done" : i === cur ? "now" : "") + '">' + n + '</span>'; }).join("");
   }
@@ -644,12 +696,13 @@
 
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : pl(st.product);
-    return '<div class="pr-card pr-start"><div class="pr-step">Full pitch · ' + esc(p) + '</div>' +
-      (st.product === "Pitch" ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
+    return '<div class="pr-card pr-start"><div class="pr-step">' + (st.product === "Cancel" ? "📞 Cancel call script" : "Full pitch · " + esc(p)) + '</div>' +
+      (st.product === "Cancel" ? '<p class="pr-sub">A homeowner calls back after your “you missed our call” text — to cancel. Each run is a different reason. Open warm → find the real reason → handle it → close with two choices (or leave the door open).</p>' : st.product === "Pitch" ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
           : '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>') +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
-      '<div class="pr-sub" style="margin-top:10px">' + repsThisWeek() + ' practice reps this week</div></div>';
+      '<div class="pr-sub" style="margin-top:10px">' + repsThisWeek() + ' practice reps this week</div></div>' +
+      (st.product === "Cancel" ? cxPlan() : "");
   }
 
   function render(){
@@ -659,7 +712,7 @@
     else if(st.product === "Progress"){ body = progressCards(); }
     else if(st.product === "Playbook"){ body = window.playbookHtml ? window.playbookHtml() : ""; }
     else if(!st.run){ body = startCard(); }
-    else if(st.run.finished){ body = summaryCard(); }
+    else if(st.run.finished){ body = summaryCard() + (st.run.product === "Cancel" ? cxPlan() : ""); }
     else { body = stepCard(); }
     var html = header() + body, me = A.meFirst ? A.meFirst() : "Art";
     if (me !== "Art") html = html.replace(/\bArt\b/g, me);
