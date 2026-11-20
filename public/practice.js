@@ -157,7 +157,7 @@
   var PRODUCTS = ["Roof", "Paint/Stucco", "Fascia/Trim Boards", "Windows"];
   var VP_CORE = ["Roof", "Paint/Stucco", "Windows"];   // my pitch: 3 core products
   function pn(p){ return VP && p === "Windows" ? "High Performance Windows" : p; }
-  function pl(p){ return p === "Pitch" ? "My pitch" : p === "Cancel" ? "Cancel call" : pn(p); }
+  function pl(p){ return p === "Pitch" ? "My pitch" : p === "Cancel" ? "Cancel call" : p === "Solar" ? "Solar · Sunrun" : pn(p); }
   function greet(){ var h = new Date().getHours(); return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening"; }
   // Pitch what the house NEEDS (from the 3 core products); compliment a core product they've already DONE.
   var VP_WORD = { "Roof": "your roof", "Paint/Stucco": "your paint and stucco", "Windows": "high performance windows" };
@@ -192,6 +192,26 @@
         replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
         follow: "Perfect — I'll put you down. Excuse me — my name is Art, and you are? And how do I spell your last name?",
         tip: "Pitch ONE product/project \u2014 the one you see the house needs most from the 3 core products. Pushback? Use the Rebuttals tab. Two times, both yeses — then straight into the info script." }
+    ];
+  }
+  // Solar: same formula, as Sunrun — compliment a core product they've done, pitch solar
+  function solarSteps(){
+    var done = pick(VP_CORE);
+    var scene = "☀️ This house: " + VP_DONE_SEE[done] + " already done · no solar, roof gets full sun";
+    return [
+      { type: "open", ph: 0, scene: scene, title: "Step 1 · Greet & introduce", who: "You say", followWho: "You acknowledge",
+        say: greet() + "! My name is Art, I work with Sunrun! How are you?",
+        replies: ["Doing fine, and yourself?", "Good, and you?", "I'm fine, how about you?", "Not bad — yourself?"],
+        follow: "I'm doing great — and that's the first time I've heard that all day!",
+        tip: "Same opener — let them laugh, guard comes down." },
+      { type: "q", ph: 1, scene: scene, title: "Step 2 · Why you're here → compliment what they've done", who: "You say", cue: "Point to their " + VP_DONE_SEE[done].replace(/^an? /, "") + " as you bridge.",
+        say: "The reason I'm in your neighborhood — my company, tomorrow is leaving estimates on solar for homes in the area. " + pick(VP_DONE[done]) + " — so I know you have pride in ownership on your home!",
+        tip: "One breath — reason straight into the compliment." },
+      { type: "close", ph: 2, scene: scene, title: "Step 3 · Pitch solar + close", who: "You close", followWho: "You transition",
+        say: "Your roof gets great sun — I see a possible chance of earning your business on solar for your home. Will you be home at 10am, or does 2pm sound good for you?",
+        replies: ["2 works.", "10 is fine.", "2 is better for us.", "Morning's good."],
+        follow: "Perfect — I'll put you down. Excuse me — my name is Art, and you are? And how do I spell your last name?",
+        tip: "Don't quote savings or prices at the door — that's for the estimate. Two times, both yeses." }
     ];
   }
   var VP_CLOSE_SAY = "I see a possible chance of earning your business on ___ — will you be home at 10am, or does 2pm sound good for you?";
@@ -262,8 +282,8 @@
   var esc = A.esc;
 
   function header(){
-    var chips = ["Playbook"].concat(VP ? ["Pitch"] : [], PRODUCTS, ["Mix", "QE", "Rebuttals", "Cancel", "Progress"]).map(function(p){
-      var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Cancel" ? "📞 Cancel call" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
+    var chips = ["Playbook"].concat(VP ? ["Pitch", "Solar"] : [], PRODUCTS, ["Mix", "QE", "Rebuttals", "Cancel", "Progress"]).map(function(p){
+      var lbl = p === "Pitch" ? "▶️ My pitch" : p === "Cancel" ? "📞 Cancel call" : p === "Solar" ? "☀️ Solar (Sunrun)" : p === "Mix" ? "🎲 Mix" : p === "QE" ? "🔍 Question → Education" : p === "Rebuttals" ? "🛡️ Rebuttals" : p === "Progress" ? "📈 How it advances" : p === "Playbook" ? "📘 Playbook" : p;
       return '<button type="button" class="tab' + (st.product === p ? " active" : "") + '" data-pp="' + esc(p) + '">' + esc(lbl) + '</button>';
     }).join("");
     var modes = (st.product === "Rebuttals" || st.product === "QE" || st.product === "Progress" || st.product === "Playbook") ? "" :
@@ -289,6 +309,7 @@
   // Practice only the Question -> Education phase (no opener / close)
   // Full flow: Intro -> transition -> Q/E x3 -> transition -> Close -> transition to info
   function runSteps(product){
+    if(product === "Solar"){ if(st.run){ if(!st.run.sol) st.run.sol = solarSteps(); return st.run.sol; } return solarSteps(); }
     if(product === "Cancel"){ if(st.run){ if(!st.run.cx) st.run.cx = cxSteps(); return st.run.cx; } return cxSteps(); }
     if(product === "Pitch"){ if(!st.run || !st.run.vp || st.run.vpFor !== product){ if(st.run){ st.run.vp = vpSteps(product); st.run.vpFor = product; } else { return vpSteps(product); } } return st.run.vp; }
     var all = PITCHES[product];
@@ -697,7 +718,7 @@
   function startCard(){
     var p = st.product === "Mix" ? "a random core product" : pl(st.product);
     return '<div class="pr-card pr-start"><div class="pr-step">' + (st.product === "Cancel" ? "📞 Cancel call script" : "Full pitch · " + esc(p)) + '</div>' +
-      (st.product === "Cancel" ? '<p class="pr-sub">A homeowner calls back after your “you missed our call” text — to cancel. Each run is a different reason. Open warm → find the real reason → handle it → close with two choices (or leave the door open).</p>' : st.product === "Pitch" ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
+      (st.product === "Solar" ? '<p class="pr-sub">Your formula as Sunrun. Each run is a different house: greet → why you’re here, bridged into a compliment on what they’ve <b>already done</b> → pitch solar → close.</p>' : st.product === "Cancel" ? '<p class="pr-sub">A homeowner calls back after your “you missed our call” text — to cancel. Each run is a different reason. Open warm → find the real reason → handle it → close with two choices (or leave the door open).</p>' : st.product === "Pitch" ? '<p class="pr-sub">Each run is a different house. Greet → why you’re here, bridged into a compliment on a core product they’ve <b>already done</b> → pitch the core product(s) the house <b>needs</b> → close.</p>'
           : '<p class="pr-sub">Intro → transition → 3 Question/Education loops → transition → Close. Practice the hand-offs between phases.</p>') +
       '<p class="pr-sub">' + (st.mode === "learn" ? "📖 <b>Learn</b> shows every line." : "🎯 <b>Drill</b> hides each line — say it out loud, reveal, then score yourself.") + '</p>' +
       '<button type="button" class="pr-btn" data-pa="start">▶ Start</button>' +
