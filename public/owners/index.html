@@ -12,7 +12,7 @@
 <title>Villa Pacifica · Appointment Results</title>
 <script>
   // villapacifica-leadgen.pages.dev (Ruben / reps / owners links) was shut down by Art on Nov 19, 2026
-  if (location.hostname === "villapacifica-leadgen.pages.dev" && !/^\/owners\/art(\/|$)/.test(location.pathname)) {
+  if (!/^\/owners\/art(\/|$)/.test(location.pathname)) {   // shared owners app shut down; only Art's /owners/art stays
     document.open();
     document.write('<!DOCTYPE html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Villa Pacifica</title><body style="margin:0;font-family:-apple-system,sans-serif;background:#f5f4f9;color:#12344d;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:24px"><div><img src="/vp-logo.png?v=2" style="height:60px" alt=""><h2>This app is no longer available</h2><p style="color:#6b7086">Contact Art for access.</p></div></body>');
     document.close();
