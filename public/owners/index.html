@@ -177,7 +177,7 @@
   var PRESET = /^\/owners\/art(\/|$)/.test(location.pathname) ? { name: "Arturo Delgado Mora", code: "VILLPC", mgr: "ADQ6L4W49AK5" } : null;
   // Everyone else: no codes — just their name once. Appointments you send show up for them.
   var SHARED = { code: "VILLPC", mgr: "OWKN1FCINLS1" };
-  if (!PRESET && me.name && me.mgr !== SHARED.mgr){ me = { name: me.name, code: SHARED.code, mgr: SHARED.mgr }; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} }
+  if (!PRESET && me.mgr !== SHARED.mgr){ me = { name: me.name || "Owner", code: SHARED.code, mgr: SHARED.mgr }; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} }
   if (PRESET){ if (me.mgr !== PRESET.mgr){ me = PRESET; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} } var mf = document.querySelector('link[rel="manifest"]'); if (mf) mf.href = "/owners/manifest-art.webmanifest"; }
   var appts = [], tab = "today", cur = null, pend = [], setMode = false;
   function $(id){ return document.getElementById(id); }
@@ -223,7 +223,7 @@
   }
   var TABS = [["today", "📅 Today"], ["needs", "⏳ Needs result"], ["upcoming", "📆 Upcoming"], ["done", "✅ Done"]];
   function render(){
-    $("who").textContent = me.name || "";
+    $("who").textContent = (me.name || "Owner") + (PRESET ? "" : " \u00b7 tap to set your name");
     var counts = {}; appts.forEach(function(a){ var b = bucket(a); counts[b] = (counts[b] || 0) + 1; });
     $("tabs").innerHTML = TABS.map(function(t){ return '<button type="button" data-t="' + t[0] + '" class="' + (tab === t[0] ? "on" : "") + '">' + t[1] + '<i>' + (counts[t[0]] || 0) + '</i></button>'; }).join("");
     var list = appts.filter(function(a){ return bucket(a) === tab; });
@@ -342,7 +342,8 @@
   document.addEventListener("visibilitychange", function(){ if (!document.hidden) load(); });
   setInterval(load, 30000);
   paintMode();
-  if (!me.name) openSignin(); else { render(); load(); }
+  render(); load();   // no sign-in — straight in
+  $("who").onclick = function(){ if (PRESET) return; var n = prompt("Your name (shows on the results you send):", me.name === "Owner" ? "" : me.name); if (n != null){ me.name = n.trim() || "Owner"; localStorage.setItem(KEY, JSON.stringify(me)); render(); } };
 })();
 </script>
 </body>
