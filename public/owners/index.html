@@ -176,6 +176,9 @@
   var API = "https://canvassing-arena.pages.dev/api/";
   var KEY = "vpo_me", me = {};
   try{ me = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){}
+  // Art's personal link (/owners/art): already signed in, no code (his own co-manager code — remove under Arena → Co-managers to cut it off)
+  var PRESET = /^\/owners\/art(\/|$)/.test(location.pathname) ? { name: "Arturo Delgado Mora", code: "VILLPC", mgr: "ADQ6L4W49AK5" } : null;
+  if (PRESET){ if (me.mgr !== PRESET.mgr){ me = PRESET; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} } var mf = document.querySelector('link[rel="manifest"]'); if (mf) mf.href = "/owners/manifest-art.webmanifest"; }
   var appts = [], tab = "today", cur = null, pend = [], setMode = false;
   function $(id){ return document.getElementById(id); }
   function esc(x){ return String(x == null ? "" : x).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }

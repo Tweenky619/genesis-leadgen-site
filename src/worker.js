@@ -29,6 +29,11 @@ export default {
       return new Response(null, { status: 204, headers: h });
     }
     // Rep copy lives at /rep — same files, served from the root
+    if (url.pathname === "/owners/art" || url.pathname.startsWith("/owners/art/")) {
+      const rest = url.pathname.slice(11) || "/";
+      const target = new URL("/owners" + (rest === "/" ? "/" : rest), url);
+      return env.ASSETS.fetch(new Request(target.toString(), request));
+    }
     const repM = url.pathname.match(/^\/(rep|ruben)(\/.*)?$/);
     if (repM) {
       const rest = repM[2] || "/";

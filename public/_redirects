@@ -2,3 +2,5 @@
 /ruben  /ruben/  301
 /rep/*  /:splat  200
 /ruben/*  /:splat  200
+/owners/art  /owners/art/  301
+/owners/art/*  /owners/:splat  200
