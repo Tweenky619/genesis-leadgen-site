@@ -22,6 +22,11 @@
       if (c0.hours) for (var h in c0.hours) cfg.hours[h] = c0.hours[h];
       if (c0.features) for (var f in c0.features) cfg.features[f] = c0.features[f]; }
     cfg.isNew = !c0;
+    // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
+    if (/goldenbee\s*malaj/i.test(cfg.company)){
+      if (!cfg.logo) cfg.logo = "/goldenbee-malaj-platinum.png";
+      if (cfg.brand === WL_DEF.brand && cfg.accent === WL_DEF.accent){ cfg.brand = "#1d1f23"; cfg.accent = "#7d838c"; }
+    }
     window.LG_CFG = cfg;
     var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
     document.documentElement.className += cls;
@@ -1375,7 +1380,7 @@
           if(/^vp_/.test(mk) && !/^vp_(arena|push)/.test(mk)){ var nk = "wl_" + mk.slice(3); if(localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(mk)); }
         }
         localStorage.setItem("wl_migrate_photos", "1");
-        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora" }));
+        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-malaj-platinum.png", brand: "#1d1f23", accent: "#7d838c" }));
       }
       localStorage.setItem("wl_migrated", "1");
     }catch(e){}
@@ -3808,13 +3813,13 @@
         var H = CFG.hours || {};
         $w("wlTitle").textContent = CFG.isNew ? "Set up your lead gen app" : "Company settings";
         var pre = {}; try{ pre = JSON.parse(localStorage.getItem("wl_prefill") || "{}"); }catch(e){}
-        $w("wlCompany").value = CFG.company || pre.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.brand; $w("wlAccent").value = CFG.accent;
+        $w("wlCompany").value = CFG.company || pre.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.isNew && pre.brand ? pre.brand : CFG.brand; $w("wlAccent").value = CFG.isNew && pre.accent ? pre.accent : CFG.accent;
         $w("wlRep").value = CFG.rep || pre.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
         $w("wlWkS").value = H.wkStart; $w("wlWkE").value = H.wkEnd; $w("wlSat").checked = !!H.sat; $w("wlSatS").value = H.satStart; $w("wlSatE").value = H.satEnd;
         $w("wlSun").checked = !!H.sun; $w("wlSunS").value = H.sunStart; $w("wlSunE").value = H.sunEnd;
         document.querySelectorAll("[data-wlf]").forEach(function(c){ c.checked = !!(CFG.features || {})[c.getAttribute("data-wlf")]; });
         $w("wlCancel").hidden = !!CFG.isNew;
-        logoData = CFG.logo || ""; paintLogo(); syncRows(); $w("wlSetup").classList.add("open");
+        logoData = CFG.logo || (CFG.isNew && pre.logo) || ""; paintLogo(); syncRows(); $w("wlSetup").classList.add("open");
       }
       $w("wlSat").onchange = syncRows; $w("wlSun").onchange = syncRows;
       $w("wlLogoIn").onchange = function(e){
@@ -3852,7 +3857,7 @@
 <script src="practice.js?v=56"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
-    <div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#b8860b;margin-bottom:6px">GOLDENBEE MALAJ HOME CONNECTORS</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-malaj-icon.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
     <h2 id="wlTitle">Set up your lead gen app</h2>
     <div class="sub">Make it yours — you can change any of this later with &#9881;&#65039;.</div>
     <div class="wl-card"><h3>Company</h3>
