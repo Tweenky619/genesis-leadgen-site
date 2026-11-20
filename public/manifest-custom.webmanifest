@@ -1,0 +1,22 @@
+{
+  "name": "Lead Gen",
+  "short_name": "Lead Gen",
+  "start_url": "/custom/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f4f9",
+  "theme_color": "#12344d",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

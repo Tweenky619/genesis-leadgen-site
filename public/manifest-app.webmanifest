@@ -1,20 +1,20 @@
 {
-  "name": "Lead Gen",
-  "short_name": "Lead Gen",
+  "name": "Goldenbee MALAJ Home Connectors",
+  "short_name": "Goldenbee",
   "start_url": "/app/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f5f4f9",
-  "theme_color": "#12344d",
+  "theme_color": "#1d1f23",
   "icons": [
     {
-      "src": "/app-icon.png",
+      "src": "/goldenbee-hc-emblem-v3.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/app-icon-180.png",
+      "src": "/goldenbee-hc-icon-v3.png",
       "sizes": "180x180",
       "type": "image/png"
     }

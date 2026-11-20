@@ -6,7 +6,10 @@
 <title>Villa Pacifica Construction Lead Gen</title>
 <script>
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
-  window.LG_WL = /^\/app(\/|$)/.test(location.pathname);
+  window.LG_WL = /^\/(app|custom)(\/|$)/.test(location.pathname);
+  // /app is Art's own program (always Goldenbee MALAJ Home Connectors); /custom is the customizable copy for future companies
+  window.LG_MINE = /^\/app(\/|$)/.test(location.pathname);
+  window.LG_WLP = window.LG_MINE ? "wl_" : "wc_";
   // The Villa Pacifica app is retired: the main address now opens the white-label app (leads move over automatically)
   if (!window.LG_WL && location.pathname === "/" && location.hostname !== "villapacifica-leadgen.pages.dev") { location.replace("/app/"); }
   window.LG_CFG = null;
@@ -15,13 +18,19 @@
       products: ["Roof", "Paint/Stucco", "Windows"],
       hours: { wkStart: 10, wkEnd: 19, sat: true, satStart: 10, satEnd: 17, sun: false, sunStart: 11, sunEnd: 16 },
       features: { stats: true, map: true, clock: true, gas: true, share: true, practice: false } };
-    var c0 = null; try{ c0 = JSON.parse(localStorage.getItem("wl_config") || "null"); }catch(e){}
+    var c0 = null; try{ c0 = JSON.parse(localStorage.getItem(window.LG_WLP + "config") || "null"); }catch(e){}
     var cfg = JSON.parse(JSON.stringify(WL_DEF));
     if (c0){ for (var k in c0) if (c0[k] != null && typeof c0[k] !== "object") cfg[k] = c0[k];
       if (c0.products && c0.products.length) cfg.products = c0.products;
       if (c0.hours) for (var h in c0.hours) cfg.hours[h] = c0.hours[h];
       if (c0.features) for (var f in c0.features) cfg.features[f] = c0.features[f]; }
     cfg.isNew = !c0;
+    if (window.LG_MINE){   // Art's program: name, logo and colors are fixed
+      cfg.company = "Goldenbee MALAJ Home Connectors"; cfg.logo = ""; cfg.brand = WL_DEF.brand; cfg.accent = WL_DEF.accent;
+      if (!cfg.rep) cfg.rep = "Arturo Delgado Mora";
+      cfg.tag = "";   // the logo already says Home Connectors
+      cfg.isNew = false;
+    }
     // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
     if (/goldenbee\s*malaj/i.test(cfg.company)){
       if (!cfg.logo || /^\/goldenbee-(malaj-platinum|hc-platinum|hc-logo|hc-logo-v2)\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo-v3.png";
@@ -31,10 +40,10 @@
     window.LG_CFG = cfg;
     var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
     document.documentElement.className += cls;
-    document.title = cfg.company ? cfg.company + " Lead Gen" : "Goldenbee MALAJ Home Connectors";
+    document.title = window.LG_MINE ? "Goldenbee MALAJ Home Connectors" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
     document.addEventListener("DOMContentLoaded", function(){
-      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = "/manifest-app.webmanifest";
-      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
+      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_MINE ? "/manifest-app.webmanifest" : "/manifest-custom.webmanifest";
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_MINE ? "Goldenbee" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
       document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.icon || cfg.logo || "/app-icon-180.png"; });
     });
   }
@@ -1372,8 +1381,8 @@
 
   // ---- Company workspaces: Villa Pacifica (current) and SoCal Contractor Exchange (saved, untouched) ----
   var REP_APP = !!window.LG_REP;
-  var WL = !!window.LG_WL, CFG = window.LG_CFG || {};
-  if(WL){
+  var WL = !!window.LG_WL, CFG = window.LG_CFG || {}, MINE = !!window.LG_MINE, WLP = window.LG_WLP || "wl_";
+  if(WL && MINE){
     try{
       if(!localStorage.getItem("wl_migrated") && localStorage.getItem("vp_leads_v1") && !localStorage.getItem("wl_leads_v1")){
         for(var mi = 0; mi < localStorage.length; mi++){
@@ -1388,7 +1397,7 @@
   }
   var COMPANY = "vp"; try { COMPANY = !REP_APP && localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
   var CO_NAME = WL ? (CFG.company || "our company") : COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
-  var CO_PREFIX = WL ? "wl_" : REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
+  var CO_PREFIX = WL ? WLP : REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
   // Rep copy: texts and scripts use the rep's own first name (from their Arena sign-in)
   function meFirst(){
     if(WL) return (CFG.rep || "").trim().split(/\s+/)[0] || "your rep";
@@ -2649,7 +2658,7 @@
   function fullBackup(){
     var store = {}; for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
     var out = { app: "leadgen-full-backup", version: 1, created: new Date().toISOString(), storage: store, photos: {} };
-    return Promise.all(["vp_", "socal_", "rep_", "wl_"].map(function(pre){
+    return Promise.all(["vp_", "socal_", "rep_", "wl_", "wc_"].map(function(pre){
       return dbAll(pre + "lead_photos").then(function(list){
         return Promise.all(list.map(function(r){ return blobToData(r.blob).then(function(d){ return { id: r.id, leadId: r.leadId, ts: r.ts, data: d }; }); }))
           .then(function(arr){ out.photos[pre] = arr; });
@@ -2671,7 +2680,7 @@
     })).then(function(){ return true; });
   }
   // Villa Pacifica photos move into the white-label app once (same phone, same home-screen app)
-  if(WL && localStorage.getItem("wl_migrate_photos")){
+  if(WL && MINE && localStorage.getItem("wl_migrate_photos")){
     (function(){
       var r = indexedDB.open("vp_lead_photos", 1);
       r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
@@ -3812,8 +3821,8 @@
       function syncRows(){ $w("wlSatRow").style.display = $w("wlSat").checked ? "" : "none"; $w("wlSunRow").style.display = $w("wlSun").checked ? "" : "none"; }
       function openSetup(){
         var H = CFG.hours || {};
-        $w("wlTitle").textContent = CFG.isNew ? "Set up your lead gen app" : "Company settings";
-        var pre = {}; try{ pre = JSON.parse(localStorage.getItem("wl_prefill") || "{}"); }catch(e){}
+        $w("wlTitle").textContent = MINE ? "Settings" : CFG.isNew ? "Set up your lead gen app" : "Company settings";
+        var pre = {}; try{ if(MINE) pre = JSON.parse(localStorage.getItem("wl_prefill") || "{}"); }catch(e){}
         $w("wlCompany").value = CFG.company || pre.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.isNew && pre.brand ? pre.brand : CFG.brand; $w("wlAccent").value = CFG.isNew && pre.accent ? pre.accent : CFG.accent;
         $w("wlRep").value = CFG.rep || pre.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
         $w("wlWkS").value = H.wkStart; $w("wlWkE").value = H.wkEnd; $w("wlSat").checked = !!H.sat; $w("wlSatS").value = H.satStart; $w("wlSatE").value = H.satEnd;
@@ -3833,7 +3842,7 @@
       $w("wlCancel").onclick = function(){ $w("wlSetup").classList.remove("open"); };
       gear.onclick = openSetup;
       $w("wlSave").onclick = function(){
-        var name = $w("wlCompany").value.trim(); if(!name){ alert("Enter your company name"); return; }
+        var name = MINE ? CFG.company : $w("wlCompany").value.trim(); if(!name){ alert("Enter your company name"); return; }
         var prods = $w("wlProducts").value.split(/\n/).map(function(x){ return x.trim(); }).filter(function(x){ return x && !/^other$/i.test(x); });
         if(!prods.length){ alert("Add at least one product or service"); return; }
         var feats = {}; document.querySelectorAll("[data-wlf]").forEach(function(c){ feats[c.getAttribute("data-wlf")] = c.checked; });
@@ -3841,9 +3850,10 @@
           rep: $w("wlRep").value.trim(), phone: $w("wlPhone").value.trim(), products: prods,
           hours: { wkStart: +$w("wlWkS").value, wkEnd: +$w("wlWkE").value, sat: $w("wlSat").checked, satStart: +$w("wlSatS").value, satEnd: +$w("wlSatE").value, sun: $w("wlSun").checked, sunStart: +$w("wlSunS").value, sunEnd: +$w("wlSunE").value },
           features: feats };
-        try{ localStorage.setItem("wl_config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
+        try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
+      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connectors \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
   }
@@ -3914,7 +3924,7 @@
 function wlOwners(){
   var LG = window.LG, CFG = window.LG_CFG || {}; if (!LG || CFG.isNew) return;
   var API = "https://canvassing-arena.pages.dev/wl-api/";
-  var co = null; try{ co = JSON.parse(localStorage.getItem("wl_company") || "null"); }catch(e){}
+  var co = null; try{ co = JSON.parse(localStorage.getItem((window.LG_WLP || "wl_") + "company") || "null"); }catch(e){}
   var brand = { company: CFG.company, tag: CFG.tag, logo: CFG.logo, brand: CFG.brand, accent: CFG.accent };
   function call(path, opts){
     opts = opts || {};
@@ -3924,10 +3934,10 @@ function wlOwners(){
   function toast(m){ var t = document.getElementById("arToast"); document.body.appendChild(t); t.textContent = m; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function(){ t.hidden = true; }, 4500); }
   function ready(){
     if (co) return Promise.resolve(co);
-    return call("company", { method: "POST", body: { brand: brand } }).then(function(j){ co = j; localStorage.setItem("wl_company", JSON.stringify(co)); localStorage.setItem("wl_brand_sent", JSON.stringify(brand)); return co; });
+    return call("company", { method: "POST", body: { brand: brand } }).then(function(j){ co = j; localStorage.setItem((window.LG_WLP || "wl_") + "company", JSON.stringify(co)); localStorage.setItem((window.LG_WLP || "wl_") + "brand_sent", JSON.stringify(brand)); return co; });
   }
   ready().then(function(){
-    if (localStorage.getItem("wl_brand_sent") !== JSON.stringify(brand)) call("brand", { method: "POST", body: { brand: brand } }).then(function(){ localStorage.setItem("wl_brand_sent", JSON.stringify(brand)); }).catch(function(){});
+    if (localStorage.getItem((window.LG_WLP || "wl_") + "brand_sent") !== JSON.stringify(brand)) call("brand", { method: "POST", body: { brand: brand } }).then(function(){ localStorage.setItem((window.LG_WLP || "wl_") + "brand_sent", JSON.stringify(brand)); }).catch(function(){});
     paintCard(); poll(); sendAuth();
   }).catch(function(){});
   // settings card: owners link + alerts
@@ -4020,7 +4030,7 @@ function wlOwners(){
         (a.photos || []).forEach(function(pid){
           if (l.arena_photos.indexOf(pid) !== -1 || asked[pid]) return; asked[pid] = 1;
           call("photo?id=" + encodeURIComponent(pid)).then(function(p){ return fetch(p.data).then(function(r2){ return r2.blob(); }); })
-            .then(function(blob){ return LG.photoPut({ id: "wl_" + pid, leadId: l.id, ts: Date.now(), blob: blob }); })
+            .then(function(blob){ return LG.photoPut({ id: (window.LG_WLP || "wl_") + pid, leadId: l.id, ts: Date.now(), blob: blob }); })
             .then(function(){ l.arena_photos.push(pid); LG.save(); }).catch(function(){ delete asked[pid]; });
         });
       });

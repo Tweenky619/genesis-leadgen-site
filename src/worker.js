@@ -34,7 +34,7 @@ export default {
       const target = new URL("/owners" + (rest === "/" ? "/" : rest), url);
       return env.ASSETS.fetch(new Request(target.toString(), request));
     }
-    const repM = url.pathname.match(/^\/(rep|ruben|app)(\/.*)?$/);
+    const repM = url.pathname.match(/^\/(rep|ruben|app|custom)(\/.*)?$/);
     if (repM) {
       const rest = repM[2] || "/";
       const target = new URL(rest === "/" ? "/" : rest, url);
