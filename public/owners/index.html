@@ -156,16 +156,13 @@
   <img src="/vp-logo.png?v=2" alt="Villa Pacifica Construction">
   <div class="tag">APPOINTMENT RESULTS</div>
   <form class="box" id="siForm" autocomplete="on">
-    <h2 id="siTitle">Sign in</h2>
-    <div class="sub" id="siSub">For owners. One time on this phone — you'll stay signed in.</div>
+    <h2 id="siTitle">Welcome</h2>
+    <div class="sub" id="siSub">Just your name, one time. Appointments sent to the owners show up here.</div>
     <div class="lbl">Your name</div><input type="text" id="siName" autocomplete="name" placeholder="First and last name">
-    <div class="lbl">Team code</div><input type="text" id="siCode" autocapitalize="characters" autocomplete="off">
-    <div class="lbl" id="siMgrLbl">Owner code</div><input type="password" id="siMgr" autocapitalize="characters" autocomplete="current-password">
-    <div id="siSetBox" hidden><div class="lbl">Type it again</div><input type="password" id="siMgr2" autocapitalize="characters" autocomplete="new-password"></div>
+
     <div class="err" id="siErr"></div>
-    <button type="submit" class="go" id="siGo">Sign in</button>
+    <button type="submit" class="go" id="siGo">Continue</button>
   </form>
-  <button type="button" class="link" id="siMode">First time? Set my owner code</button>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -178,6 +175,9 @@
   try{ me = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){}
   // Art's personal link (/owners/art): already signed in, no code (his own co-manager code — remove under Arena → Co-managers to cut it off)
   var PRESET = /^\/owners\/art(\/|$)/.test(location.pathname) ? { name: "Arturo Delgado Mora", code: "VILLPC", mgr: "ADQ6L4W49AK5" } : null;
+  // Everyone else: no codes — just their name once. Appointments you send show up for them.
+  var SHARED = { code: "VILLPC", mgr: "OWKN1FCINLS1" };
+  if (!PRESET && me.name && me.mgr !== SHARED.mgr){ me = { name: me.name, code: SHARED.code, mgr: SHARED.mgr }; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} }
   if (PRESET){ if (me.mgr !== PRESET.mgr){ me = PRESET; try{ localStorage.setItem(KEY, JSON.stringify(me)); }catch(e){} } var mf = document.querySelector('link[rel="manifest"]'); if (mf) mf.href = "/owners/manifest-art.webmanifest"; }
   var appts = [], tab = "today", cur = null, pend = [], setMode = false;
   function $(id){ return document.getElementById(id); }
@@ -199,32 +199,18 @@
   var OUT = { sold: "Sold", miss: "Pitch & Miss", noshow: "No Show", reset: "Rep Reset", nomr: "No Mr./Mrs.", ctc: "Call to Cancel" };
 
   // ---------- sign in ----------
-  function openSignin(msg){ $("siName").value = me.name || ""; $("siCode").value = me.code || ""; $("siErr").textContent = msg || ""; $("signin").classList.add("open"); }
-  function paintMode(){
-    $("siTitle").textContent = setMode ? "Set your owner code" : "Sign in";
-    $("siSub").textContent = setMode ? "Your manager allowed you. Pick your own code — you'll use it to sign in." : "For owners. One time on this phone — you'll stay signed in.";
-    $("siMgrLbl").textContent = setMode ? "Pick your owner code" : "Owner code";
-    $("siSetBox").hidden = !setMode; $("siGo").textContent = setMode ? "Save my code" : "Sign in";
-    $("siMode").textContent = setMode ? "I already have a code" : "First time? Set my owner code";
-  }
-  $("siMode").onclick = function(){ setMode = !setMode; paintMode(); $("siErr").textContent = ""; };
+  function openSignin(msg){ $("siName").value = me.name || ""; $("siErr").textContent = msg || ""; $("signin").classList.add("open"); }
+  function paintMode(){}
   $("siForm").onsubmit = function(e){
     e.preventDefault();
-    var name = $("siName").value.trim(), code = $("siCode").value.trim().toUpperCase(), mgr = $("siMgr").value.trim().toUpperCase();
+    var name = $("siName").value.trim();
     if (!name) return ($("siErr").textContent = "Enter your name");
-    if (!code) return ($("siErr").textContent = "Enter the team code");
-    if (mgr.length < 4) return ($("siErr").textContent = "Enter your owner code");
-    if (setMode && mgr !== $("siMgr2").value.trim().toUpperCase()) return ($("siErr").textContent = "The two codes don't match");
     $("siGo").disabled = true; $("siErr").textContent = "";
-    var prev = me; me = { name: name, code: code };
-    var step = setMode ? api("co-manager", { method: "POST", body: JSON.stringify({ action: "set", name: name, code: mgr }) }) : Promise.resolve();
-    step.then(function(){ me.mgr = mgr; return api("appt?since=0"); }).then(function(j){
-      localStorage.setItem(KEY, JSON.stringify(me)); $("signin").classList.remove("open"); setMode = false; paintMode();
-      appts = j.appts; render(); toast("Signed in");
-    }).catch(function(err){
-      me = prev;
-      $("siErr").textContent = err.status === 401 ? "Wrong team code" : err.status === 403 ? (setMode ? err.message : "Owner code not accepted") : err.status ? err.message : "Couldn't sign in — check your connection";
-    }).then(function(){ $("siGo").disabled = false; });
+    me = { name: name, code: SHARED.code, mgr: SHARED.mgr };
+    api("appt?since=0").then(function(j){
+      localStorage.setItem(KEY, JSON.stringify(me)); $("signin").classList.remove("open"); appts = j.appts; render(); toast("Welcome, " + name.split(" ")[0]);
+    }).catch(function(err){ $("siErr").textContent = err.status ? err.message : "Couldn't connect — check your connection"; })
+      .then(function(){ $("siGo").disabled = false; });
   };
 
   // ---------- list ----------
@@ -237,7 +223,7 @@
   }
   var TABS = [["today", "📅 Today"], ["needs", "⏳ Needs result"], ["upcoming", "📆 Upcoming"], ["done", "✅ Done"]];
   function render(){
-    $("who").textContent = me.name ? me.name + " · Team " + me.code : "";
+    $("who").textContent = me.name || "";
     var counts = {}; appts.forEach(function(a){ var b = bucket(a); counts[b] = (counts[b] || 0) + 1; });
     $("tabs").innerHTML = TABS.map(function(t){ return '<button type="button" data-t="' + t[0] + '" class="' + (tab === t[0] ? "on" : "") + '">' + t[1] + '<i>' + (counts[t[0]] || 0) + '</i></button>'; }).join("");
     var list = appts.filter(function(a){ return bucket(a) === tab; });
@@ -350,13 +336,13 @@
   function load(){
     if (!me.mgr) return;
     api("appt?since=0").then(function(j){ appts = j.appts; render(); var s = $("syncLine"); if (s) s.textContent = "Updated " + new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }); })
-      .catch(function(err){ if (err.status === 403 || err.status === 401){ me.mgr = ""; openSignin("Please sign in again"); } else toast("Offline — showing the last list"); });
+      .catch(function(err){ if (err.status === 403 || err.status === 401) toast("Access was turned off — ask Art"); else toast("Offline — showing the last list"); });
   }
   $("refresh").onclick = load;
   document.addEventListener("visibilitychange", function(){ if (!document.hidden) load(); });
   setInterval(load, 30000);
   paintMode();
-  if (!me.mgr) openSignin(); else { render(); load(); }
+  if (!me.name) openSignin(); else { render(); load(); }
 })();
 </script>
 </body>
