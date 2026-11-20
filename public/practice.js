@@ -180,7 +180,7 @@
     var sc = vpScene();
     return [
       { type: "open", ph: 0, scene: sc.text, title: "Step 1 · Greet & introduce", who: "You say", followWho: "You acknowledge",
-        say: greet() + "! My name is Art, I work with Villa Pacifica! How are you?",
+        say: greet() + "! My name is Art! How are you?",
         replies: ["Doing fine, and yourself?", "Good, and you?", "I'm fine, how about you?", "Not bad — yourself?"],
         follow: "I'm doing great — and that's the first time I've heard that all day!",
         tip: "Most of the time they laugh — that's the guard coming down. If they don't ask back, just say “Glad to hear it!” Busy? “I'll be quick.”" },

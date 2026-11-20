@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Villa Pacifica Construction Lead Gen</title>
+<title>Lead Gen</title>
 <script>
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
   window.LG_WL = /^\/(app|custom)(\/|$)/.test(location.pathname);
@@ -76,7 +76,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Villa Pacifica Lead Gen">
+<meta name="apple-mobile-web-app-title" content="Lead Gen">
 <meta name="theme-color" content="#ffffff">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="vp-icon.png?v=3">
@@ -190,7 +190,7 @@
   .wl-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
   .wl-row select{width:100%;border:1.5px solid #e5e7eb;border-radius:10px;padding:11px;font-size:16px;background:#fff;margin-bottom:6px;}
   .wl-app .icon-btn{background:#eef1f5;}
-  html:not(.wl-app) #wlGear{display:none!important;}
+  html:not(.wl-app) #wlGear{display:none!important;} html.wl-app #hdrLogo:not([data-wl]){visibility:hidden;}
   .wl-app #hdrLogo:not([data-wl]){display:none!important;}
   .wl-colors{display:flex;gap:14px;}
   .wl-colors input{width:56px;height:40px;border:none;background:none;padding:0;}
@@ -3866,8 +3866,8 @@
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
 })();
 </script>
-<script src="playbook.js?v=10"></script>
-<script src="practice.js?v=58"></script>
+<script src="playbook.js?v=11"></script>
+<script src="practice.js?v=59"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
@@ -4205,12 +4205,12 @@ function wlOwners(){
   var pushWait = null;
   bell.addEventListener("click", function(){
     if(!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)){
-      alertBox("This phone can't get alerts from the app yet. Make sure Villa Pacifica Lead Gen was added to your Home Screen from Safari (Share \u2192 Add to Home Screen) and iOS is up to date.");
+      alertBox("This phone can't get alerts from the app yet. Make sure this app was added to your Home Screen from Safari (Share \u2192 Add to Home Screen) and iOS is up to date.");
       return;
     }
     var a = savedLogin(); if(!a || !a.mgr){ alertBox("Sign in to Canvassing Arena as Manager first (tap \ud83d\udccd)."); return; }
     Notification.requestPermission().then(function(perm){
-      if(perm !== "granted"){ alertBox("Alerts are blocked. Turn them on in Settings \u2192 Notifications \u2192 Villa Pacifica."); return; }
+      if(perm !== "granted"){ alertBox("Alerts are blocked. Turn them on in Settings \u2192 Notifications for this app."); return; }
       return navigator.serviceWorker.ready.then(function(r){ swReg = r; sendSwAuth(); return r.pushManager.getSubscription().then(function(sub){ return sub || r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(VAPID) }); }); })
         .then(function(sub){
           fr.contentWindow.postMessage({ type: "lg-push-sub", endpoint: sub.endpoint }, ARENA_ORIGIN);
