@@ -1058,6 +1058,7 @@
     <div class="header-actions">
       <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
       <button class="icon-btn" id="practiceBtn" title="Practice">&#127919;</button>
+      <button class="icon-btn" id="teleBtn" title="Telemarketing">&#128222;</button>
       <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
       <button class="icon-btn" id="arenaBtn" title="Canvassing Arena">&#128205;</button>
       <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
@@ -1334,6 +1335,12 @@
     <section class="view" id="view-practice">
       <div class="back-row" id="backFromPracticeBtn">&larr; All Leads</div>
       <div id="practiceBody"></div>
+    </section>
+
+    <!-- TELEMARKETING VIEW -->
+    <section class="view" id="view-tele">
+      <div class="back-row" id="backFromTeleBtn">&larr; All Leads</div>
+      <div id="teleBody"></div>
     </section>
 
     <!-- MAP VIEW -->
@@ -3895,7 +3902,7 @@
     });
   }
 
-  window.LG = { get leads(){ return leads; }, save: save, uid: uid, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
+  window.LG = { get leads(){ return leads; }, save: save, uid: uid, prefix: CO_PREFIX, coName: CO_NAME, openDetail: openDetail, showView: showView, addLog: addLog, photoPut: photoPut, photosFor: photosFor, statusOf: statusOf,
     trashedArena: function(){ try{ return JSON.parse(localStorage.getItem(CO_PREFIX + "trash_v1") || "[]").map(function(t){ return t.lead.arena_id; }).filter(Boolean); }catch(e){ return []; } },
     viewing: function(){ return viewingId; }, refreshDetail: function(){ try{ refreshDetail(); }catch(e){} }, todayISO: todayISO,
     refresh: function(){ renderList(); if(typeof updateHeader === "function"){ try{ updateHeader(); }catch(e){} } } };
@@ -3903,6 +3910,7 @@
 </script>
 <script src="playbook.js?v=11"></script>
 <script src="practice.js?v=59"></script>
+<script src="tele.js?v=2"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
