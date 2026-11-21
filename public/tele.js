@@ -25,9 +25,10 @@
   var DNC_ST = { dnc: 1, wrong: 1, booked: 1, ni: 1, reload: 1 };
   var OUT = {
     na:     { t: "No answer",      c: "#6b7570", contact: false },
+    fu:     { t: "Follow-up later", c: "#8a5a00", contact: true },
     vm:     { t: "Left voicemail", c: "#6b7570", contact: false },
     cb:     { t: "Call back",      c: "#8a5a00", contact: true },
-    ni:     { t: "Not interested", c: "#a8321f", contact: true },
+    ni:     { t: "Not now \u2192 follow up", c: "#a8321f", contact: true },
     wrong:  { t: "Wrong number",   c: "#6a2fb0", contact: false },
     dnc:    { t: "Do not call",    c: "#2b2b2b", contact: true },
     booked: { t: "Appointment set",c: "#0b6b3a", contact: true },
@@ -225,7 +226,7 @@
         (lq === "reset" ? '<button data-lo="conf" style="--c:#0b6b3a" class="big">Confirmed \u2014 fair enough</button>' : '<button data-lo="resched" style="--c:#0b6b3a" class="big">Rescheduled</button>') +
         '<button data-lo="na" style="--c:#6b7570">No answer</button><button data-lo="vm" style="--c:#6b7570">Left voicemail</button>' +
         (lq === "reset" ? '<button data-lo="resched" style="--c:#8a5a00">Moved the time</button>' : '<button data-lo="cb" style="--c:#8a5a00">Call back</button>') +
-        '<button data-lo="ni" style="--c:#a8321f">Not interested</button>' +
+        '<button data-lo="ni" style="--c:#a8321f">Not now \u2192 follow up</button>' +
       '</div><div id="tlForm"></div><button type="button" class="tm-skip" id="tlOpen">Open full lead \u2192</button></div>' + rules();
   }
   function leadOutcome(o){
@@ -251,7 +252,7 @@
       return f.scrollIntoView({ block: "center", behavior: "smooth" });
     }
     if (o === "conf"){ l.status = "Confirmed"; return done("confirmed for " + ldate(l)); }
-    if (o === "ni"){ if (!confirm("Mark " + lname(l) + " Not Interested?")) return; l.status = "Not Interested"; return done("Not Interested"); }
+    if (o === "ni"){ return fuChooser(f, function(days){ l.status = "Contacted"; l.next_followup = isoAdd(days); done("not interested right now \u2014 follow up " + l.next_followup); }); }
     done(o === "vm" ? "left voicemail" : "no answer");
   }
 
@@ -265,15 +266,28 @@
       '<button type="button" class="tm-skip" id="bkDone">Done \u2014 next call \u2192</button></div>';
   }
 
+  // "No" never kills the lead: it becomes a Follow-up (Contacted) with a date, shows in Due when it's time
+  function followUp(l, days, why){
+    if (!l) return;
+    l.status = "Contacted"; l.next_followup = isoAdd(days);
+    LG.addLog(l, (why || "Not interested right now") + " \u2014 follow up " + l.next_followup);
+    LG.save(); if (LG.refresh) LG.refresh();
+  }
+  function fuChooser(f, cb){
+    f.innerHTML = '<div class="tm-sub2"><div class="tm-lbl">Not now \u2014 follow up in</div><div class="tm-quick"><button data-fu="14">2 weeks</button><button data-fu="30">1 month</button><button data-fu="90">3 months</button><button data-fu="180">6 months</button></div><p class="tm-help">The lead stays alive as a follow-up and comes back in Due on that date.</p></div>';
+    f.querySelectorAll("[data-fu]").forEach(function(b){ b.onclick = function(){ cb(+b.getAttribute("data-fu")); }; });
+    f.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+
   // ---------- Text replies (pivots) when a homeowner texts back ----------
   function replies(first, prod, addr, appt){
     var p = String(prod || "roof").toLowerCase().replace("/", " and "), me = rep(), c = co();
     var cue = { roof: "leaks and missing shingles", "paint and stucco": "cracks and peeling", windows: "drafts and foggy glass", solar: "high electric bills" }[p] || "small problems";
     return {
       neg: [
-        ["Ask why (one try)", "Totally understand, " + first + "! Quick question \u2014 was it the timing, or did you already get your " + p + " taken care of? Either way, the free inspection still stands if you ever want a second set of eyes. \u2013 " + me],
-        ["Leave the door open", "Got it, thank you for letting me know! Mind if I check back in a few months? Things like " + cue + " tend to get worse with the rain, and the free inspection is always on the table. \u2013 " + me],
-        ["Respect it (final)", "No problem at all, " + first + " \u2014 I won\u2019t bother you. If anything changes with your " + p + ", just text me here. Have a great day! \u2013 " + me]
+        ["Ask why (one try)", 3, "Totally understand, " + first + "! Quick question \u2014 was it the timing, or did you already get your " + p + " taken care of? Either way, the free inspection still stands if you ever want a second set of eyes. \u2013 " + me],
+        ["Leave the door open", 90, "Got it, thank you for letting me know! Mind if I check back in a few months? Things like " + cue + " tend to get worse with the rain, and the free inspection is always on the table. \u2013 " + me],
+        ["Follow up later", 30, "No problem at all, " + first + "! I\u2019ll check back with you down the road. If anything changes with your " + p + " before then, just text me here. Have a great day! \u2013 " + me]
       ],
       pos: [
         ["Book it", "Awesome, " + first + "! I have tomorrow at 10am, 2pm or 6pm open for your free inspection \u2014 which works best for you?"],
@@ -288,15 +302,19 @@
     var d = digits(phone); if (d.length !== 10){ alert("No 10-digit phone number on this lead."); return; }
     var first = String(name || "").split(" ")[0] || "there", R = replies(first, prod, addr, appt);
     var ov = document.createElement("div"); ov.className = "tm-ov";
-    var sec = function(t, arr, col){ return '<div class="tm-lbl" style="color:' + col + '">' + t + '</div>' + arr.map(function(x, i){ return '<div class="tm-rp"><b>' + esc(x[0]) + '</b><p>' + esc(x[1]) + '</p><a href="sms:+1' + d + '&body=' + encodeURIComponent(x[1]) + '" data-rp="' + esc(x[0]) + '">Send \u203a</a></div>'; }).join(""); };
+    var sec = function(t, arr, col){ return '<div class="tm-lbl" style="color:' + col + '">' + t + '</div>' + arr.map(function(x, i){
+      var days = typeof x[1] === "number" ? x[1] : 0, txt = days ? x[2] : x[1];
+      return '<div class="tm-rp"><b>' + esc(x[0]) + (days ? ' <span style="font-weight:600;color:var(--text-muted)">\u00b7 follow up in ' + (days >= 30 ? Math.round(days / 30) + ' mo' : days + ' days') + '</span>' : '') + '</b><p>' + esc(txt) + '</p><a href="sms:+1' + d + '&body=' + encodeURIComponent(txt) + '" data-rp="' + esc(x[0]) + '" data-days="' + days + '">Send \u203a</a></div>'; }).join(""); };
     ov.innerHTML = '<div class="tm-sheet"><div class="tm-name" style="font-size:18px">\ud83d\udcac Text replies \u2014 ' + esc(name || fmtPh(d)) + '</div><div class="tm-sub">' + esc(fmtPh(d)) + ' \u00b7 always steer to the free inspection</div>' +
       sec("\ud83d\udc4d They\u2019re interested", R.pos, "#0b6b3a") + sec("\ud83d\udc4e \u201cNo thanks\u201d", R.neg, "#a8321f") +
-      '<p class="tm-help" style="margin-top:10px">One pivot try on a no. If they say stop or don\u2019t text, send nothing else and mark Do not call.</p>' +
+      '<p class="tm-help" style="margin-top:10px">A \u201cno\u201d never kills the lead \u2014 sending one of these turns it into a follow-up and it comes back in Due. Only if they say stop: send nothing else and mark Do not call.</p>' +
       '<button type="button" class="tm-go" id="rpClose">Close</button></div>';
     document.body.appendChild(ov);
     ov.addEventListener("click", function(e){
       if (e.target === ov || e.target.id === "rpClose"){ ov.remove(); return; }
-      var a = e.target.closest("[data-rp]"); if (a && leadRef){ LG.addLog(leadRef, "Text reply sent: " + a.getAttribute("data-rp")); LG.save(); }
+      var a = e.target.closest("[data-rp]"); if (a && leadRef){
+        LG.addLog(leadRef, "Text reply sent: " + a.getAttribute("data-rp"));
+        var dd = +a.getAttribute("data-days"); if (dd) followUp(leadRef, dd, "Texted back \u201cno thanks\u201d"); else LG.save(); }
     });
   }
   window.TM_replies = function(l){ openReplies(l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" "), l.phone, (l.interests || [])[0], l.address, l.appt_date ? ldate(l) : "", l); };
@@ -428,7 +446,7 @@
     if (o !== "cb"){ delete c.cb_at; delete c.cb_note; }
     if ((o === "na" || o === "vm") && c.tries >= 4) c.status = "ni", c.hist[0].note = "4 tries, no answer";
     calls.push({ ts: Date.now(), o: o, id: c.id });
-    var sl = srcLead(c); if (sl && o !== "booked" && o !== "reload"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
+    var sl = srcLead(c); if (sl && o !== "booked" && o !== "reload" && o !== "ni"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
     save(); cur = null; prod = null; render();
   }
   function formCb(){
@@ -571,6 +589,7 @@
       if (o === "cb") return formCb();
       if (o === "booked") return formBook();
       if (o === "reload") return formReload();
+      if (o === "ni") return fuChooser(document.getElementById("tmForm"), function(days){ var sl = srcLead(cur); if (sl) followUp(sl, days, "Phone call: not interested right now"); else { cur.cb_at = Date.now() + days * 864e5; } record("ni", "follow up in " + days + " days"); });
       if (o === "dnc" && !confirm("Mark " + (cur.name || fmtPh(cur.phone)) + " as Do Not Call? They won't come up again.")) return;
       record(o);
     }; });
