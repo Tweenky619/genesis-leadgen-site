@@ -220,6 +220,7 @@
       (lq !== "blow" ? '<div class="tm-row2"><input id="tlCon" placeholder="Contractor" value="' + esc(getSet("tele_contractor", "Tidal Remodeling")) + '"><input id="tlRep" placeholder="Rep who went out" value="' + esc(getSet("tele_rep", "Ryan")) + '"></div>' : '') +
       '<details class="tm-script" open><summary>\ud83d\udcdd ' + LQ[lq].t.replace(/^\S+\s/, "") + ' script</summary><div class="tm-s"><p>' + leadScript(lq, l) + '</p></div></details>' +
       (lq === "rehash" ? '<div class="tm-lbl">Ratings (1\u20135)</div>' + ["Rep","Product","Company"].map(function(k){ return '<div class="tm-rate"><span>' + k + '</span>' + [1,2,3,4,5].map(function(n){ return '<button data-rate="' + k + '" data-n="' + n + '"' + (rate[k] === n ? ' class="on"' : '') + '>' + n + '</button>'; }).join("") + '</div>'; }).join("") : '') +
+      '<button type="button" class="tm-rpb" id="tlRp">\ud83d\udcac Text replies (they texted back)</button>' +
       '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
         (lq === "reset" ? '<button data-lo="conf" style="--c:#0b6b3a" class="big">Confirmed \u2014 fair enough</button>' : '<button data-lo="resched" style="--c:#0b6b3a" class="big">Rescheduled</button>') +
         '<button data-lo="na" style="--c:#6b7570">No answer</button><button data-lo="vm" style="--c:#6b7570">Left voicemail</button>' +
@@ -264,6 +265,42 @@
       '<button type="button" class="tm-skip" id="bkDone">Done \u2014 next call \u2192</button></div>';
   }
 
+  // ---------- Text replies (pivots) when a homeowner texts back ----------
+  function replies(first, prod, addr, appt){
+    var p = String(prod || "roof").toLowerCase().replace("/", " and "), me = rep(), c = co();
+    var cue = { roof: "leaks and missing shingles", "paint and stucco": "cracks and peeling", windows: "drafts and foggy glass", solar: "high electric bills" }[p] || "small problems";
+    return {
+      neg: [
+        ["Ask why (one try)", "Totally understand, " + first + "! Quick question \u2014 was it the timing, or did you already get your " + p + " taken care of? Either way, the free inspection still stands if you ever want a second set of eyes. \u2013 " + me],
+        ["Leave the door open", "Got it, thank you for letting me know! Mind if I check back in a few months? Things like " + cue + " tend to get worse with the rain, and the free inspection is always on the table. \u2013 " + me],
+        ["Respect it (final)", "No problem at all, " + first + " \u2014 I won\u2019t bother you. If anything changes with your " + p + ", just text me here. Have a great day! \u2013 " + me]
+      ],
+      pos: [
+        ["Book it", "Awesome, " + first + "! I have tomorrow at 10am, 2pm or 6pm open for your free inspection \u2014 which works best for you?"],
+        ["What is it?", "It\u2019s a free inspection on your " + p + " \u2014 we take a look, show you exactly where things stand, and give you a price in writing. No cost, no obligation. Does 10am or 2pm work better?"],
+        ["Maybe / busy", "No rush! What works better for you this week \u2014 a weekday evening or a Saturday morning? I\u2019ll save you a spot for the free inspection."],
+        ["Who is this?", "Hi! It\u2019s " + me + " with " + c + " \u2014 we met at your door about your " + p + ". We\u2019re doing free inspections in your area and I saved you a spot. Want me to lock it in?"],
+        ["Confirm booked", "Perfect, you\u2019re all set" + (appt ? " for " + appt : "") + (addr ? " at " + addr : "") + ". Will everyone on the title be home too, so they can see it firsthand? Thank you! \u2013 " + me]
+      ]
+    };
+  }
+  function openReplies(name, phone, prod, addr, appt, leadRef){
+    var d = digits(phone); if (d.length !== 10){ alert("No 10-digit phone number on this lead."); return; }
+    var first = String(name || "").split(" ")[0] || "there", R = replies(first, prod, addr, appt);
+    var ov = document.createElement("div"); ov.className = "tm-ov";
+    var sec = function(t, arr, col){ return '<div class="tm-lbl" style="color:' + col + '">' + t + '</div>' + arr.map(function(x, i){ return '<div class="tm-rp"><b>' + esc(x[0]) + '</b><p>' + esc(x[1]) + '</p><a href="sms:+1' + d + '&body=' + encodeURIComponent(x[1]) + '" data-rp="' + esc(x[0]) + '">Send \u203a</a></div>'; }).join(""); };
+    ov.innerHTML = '<div class="tm-sheet"><div class="tm-name" style="font-size:18px">\ud83d\udcac Text replies \u2014 ' + esc(name || fmtPh(d)) + '</div><div class="tm-sub">' + esc(fmtPh(d)) + ' \u00b7 always steer to the free inspection</div>' +
+      sec("\ud83d\udc4d They\u2019re interested", R.pos, "#0b6b3a") + sec("\ud83d\udc4e \u201cNo thanks\u201d", R.neg, "#a8321f") +
+      '<p class="tm-help" style="margin-top:10px">One pivot try on a no. If they say stop or don\u2019t text, send nothing else and mark Do not call.</p>' +
+      '<button type="button" class="tm-go" id="rpClose">Close</button></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click", function(e){
+      if (e.target === ov || e.target.id === "rpClose"){ ov.remove(); return; }
+      var a = e.target.closest("[data-rp]"); if (a && leadRef){ LG.addLog(leadRef, "Text reply sent: " + a.getAttribute("data-rp")); LG.save(); }
+    });
+  }
+  window.TM_replies = function(l){ openReplies(l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" "), l.phone, (l.interests || [])[0], l.address, l.appt_date ? ldate(l) : "", l); };
+
   // ---------- render ----------
   var mode = "dial", cur = null, prod = null, timerT0 = 0, timerInt = null;
   function header(){
@@ -302,7 +339,7 @@
       (cur.camp ? '<div class="tm-flag" style="background:#e9edf2;color:#152535">\ud83d\udccb ' + esc(cur.camp) + '</div>' : '') +
       (cur.q && srcLead(cur) ? '<details class="tm-script" open><summary>\ud83d\udcdd ' + (cur.q === "blow" ? "Blowout" : "Rehash") + ' script</summary><div class="tm-s"><p>' + leadScript(cur.q, srcLead(cur)) + '</p></div></details>'
         : '<details class="tm-script" open><summary>\ud83d\udcdd Phone script</summary>' + scriptHtml(cur, prod) + '</details>') +
-      vmHtml(cur) +
+      vmHtml(cur) + '<button type="button" class="tm-rpb" id="tmRp">\ud83d\udcac Text replies (they texted back)</button>' +
       '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
         ["na","vm","cb","ni","wrong","dnc","reload","booked"].map(function(o){ return '<button data-out="' + o + '" style="--c:' + OUT[o].c + '"' + (o === "booked" ? ' class="big"' : '') + '>' + OUT[o].t + '</button>'; }).join("") +
       '</div><div id="tmForm"></div>' +
@@ -558,6 +595,9 @@
     var bd = document.getElementById("bkDone"); if (bd) bd.onclick = function(){ lastBook = null; render(); };
     var qi = document.getElementById("tmQ");
     if (qi) qi.addEventListener("input", function(){ tq = qi.value; var pos = qi.selectionStart; render(); var n = document.getElementById("tmQ"); if (n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });
+    var rb2 = document.getElementById("tlRp"); if (rb2) rb2.onclick = function(){ if (curLead) window.TM_replies(curLead); };
+    var rb = document.getElementById("tmRp");
+    if (rb) rb.onclick = function(){ var sl = srcLead(cur); if (sl) return window.TM_replies(sl); openReplies(cur.name, cur.phone, prod, cur.address, "", null); };
     var vp = document.getElementById("vmP");
     if (vp) vp.onchange = function(){ if (digits(vp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_vm_phone", digits(vp.value)); render(); };
     var cn = document.getElementById("cfN"), cp = document.getElementById("cfP");
@@ -642,6 +682,9 @@
     ".tm-notes{background:#fffbea;border:1px solid #f1e2a8;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px;line-height:1.45}.tm-notes p{margin:0 0 6px}.tm-notes b{font-weight:800}.tm-notes.empty{background:#f7f8f9;border-color:var(--border);color:var(--text-muted);font-size:13px}" +
     ".tm-bk{background:#eef7f1;border:2px solid #0b6b3a;border-radius:14px;padding:12px;margin-bottom:12px}.tm-bk b{display:block;font-size:16px;color:#0b6b3a}.tm-bk span{font-size:13.5px;color:var(--text-muted)}.tm-bk .tm-call{background:#6d28d9;margin-top:10px}" +
     ".tm-q{width:100%;box-sizing:border-box;padding:12px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;font-size:16px}" +
+    ".tm-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:flex-end}.tm-sheet{background:#fff;width:100%;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}" +
+    ".tm-rp{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px}.tm-rp b{font-size:13px}.tm-rp p{margin:4px 0 8px;font-size:14.5px;line-height:1.4}.tm-rp a{display:inline-block;padding:8px 16px;border-radius:999px;background:var(--brand);color:#fff;font-weight:800;text-decoration:none;font-size:14px}" +
+    ".tm-rpb{display:block;width:100%;margin-top:10px;padding:12px;border-radius:12px;border:2px solid var(--brand);background:#fff;color:var(--brand);font-weight:800;font-size:15px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
