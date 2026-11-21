@@ -152,7 +152,7 @@
 
   // ---------- calls to my own leads: SoCal's Blowout, Reset Reconfirmation and Rehash scripts ----------
   var LQ = {
-    blow:   { t: "\ud83d\udca8 Blowout", st: ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"], h: "Missed appointments \u2014 get them rescheduled" },
+    blow:   { t: "\ud83d\udca8 Blowout", st: ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"], h: "Missed appointments + past appointments with no result \u2014 get them rescheduled" },
     reset:  { t: "\ud83d\udd01 Reset confirm", st: ["Rep Reset","Reset"], up: true, h: "Upcoming resets \u2014 confirm and make sure they let the rep in" },
     rehash: { t: "\u267b\ufe0f Rehash", st: ["Pitch & Miss"], h: "Demo, no sale \u2014 ratings, then send a manager" },
     conf:   { t: "\ud83d\udce4 To confirm", st: ["Appt Set","Rep Reset","Reset","Rolled","Confirm NA"], up: true, h: "Upcoming appointments \u2014 text them to your confirmer" }
@@ -166,11 +166,48 @@
   }
   function markSent(ls){ ls.forEach(function(l){ l.cf_sent = Date.now(); LG.addLog(l, "Sent to " + cfName() + " to confirm"); }); LG.save(); if (LG.refresh) LG.refresh(); }
   var lq = "blow", curLead = null, rate = {};
+  // One-time repair: leads restored from a CSV backup all came in as "New" — rebuild each one's real outcome from its follow-up log
+  (function repairStatus(){
+    var K = PRE + "status_repair_v1"; try{ if (localStorage.getItem(K)) return; }catch(e){ return; }
+    var MAP = [
+      [/^Sale cancelled/i, "Cancelled"], [/^Cancellation undone|^Sold\b|^Sale date/i, "Sold"],
+      [/^Pitch miss/i, "Pitch & Miss"], [/^No show/i, "No Show"], [/^Blow[ -]?out/i, "Blow Out"],
+      [/^No Mr\.\/Mrs\./i, "No Mr./Mrs."], [/^Called to cancel/i, "Call to Cancel"],
+      [/^Bad number, couldn.t reach after knocking/i, "Not Interested"], [/^Bad number/i, "Bad Number"], [/^Not interested/i, "Not Interested"],
+      [/^Rep reset for/i, "Rep Reset"], [/^Reset \u2014 rescheduling/i, "Reset"], [/^Rolled to/i, "Rolled"],
+      [/^Dispatch confirmed/i, "Confirmed"], [/^Sent to Monday/i, "Sent to Monday"], [/^No answer on confirmation/i, "Confirm NA"],
+      [/^Status \u2192 (.+)$/, null], [/appointment set|^Appointment set/i, "Appt Set"], [/^Talked/i, "Contacted"], [/^No answer$/i, "No Answer"]
+    ];
+    var fixed = 0, t = todayISO();
+    LG.leads.forEach(function(l){
+      if ((l.status || "New") !== "New" && l.status !== "Appt Set") return;
+      var log = (l.log || []).slice().sort(function(a, b){ return (b.ts || 0) - (a.ts || 0); });
+      for (var i = 0; i < log.length; i++){
+        var txt = String(log[i].text || "").trim(), st = null;
+        for (var j = 0; j < MAP.length && !st; j++){ var m = txt.match(MAP[j][0]); if (m) st = MAP[j][1] || m[1]; }
+        if (st){
+          if (st === "Appt Set" && !(l.appt_date && l.appt_date >= t)) st = l.appt_date ? "Blow Out" : null;   // past appointment, no result logged
+          if (st && st !== l.status){ l.status = st; fixed++; }
+          break;
+        }
+      }
+    });
+    if (fixed){
+      LG.save(); if (LG.refresh) LG.refresh();
+      // leads that turn out to be Sold come off the not-yet-called part of the call list (use Reload when you call them)
+      var sold = {}; LG.leads.forEach(function(l){ if (l.status === "Sold") sold[l.id] = 1; });
+      list = list.filter(function(c){ return !(c.src && sold[c.src] && !c.status && !(c.tries > 0)); }); save();
+    }
+    try{ localStorage.setItem(K, String(fixed)); }catch(e){}
+    if (fixed) setTimeout(function(){ toast("\ud83d\udd27 Restored the real outcome on " + fixed + " lead" + (fixed === 1 ? "" : "s") + " from their history."); }, 1200);
+  })();
   function getSet(k, d){ try{ return localStorage.getItem(PRE + k) || d; }catch(e){ return d; } }
   function setSet(k, v){ try{ localStorage.setItem(PRE + k, v); }catch(e){} }
   function leadsFor(q){
     var t = todayISO();
-    return LG.leads.filter(function(l){ var st = l.status || "New"; return LQ[q].st.indexOf(st) > -1 && (!LQ[q].up || !l.appt_date || l.appt_date >= t); })
+    return LG.leads.filter(function(l){ var st = l.status || "New";
+      if (q === "blow" && l.appt_date && l.appt_date < t && ["New","Appt Set","Contacted","No Answer","Confirmed","Sent to Monday","Confirm NA"].indexOf(st) > -1) return true;   // past appointment, no result
+      return LQ[q].st.indexOf(st) > -1 && (!LQ[q].up || !l.appt_date || l.appt_date >= t); })
       .sort(function(a, b){ return String(a.last_tele || 0).localeCompare(String(b.last_tele || 0)); });
   }
   function timeKey(t){ var m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return "99"; return ("0" + ((+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0))).slice(-2) + m[2]; }
@@ -328,7 +365,8 @@
   }
   function render(){
     clearInterval(timerInt);
-    var h = header() + bookedPanel();
+    var h = header() + bookedPanel() + '<input id="tmS" class="tm-q" type="search" placeholder="\ud83d\udd0e Search any lead \u2014 name, phone or address" value="' + esc(sq) + '">';
+    if (sq.trim()){ body.innerHTML = h + searchHtml(); wire(); return; }
     if (mode === "add") h += addHtml();
     else if (mode === "list") h += listHtml();
     else if (mode === "leads") h += leadsHtml();
@@ -372,15 +410,35 @@
       '<li>Dial by hand only — no auto-dialers or recorded messages to cell phones without written consent.</li>' +
       '<li>No price quotes or promises on the phone.</li></ul></details>';
   }
-  var tq = "";
+  var tq = "", sq = "";
+  function searchHtml(){
+    var ql = sq.trim().toLowerCase(), qd = digits(sq), seen = {};
+    var hitL = function(n, p, a){ return (qd.length >= 3 && digits(p).indexOf(qd) > -1) || (/[a-z]/.test(ql) && ((n || "").toLowerCase().indexOf(ql) > -1 || (a || "").toLowerCase().indexOf(ql) > -1)); };
+    var ls = LG.leads.filter(function(l){ return hitL(lname(l), l.phone, l.address); }).slice(0, 40);
+    ls.forEach(function(l){ seen[digits(l.phone)] = 1; });
+    var cs = list.filter(function(c){ return !seen[c.phone] && hitL(c.name, c.phone, c.address); }).slice(0, 20);
+    if (!ls.length && !cs.length) return '<div class="tm-card tm-empty"><p>No lead or number matches \u201c' + esc(sq) + '\u201d.</p></div>';
+    return ls.map(function(l){ return '<div class="tm-row" data-sl="' + esc(l.id) + '"><div><b>' + esc(lname(l)) + '</b><span>' + esc(fmtPh(l.phone) || "No phone") + ' \u00b7 ' + esc(l.address || "") + '</span><span>' + esc(l.status || "New") + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + ' \u00b7 met ' + ageDays(l) + ' days ago</span></div><em>Call \u203a</em></div>'; }).join("") +
+      cs.map(function(c){ return '<div class="tm-row" data-pick="' + c.id + '"><div><b>' + esc(c.name || fmtPh(c.phone)) + '</b><span>' + esc(fmtPh(c.phone)) + ' \u00b7 call list</span></div><em>' + (c.status ? OUT[c.status].t : 'Call \u203a') + '</em></div>'; }).join("");
+  }
+  function openLeadCall(l){
+    var d = digits(l.phone); if (d.length !== 10){ alert("This lead has no 10-digit phone number."); return; }
+    var it = list.filter(function(c){ return c.src === l.id || c.phone === d; })[0];
+    var st = l.status || "New", q = ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"].indexOf(st) > -1 ? "blow" : st === "Pitch & Miss" ? "rehash" : null;
+    if (!it){
+      it = { id: "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), name: lname(l), phone: d, address: l.address || "", zip: l.zip || "", city: "",
+        notes: [st, (l.interests || []).join(", ")].filter(Boolean).join(" \u00b7 "), tries: 0, hist: [], src: l.id, q: q, camp: "Search" };
+      list.unshift(it); save();
+    } else { it.src = it.src || l.id; if (DNC_ST[it.status] && it.status !== "dnc") delete it.status; }
+    if (it.status === "dnc"){ alert(lname(l) + " is marked Do Not Call."); return; }
+    cur = it; prod = null; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0);
+  }
   function listHtml(){
     if (!list.length) return '<div class="tm-card tm-empty"><p>No numbers yet.</p></div>';
     var k = counts(), qd = digits(tq), ql = tq.trim().toLowerCase();
     var src = !ql ? list : list.filter(function(c){ return (qd.length >= 3 && c.phone.indexOf(qd) > -1) || (/[a-z]/.test(ql) && ((c.name || "").toLowerCase().indexOf(ql) > -1 || (c.address || "").toLowerCase().indexOf(ql) > -1)); });
     var order = src.slice().sort(function(a, b){ var r = function(c){ return DNC_ST[c.status] ? 3 : c.status === "cb" ? 0 : !c.status ? 1 : 2; }; return r(a) - r(b); });
-    return '<input id="tmQ" class="tm-q" type="search" placeholder="\ud83d\udd0e Search phone or name" value="' + esc(tq) + '" inputmode="search">' +
-      (ql && !src.length ? '<div class="tm-card tm-empty"><p>No number on your call list matches.</p></div>' : '') +
-      '<div class="tm-sum">' + k.fresh + ' new · ' + k.cb + ' callbacks · ' + k.retry + ' retry · ' + k.done + ' done</div>' +
+    return '<div class="tm-sum">' + k.fresh + ' new · ' + k.cb + ' callbacks · ' + k.retry + ' retry · ' + k.done + ' done</div>' +
       order.map(function(c){
         var st = c.status ? OUT[c.status].t : "New";
         return '<div class="tm-row" data-pick="' + c.id + '"><div><b>' + esc(c.name || fmtPh(c.phone)) + '</b><span>' + esc(fmtPh(c.phone)) + (c.address ? ' · ' + esc(c.address) : '') + '</span></div>' +
@@ -582,7 +640,10 @@
   function toast(msg){ var t = document.createElement("div"); t.className = "tm-toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3500); }
 
   function wire(){
-    body.querySelectorAll("[data-tm]").forEach(function(b){ b.onclick = function(){ mode = b.getAttribute("data-tm"); render(); }; });
+    body.querySelectorAll("[data-tm]").forEach(function(b){ b.onclick = function(){ mode = b.getAttribute("data-tm"); sq = ""; render(); }; });
+    var si = document.getElementById("tmS");
+    if (si) si.addEventListener("input", function(){ sq = si.value; var pos = si.selectionStart; render(); var n = document.getElementById("tmS"); if (n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });
+    body.querySelectorAll("[data-sl]").forEach(function(r){ r.onclick = function(){ var l = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-sl"); })[0]; if (l) openLeadCall(l); }; });
     body.querySelectorAll("[data-prod]").forEach(function(b){ b.onclick = function(){ prod = b.getAttribute("data-prod"); render(); }; });
     body.querySelectorAll("[data-out]").forEach(function(b){ b.onclick = function(){
       var o = b.getAttribute("data-out");
@@ -635,8 +696,9 @@
     body.querySelectorAll("[data-pick]").forEach(function(r){ r.onclick = function(){
       var c = list.filter(function(x){ return x.id === r.getAttribute("data-pick"); })[0]; if (!c) return;
       if (c.lead_id && LG.openDetail){ LG.openDetail(c.lead_id); return; }
+      if (sq && c.status !== "dnc" && DNC_ST[c.status]) delete c.status;
       if (DNC_ST[c.status]) { alert((c.name || fmtPh(c.phone)) + ": " + OUT[c.status].t + (c.hist && c.hist[0] && c.hist[0].note ? " (" + c.hist[0].note + ")" : "")); return; }
-      cur = c; mode = "dial"; render(); }; });
+      cur = c; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0); }; });
     var clr = document.getElementById("tmClear");
     if (clr) clr.onclick = function(){
       var n = list.filter(function(c){ return c.status === "booked" || c.status === "ni" || c.status === "wrong"; }).length;
