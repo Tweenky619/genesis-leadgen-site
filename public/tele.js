@@ -116,7 +116,20 @@
   function scriptHtml(c, prod){
     var first = (c.name || "").split(" ")[0] || "[Name]";
     var cue = CUE[prod] || "anything you've been wanting to fix";
+    var sl = srcLead(c), met = "";
+    if (sl){ try{ met = new Date(sl.created_at).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }catch(e){} }
     var S = function(t, say, tip){ return '<div class="tm-s"><b>' + t + '</b><p>' + say + '</p>' + (tip ? '<i>' + tip + '</i>' : '') + '</div>'; };
+    if (sl) return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", it\u2019s " + esc(rep()) + " with " + esc(co()) + " \u2014 we met at your door" + (met ? " on " + esc(met) : "") + ". How are you?",
+             "They already know you \u2014 smile, keep it friendly. If they say \u201cdoing fine, and yourself?\u201d: \u201cDoing great \u2014 first time I heard that all day!\u201d") +
+      S("2 · Why you're calling", "The reason I\u2019m calling \u2014 you mentioned your " + esc(prod.toLowerCase().replace("/", " and ")) + (sl.notes ? " (" + esc(String(sl.notes).slice(0, 80)) + ")" : "") + ", and my company, tomorrow is leaving estimates in your area. Have you noticed " + cue + " since we talked?",
+             "Bring back what they told you at the door. Let them talk.") +
+      S("3 · Close", "I\u2019d love to get you on the schedule. Would 10 in the morning work, or does 2 in the afternoon sound better for you?", "Two times, both yeses. No prices on the phone.") +
+      S("4 · Lock it in", "Perfect. Still at " + esc(c.address || "[address]") + ", right? Will everyone on the title be home too, so they can see it firsthand?", "Then tap Appointment set \u2014 it updates this same lead.") +
+      '<details class="tm-obj"><summary>Quick comebacks</summary>' +
+      S("\u201cJust send me a quote.\u201d", "I wish I could \u2014 every house is different, so it takes a quick look in person to give you a real number. Morning or afternoon better?") +
+      S("\u201cI'm busy right now.\u201d", "No problem \u2014 when's a better time to call you back today?", "Tap Call back and set the time.") +
+      S("\u201cNot interested anymore.\u201d", "Totally fair. Is it the timing, or did you already get the " + esc(prod.toLowerCase()) + " taken care of?", "One try, then let it go politely.") +
+      '</details>';
     return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", my name is " + esc(rep()) + " with " + esc(co()) + " — how are you?",
              "Say your name and company up front. If they say “doing fine, and yourself?”: “Doing great — first time I heard that all day!”") +
       S("2 · Why you're calling", "The reason I'm calling — my company, tomorrow is leaving estimates in " + esc(c.city || "your neighborhood") + " on different services that we do. Have you noticed " + cue + "?",
@@ -259,7 +272,8 @@
     if (!list.length) return '<div class="tm-card tm-empty"><b>No numbers yet.</b><p>Tap <b>➕ Add</b> to paste or import your call list.</p></div>' + rules();
     cur = cur && !DNC_ST[cur.status] && list.indexOf(cur) > -1 ? cur : nextUp();
     if (!cur){ var k = counts(); return '<div class="tm-card tm-empty"><b>List done for now 🎉</b><p>' + k.cb + ' callbacks scheduled · ' + k.retry + ' no-answers waiting to retry (2 hours apart).</p></div>' + rules(); }
-    var ps = products(); prod = prod && ps.indexOf(prod) > -1 ? prod : (cur.prod || ps[0]);
+    var ps = products(), slp = srcLead(cur), lp = slp && (slp.interests || []).filter(function(x){ return ps.indexOf(x) > -1; })[0];
+    prod = prod && ps.indexOf(prod) > -1 ? prod : (cur.prod || lp || ps[0]);
     var hours = inHours();
     return '<div class="tm-card">' +
       (cur.status === "cb" ? '<div class="tm-flag">⏰ Callback' + (cur.cb_note ? ' — ' + esc(cur.cb_note) : '') + '</div>' : '') +
@@ -282,7 +296,7 @@
     return '<details class="tm-rules"><summary>⚖️ Calling rules</summary><ul>' +
       '<li>Call only <b>8 AM – 9 PM</b> the homeowner’s time.</li>' +
       '<li>Say your name and company at the start of every call.</li>' +
-      '<li>Scrub purchased or cold lists against the National Do Not Call Registry before calling (your company should do this).</li>' +
+      '<li>Your own door leads gave you their number \u2014 you can call them back. Purchased or cold lists must be scrubbed against the National Do Not Call Registry first.</li>' +
       '<li>Anyone who asks not to be called → tap <b>Do not call</b>. They’re never shown again.</li>' +
       '<li>Dial by hand only — no auto-dialers or recorded messages to cell phones without written consent.</li>' +
       '<li>No price quotes or promises on the phone.</li></ul></details>';
