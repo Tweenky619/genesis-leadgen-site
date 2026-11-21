@@ -406,7 +406,7 @@
     else if (sl) say = "Hi " + f + ", it\u2019s " + me + " with " + esc(co()) + " \u2014 we met at your door about your " + p + ". We\u2019re doing free inspections in your area tomorrow and I saved you a spot \u2014 no cost, no obligation.";
     else say = "Hi " + f + ", this is " + me + " with " + esc(co()) + ". We\u2019re doing free inspections in your neighborhood tomorrow on " + p + ", and I\u2019d love to save you a spot \u2014 no cost, no obligation.";
     return '<details class="tm-script" style="border-color:var(--border)"><summary>\ud83c\udf99\ufe0f Voicemail script</summary><div class="tm-s"><p>' + say +
-      " Give me a call or text back at " + num + ". Again, it\u2019s " + me + " with " + esc(co()) + ", " + num + ". Talk soon!</p><i>Under 30 seconds. Smile while you talk. Then tap Left voicemail.</i></div>" +
+      " If you\u2019re interested, call me back or just send me a text at " + num + " and I\u2019ll get you on the schedule. Again, it\u2019s " + me + ", " + num + ". Talk soon!</p><i>Under 30 seconds. Smile while you talk. Then tap Left voicemail.</i></div>" +
       '<div class="tm-row2" style="padding-bottom:10px"><input id="vmP" value="' + num + '" placeholder="Callback number" inputmode="tel"></div></details>';
   }
   function formBook(){
