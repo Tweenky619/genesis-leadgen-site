@@ -10,6 +10,7 @@
   // /app is Art's own program (always Goldenbee MALAJ Home Connectors); /custom is the customizable copy for future companies
   window.LG_MINE = /^\/app(\/|$)/.test(location.pathname);
   window.LG_WLP = window.LG_MINE ? "wl_" : "wc_";
+  if (window.LG_MINE) document.documentElement.className += " wl-mine";
   // Main address = SoCal Contractor Exchange Lead Gen again (Art is back with SoCal, Nov 20, 2026); Goldenbee MALAJ Home Connectors stays at /app
   window.LG_SOCAL = !window.LG_WL && !/^\/(rep|ruben)(\/|$)/.test(location.pathname) && location.hostname !== "villapacifica-leadgen.pages.dev";
   if (window.LG_SOCAL){ try{ localStorage.setItem("lg_company", "socal"); }catch(e){} document.documentElement.className += " socal-main"; }
@@ -1039,6 +1040,7 @@
   html.socal-main .pb-e{background:#f3faf6;}
   html.socal-main .pg-links a{display:block;padding:8px 10px;margin-top:6px;border:1px solid var(--border);border-radius:8px;color:#1d4f8a;text-decoration:none;font-weight:600;background:#fff;}
   html.socal-main .pg-say{margin-top:8px;background:#fff8f5;border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.45;}
+  html.wl-app:not(.wl-mine) #teleBtn{display:none!important;}
   html.socal-main #hdrTag, html.socal-main .co-pick, html.socal-main #coBanner, html.socal-main #arenaBtn, html.socal-main #arenaBell{display:none!important;}
 </style>
 <script>
