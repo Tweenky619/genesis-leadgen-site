@@ -117,9 +117,11 @@
     var first = (c.name || "").split(" ")[0] || "[Name]";
     var cue = CUE[prod] || "anything you've been wanting to fix";
     var sl = srcLead(c), met = "";
-    if (sl){ try{ met = new Date(sl.created_at).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }catch(e){} }
+    if (sl && lfirst(sl)) first = lfirst(sl);
+    if (sl){ try{ var dd = new Date(+sl.created_at), ad = ageDays(sl);
+      met = ad <= 6 ? "on " + dd.toLocaleDateString("en-US", { weekday: "long" }) : ad <= 30 ? "on " + dd.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "back in " + dd.toLocaleDateString("en-US", { month: "long" }) + (dd.getFullYear() !== new Date().getFullYear() ? " " + dd.getFullYear() : ""); }catch(e){} }
     var S = function(t, say, tip){ return '<div class="tm-s"><b>' + t + '</b><p>' + say + '</p>' + (tip ? '<i>' + tip + '</i>' : '') + '</div>'; };
-    if (sl) return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", it\u2019s " + esc(rep()) + " with " + esc(co()) + " \u2014 we met at your door" + (met ? " on " + esc(met) : "") + ". How are you?",
+    if (sl) return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", it\u2019s " + esc(rep()) + " with " + esc(co()) + " \u2014 we met at your door" + (met ? " " + esc(met) : "") + ". How are you?",
              "They already know you \u2014 smile, keep it friendly. If they say \u201cdoing fine, and yourself?\u201d: \u201cDoing great \u2014 first time I heard that all day!\u201d") +
       S("2 · Why you're calling", "The reason I\u2019m calling \u2014 you mentioned your " + esc(prod.toLowerCase().replace("/", " and ")) + (sl.notes ? " (" + esc(String(sl.notes).slice(0, 80)) + ")" : "") + ", and my company, tomorrow is leaving estimates in your area. Have you noticed " + cue + " since we talked?",
              "Bring back what they told you at the door. Let them talk.") +
@@ -279,6 +281,7 @@
       (cur.status === "cb" ? '<div class="tm-flag">⏰ Callback' + (cur.cb_note ? ' — ' + esc(cur.cb_note) : '') + '</div>' : '') +
       '<div class="tm-name">' + esc(cur.name || "Homeowner") + '</div>' +
       '<div class="tm-sub">' + esc([cur.address, cur.city, cur.zip].filter(Boolean).join(", ") || "No address") + '</div>' +
+      (srcLead(cur) ? '<div class="tm-sub">Met at the door ' + ageDays(srcLead(cur)) + ' days ago</div>' : '') +
       '<div class="tm-sub">Tries: ' + (cur.tries || 0) + (cur.notes ? ' · ' + esc(cur.notes) : '') + '</div>' +
       (hours ? '<a class="tm-call" id="tmCall" href="tel:' + digits(cur.phone) + '">📞 Call ' + esc(fmtPh(cur.phone)) + '</a>'
              : '<div class="tm-call off">🌙 Outside calling hours (8 AM – 9 PM)</div>') +
@@ -320,9 +323,23 @@
     ["dead", "\ud83d\udc80 Not interested (re-knock by phone)", function(st){ return st === "Not Interested"; }, null],
     ["cancel", "\ud83d\udeab Cancelled", function(st){ return st === "Cancelled"; }, null]
   ];
-  function campLeads(k){ var c = CAMP.filter(function(x){ return x[0] === k; })[0]; return LG.leads.filter(function(l){ return c[2](l.status || "New") && digits(l.phone).length === 10; }); }
+  // Campaigns by lead age (days since you met them at the door); skips Sold, Not Interested and upcoming appointments
+  var AGE = [
+    ["a7",   "\ud83d\udd25 This week (0\u20137 days)", 0, 7],
+    ["a30",  "\ud83d\udcc5 1\u20134 weeks old (8\u201330 days)", 8, 30],
+    ["a90",  "\ud83d\uddd3\ufe0f 1\u20133 months old", 31, 90],
+    ["a180", "\ud83d\udd70\ufe0f 3\u20136 months old", 91, 180],
+    ["aold", "\ud83d\udce6 6+ months old", 181, 99999]
+  ];
+  function ageDays(l){ return Math.floor((Date.now() - (+l.created_at || Date.now())) / 864e5); }
+  function ageOk(l){ var st = l.status || "New", t = todayISO(); return st !== "Sold" && st !== "Not Interested" && !(l.appt_date && l.appt_date >= t && ["Appt Set","Confirmed","Sent to Monday","Rep Reset","Reset","Rolled","Confirm NA"].indexOf(st) > -1); }
+  function campLeads(k){
+    var a = AGE.filter(function(x){ return x[0] === k; })[0];
+    if (a) return LG.leads.filter(function(l){ var d = ageDays(l); return d >= a[2] && d <= a[3] && ageOk(l) && digits(l.phone).length === 10; })
+      .sort(function(x, y){ return (+y.created_at || 0) - (+x.created_at || 0); });
+    var c = CAMP.filter(function(x){ return x[0] === k; })[0]; return LG.leads.filter(function(l){ return c[2](l.status || "New") && digits(l.phone).length === 10; }); }
   function addCamp(k){
-    var c = CAMP.filter(function(x){ return x[0] === k; })[0], have = {}; list.forEach(function(x){ have[digits(x.phone)] = x; });
+    var c = CAMP.filter(function(x){ return x[0] === k; })[0] || AGE.filter(function(x){ return x[0] === k; }).map(function(a){ return [a[0], a[1], null, null]; })[0], have = {}; list.forEach(function(x){ have[digits(x.phone)] = x; });
     var added = 0, dup = 0;
     campLeads(k).forEach(function(l){
       var d = digits(l.phone);
@@ -334,7 +351,10 @@
     save(); return { added: added, dup: dup };
   }
   function addHtml(){
-    return '<div class="tm-card"><div class="tm-lbl" style="margin-top:0">Campaign from my leads</div><p class="tm-help">Loads your leads in this app (with a phone number) into the call list. Booking one updates that same lead.</p>' +
+    var btn = function(c){ var n = campLeads(c[0]).length; return '<button type="button" class="tm-campb" data-camp="' + c[0] + '"' + (n ? '' : ' disabled') + '>' + c[1] + ' <b>' + n + '</b></button>'; };
+    return '<div class="tm-card"><div class="tm-lbl" style="margin-top:0">Campaigns by lead age</div><p class="tm-help">Your door leads, by how long ago you met them (newest first). Skips Sold, Not Interested and upcoming appointments. Booking one updates that same lead.</p>' +
+      AGE.map(btn).join("") + '</div>' +
+      '<div class="tm-card"><div class="tm-lbl" style="margin-top:0">Campaigns by status</div>' +
       CAMP.map(function(c){ var n = campLeads(c[0]).length; return '<button type="button" class="tm-campb" data-camp="' + c[0] + '"' + (n ? '' : ' disabled') + '>' + c[1] + ' <b>' + n + '</b></button>'; }).join("") + '</div>' +
       '<div class="tm-card"><div class="tm-lbl">Paste your call list</div>' +
       '<p class="tm-help">One per line: name, phone, address (any order). Or paste a CSV with a header row (Name, Phone, Address, City, Zip, Notes).</p>' +
@@ -477,10 +497,11 @@
 
   // First campaigns, ready to go: Reset (No Demo) first, then Rehash, then New / never booked
   function autoCampaigns(){
-    if (getSet("tele_auto_v1", "")) return;
-    var tot = 0; ["reset", "rehash", "fresh"].forEach(function(k){ tot += addCamp(k).added; });
-    setSet("tele_auto_v1", "1");
-    if (tot) toast("\ud83d\udcde " + tot + " of your leads loaded: Reset \u2192 Rehash \u2192 New. Start dialing!");
+    if (getSet("tele_auto_v2", "")) return;
+    list = list.filter(function(c){ return !(c.src && !c.status && !(c.tries > 0)); });   // drop not-yet-called status campaign items
+    var tot = 0; AGE.forEach(function(a){ tot += addCamp(a[0]).added; });
+    setSet("tele_auto_v2", "1");
+    if (tot) toast("\ud83d\udcde " + tot + " of your leads loaded by age \u2014 newest first. Start dialing!");
   }
   btn.addEventListener("click", function(){ autoCampaigns(); mode = list.length ? "dial" : "add"; render(); LG.showView("view-tele"); });
   document.getElementById("backFromTeleBtn").addEventListener("click", function(){ clearInterval(timerInt); LG.showView("view-list"); if (LG.refresh) LG.refresh(); });
