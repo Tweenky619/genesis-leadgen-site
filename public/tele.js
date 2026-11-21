@@ -270,7 +270,9 @@
              : '<div class="tm-call off">🌙 Outside calling hours (8 AM – 9 PM)</div>') +
       '<div class="tm-timer" id="tmTimer"></div>' +
       '<div class="tm-lbl">Pitch</div><div class="tm-prod">' + ps.map(function(p){ return '<button data-prod="' + esc(p) + '"' + (p === prod ? ' class="on"' : '') + '>' + esc(p) + '</button>'; }).join("") + '</div>' +
-      '<details class="tm-script" open><summary>📝 Phone script</summary>' + scriptHtml(cur, prod) + '</details>' +
+      (cur.camp ? '<div class="tm-flag" style="background:#e9edf2;color:#152535">\ud83d\udccb ' + esc(cur.camp) + '</div>' : '') +
+      (cur.q && srcLead(cur) ? '<details class="tm-script" open><summary>\ud83d\udcdd ' + (cur.q === "blow" ? "Blowout" : "Rehash") + ' script</summary><div class="tm-s"><p>' + leadScript(cur.q, srcLead(cur)) + '</p></div></details>'
+        : '<details class="tm-script" open><summary>\ud83d\udcdd Phone script</summary>' + scriptHtml(cur, prod) + '</details>') +
       '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
         ["na","vm","cb","ni","wrong","dnc","booked"].map(function(o){ return '<button data-out="' + o + '" style="--c:' + OUT[o].c + '"' + (o === "booked" ? ' class="big"' : '') + '>' + OUT[o].t + '</button>'; }).join("") +
       '</div><div id="tmForm"></div>' +
@@ -297,8 +299,30 @@
       }).join("") +
       '<button type="button" class="tm-clear" id="tmClear">Remove finished numbers</button>';
   }
+  var CAMP = [
+    ["fresh", "\ud83c\udd95 New / never booked", function(st){ return ["New","Contacted","No Answer","Bad Number"].indexOf(st) > -1; }, null],
+    ["reset", "\ud83d\udca8 Reset (No Demo)", function(st){ return ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"].indexOf(st) > -1; }, "blow"],
+    ["rehash", "\u267b\ufe0f Rehash (Demo, No Sale)", function(st){ return st === "Pitch & Miss"; }, "rehash"],
+    ["dead", "\ud83d\udc80 Not interested (re-knock by phone)", function(st){ return st === "Not Interested"; }, null],
+    ["cancel", "\ud83d\udeab Cancelled", function(st){ return st === "Cancelled"; }, null]
+  ];
+  function campLeads(k){ var c = CAMP.filter(function(x){ return x[0] === k; })[0]; return LG.leads.filter(function(l){ return c[2](l.status || "New") && digits(l.phone).length === 10; }); }
+  function addCamp(k){
+    var c = CAMP.filter(function(x){ return x[0] === k; })[0], have = {}; list.forEach(function(x){ have[digits(x.phone)] = x; });
+    var added = 0, dup = 0;
+    campLeads(k).forEach(function(l){
+      var d = digits(l.phone);
+      if (have[d]){ dup++; return; }
+      var it = { id: "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), name: lname(l), phone: d, address: l.address || "", zip: l.zip || "", city: "",
+        notes: [l.status, (l.interests || []).join(", ")].filter(Boolean).join(" \u00b7 "), tries: 0, hist: [], src: l.id, q: c[3], camp: c[1].replace(/^\S+\s/, "") };
+      list.push(it); have[d] = it; added++;
+    });
+    save(); return { added: added, dup: dup };
+  }
   function addHtml(){
-    return '<div class="tm-card"><div class="tm-lbl">Paste your call list</div>' +
+    return '<div class="tm-card"><div class="tm-lbl" style="margin-top:0">Campaign from my leads</div><p class="tm-help">Loads your leads in this app (with a phone number) into the call list. Booking one updates that same lead.</p>' +
+      CAMP.map(function(c){ var n = campLeads(c[0]).length; return '<button type="button" class="tm-campb" data-camp="' + c[0] + '"' + (n ? '' : ' disabled') + '>' + c[1] + ' <b>' + n + '</b></button>'; }).join("") + '</div>' +
+      '<div class="tm-card"><div class="tm-lbl">Paste your call list</div>' +
       '<p class="tm-help">One per line: name, phone, address (any order). Or paste a CSV with a header row (Name, Phone, Address, City, Zip, Notes).</p>' +
       '<textarea id="tmPaste" rows="8" placeholder="Maria Lopez, 619-555-1234, 123 Main St\nJohn Smith, (858) 555-9876, 45 Oak Ave, 92113"></textarea>' +
       '<button type="button" class="tm-go" id="tmAddGo">Add to call list</button>' +
@@ -316,6 +340,7 @@
     if (o !== "cb"){ delete c.cb_at; delete c.cb_note; }
     if ((o === "na" || o === "vm") && c.tries >= 4) c.status = "ni", c.hist[0].note = "4 tries, no answer";
     calls.push({ ts: Date.now(), o: o, id: c.id });
+    var sl = srcLead(c); if (sl && o !== "booked"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
     save(); cur = null; prod = null; render();
   }
   function formCb(){
@@ -336,6 +361,7 @@
     f.scrollIntoView({ block: "center", behavior: "smooth" });
   }
   function timesHtml(){ var o = ""; for (var m = 540; m <= 1140; m += 30){ var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "PM" : "AM", hh = h % 12 || 12; var t = hh + ":" + (mm ? "30" : "00") + " " + ap; o += '<option' + (t === "10:00 AM" ? " selected" : "") + '>' + t + '</option>'; } return o; }
+  function srcLead(c){ return c && c.src ? LG.leads.filter(function(l){ return l.id === c.src; })[0] : null; }
   function formBook(){
     var f = document.getElementById("tmForm"), nm = (cur.name || "").split(" ");
     f.innerHTML = '<div class="tm-sub2"><div class="tm-lbl">Appointment</div>' +
@@ -349,6 +375,15 @@
       var d = document.getElementById("tbD").value, t = document.getElementById("tbT").value;
       if (!d){ alert("Pick the appointment date."); return; }
       var fn = document.getElementById("tbF").value.trim(), ln = document.getElementById("tbL").value.trim();
+      var src = srcLead(cur);
+      if (src){
+        src.appt_date = d; src.appt_time = t; src.status = "Appt Set"; src.next_followup = "";
+        try{ src.appt_day = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }); }catch(e){}
+        var nt = document.getElementById("tbN").value.trim(); if (nt) src.notes = (src.notes ? src.notes + "\n" : "") + nt;
+        LG.addLog(src, "Booked by phone (" + (cur.camp || "telemarketing") + ") \u2014 " + d + " " + t); LG.save(); cur.lead_id = src.id;
+        if (LG.refresh) LG.refresh(); record("booked", d + " " + t);
+        toast("\u2705 Booked " + lname(src) + " \u2014 " + t + ". Lead updated."); return;
+      }
       var lead = { id: LG.uid(), first_name: fn, last_name: ln, homeowner_name: [fn, ln].filter(Boolean).join(" "),
         spouse: document.getElementById("tbS").value.trim(), address: document.getElementById("tbA").value.trim(), zip: document.getElementById("tbZ").value.trim(),
         phone: fmtPh(cur.phone), interests: [prod], appt_date: d, appt_time: t, notes: document.getElementById("tbN").value.trim(),
@@ -412,6 +447,7 @@
     if (go) go.onclick = function(){ var r = addRows(parseRows(document.getElementById("tmPaste").value)); msg(r); };
     var fl = document.getElementById("tmFile");
     if (fl) fl.onchange = function(){ var f = fl.files[0]; if (!f) return; var rd = new FileReader(); rd.onload = function(){ msg(addRows(parseRows(rd.result))); }; rd.readAsText(f); };
+    body.querySelectorAll("[data-camp]").forEach(function(b){ b.onclick = function(){ msg(addCamp(b.getAttribute("data-camp"))); }; });
     var one = document.getElementById("tmOne");
     if (one) one.onclick = function(){
       var r = { name: document.getElementById("tmN").value.trim(), phone: document.getElementById("tmP").value.trim(), address: document.getElementById("tmA").value.trim(), zip: document.getElementById("tmZ").value.trim() };
@@ -450,6 +486,7 @@
     ".tm-row span{display:block;font-size:12.5px;color:var(--text-muted)}.tm-row em{font-style:normal;font-size:12px;font-weight:800;text-align:right;flex:none}.tm-clear{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700}" +
     ".tm-rate{display:flex;align-items:center;gap:5px;margin-bottom:6px}.tm-rate span{width:70px;font-weight:700;font-size:13px}.tm-rate button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:800}.tm-rate button.on{background:var(--brand);color:#fff}" +
     ".tm-row2 input{flex:1;min-width:0}.tm-card .tm-row2 input{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:15px;margin-bottom:6px}" +
+    ".tm-campb{display:flex;justify-content:space-between;width:100%;padding:12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700;font-size:14.5px;text-align:left}.tm-campb:disabled{opacity:.45}.tm-campb b{color:var(--brand)}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
