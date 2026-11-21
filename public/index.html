@@ -2329,11 +2329,13 @@
 
   // ---- Follow-up ----
   function digits(p){ return (p||"").replace(/[^0-9+]/g, ""); }
+  // US numbers always dialed as +1 so calls/texts route right from Mexico (Tijuana) or anywhere
+  function usDial(p){ var d = String(p || "").replace(/\D/g, ""); if(d.length === 10) return "+1" + d; if(d.length === 11 && d[0] === "1") return "+" + d; return digits(p); }
   function buildQuickActions(l){
     var b = [];
     if(l.phone){
-      b.push('<a href="tel:' + esc(digits(l.phone)) + '">Call</a>');
-      b.push('<a class="alt" href="sms:' + esc(digits(l.phone)) + '">Text</a>');
+      b.push('<a href="tel:' + esc(usDial(l.phone)) + '">Call</a>');
+      b.push('<a class="alt" href="sms:' + esc(usDial(l.phone)) + '">Text</a>');
     }
     if(l.address){
       var app = getMapApp();
@@ -2472,7 +2474,7 @@
     if(st === "Blow Out" && (l.bo_stage || 0) !== 0) return "";
     var na = st === "Confirm NA", sold = st === "Sold", blow = st === "Blow Out";
     var msg = blow ? blowText(l) : sold ? soldText(l) : na ? naText(l) : repResetText(l), sent = blow ? l.bo_text_sent : sold ? l.ty_text_sent : na ? l.na_text_sent : l.rr_text_sent;
-    var href = "sms:" + digits(l.phone) + "?&body=" + encodeURIComponent(msg);
+    var href = "sms:" + usDial(l.phone) + "?&body=" + encodeURIComponent(msg);
     return '<div class="rr-copy"><textarea id="rrMsg" rows="10">' + esc(msg) + '</textarea>' +
       '<button type="button" data-fu="rrcopy" id="rrCopyBtn">\ud83d\udccb Copy text</button></div>' +
       '<a class="rr-text' + (sent ? " sent" : "") + '" data-fu="rrtext" href="' + esc(href) + '">' +
@@ -3912,7 +3914,7 @@
 </script>
 <script src="playbook.js?v=11"></script>
 <script src="practice.js?v=59"></script>
-<script src="tele.js?v=13"></script>
+<script src="tele.js?v=14"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>

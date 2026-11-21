@@ -214,7 +214,7 @@
     var l = curLead, d = digits(l.phone);
     return h + '<div class="tm-card"><button type="button" class="tm-skip" style="text-align:left;margin:0 0 6px;padding:0" id="tlBack">\u2190 ' + LQ[lq].t + ' list</button>' +
       '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div><div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
-      (d.length === 10 && inHours() ? '<a class="tm-call" id="tmCall" href="tel:' + d + '">\ud83d\udcde Call ' + esc(fmtPh(d)) + '</a>' : d.length !== 10 ? '<div class="tm-call off">No phone number on this lead</div>' : '<div class="tm-call off">\ud83c\udf19 Outside calling hours (8 AM \u2013 9 PM)</div>') +
+      (d.length === 10 && inHours() ? '<a class="tm-call" id="tmCall" href="tel:+1' + d + '">\ud83d\udcde Call ' + esc(fmtPh(d)) + '</a>' : d.length !== 10 ? '<div class="tm-call off">No phone number on this lead</div>' : '<div class="tm-call off">\ud83c\udf19 Outside calling hours (8 AM \u2013 9 PM)</div>') +
       '<div class="tm-timer" id="tmTimer"></div>' +
       (lq !== "blow" ? '<div class="tm-row2"><input id="tlCon" placeholder="Contractor" value="' + esc(getSet("tele_contractor", "Tidal Remodeling")) + '"><input id="tlRep" placeholder="Rep who went out" value="' + esc(getSet("tele_rep", "Ryan")) + '"></div>' : '') +
       '<details class="tm-script" open><summary>\ud83d\udcdd ' + LQ[lq].t.replace(/^\S+\s/, "") + ' script</summary><div class="tm-s"><p>' + leadScript(lq, l) + '</p></div></details>' +
@@ -283,7 +283,7 @@
       '<div class="tm-sub">' + esc([cur.address, cur.city, cur.zip].filter(Boolean).join(", ") || "No address") + '</div>' +
       (srcLead(cur) ? '<div class="tm-sub">Met at the door ' + ageDays(srcLead(cur)) + ' days ago</div>' : '') +
       '<div class="tm-sub">Tries: ' + (cur.tries || 0) + (cur.notes ? ' · ' + esc(cur.notes) : '') + '</div>' +
-      (hours ? '<a class="tm-call" id="tmCall" href="tel:' + digits(cur.phone) + '">📞 Call ' + esc(fmtPh(cur.phone)) + '</a>'
+      (hours ? '<a class="tm-call" id="tmCall" href="tel:+1' + digits(cur.phone) + '">📞 Call ' + esc(fmtPh(cur.phone)) + '</a>'
              : '<div class="tm-call off">🌙 Outside calling hours (8 AM – 9 PM)</div>') +
       '<div class="tm-timer" id="tmTimer"></div>' +
       '<div class="tm-lbl">Pitch</div><div class="tm-prod">' + ps.map(function(p){ return '<button data-prod="' + esc(p) + '"' + (p === prod ? ' class="on"' : '') + '>' + esc(p) + '</button>'; }).join("") + '</div>' +
