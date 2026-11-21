@@ -214,7 +214,7 @@
     }
     var l = curLead, d = digits(l.phone);
     return h + '<div class="tm-card"><button type="button" class="tm-skip" style="text-align:left;margin:0 0 6px;padding:0" id="tlBack">\u2190 ' + LQ[lq].t + ' list</button>' +
-      '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div><div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
+      '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div>' + mapsHtml(l.address, l.zip, l.lat, l.lng) + '<div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
       (d.length === 10 && inHours() ? '<a class="tm-call" id="tmCall" href="tel:+1' + d + '">\ud83d\udcde Call ' + esc(fmtPh(d)) + '</a>' : d.length !== 10 ? '<div class="tm-call off">No phone number on this lead</div>' : '<div class="tm-call off">\ud83c\udf19 Outside calling hours (8 AM \u2013 9 PM)</div>') +
       '<div class="tm-timer" id="tmTimer"></div>' +
       (lq !== "blow" ? '<div class="tm-row2"><input id="tlCon" placeholder="Contractor" value="' + esc(getSet("tele_contractor", "Tidal Remodeling")) + '"><input id="tlRep" placeholder="Rep who went out" value="' + esc(getSet("tele_rep", "Ryan")) + '"></div>' : '') +
@@ -282,6 +282,7 @@
       (cur.status === "cb" ? '<div class="tm-flag">⏰ Callback' + (cur.cb_note ? ' — ' + esc(cur.cb_note) : '') + '</div>' : '') +
       '<div class="tm-name">' + esc(cur.name || "Homeowner") + '</div>' +
       '<div class="tm-sub">' + esc([cur.address, cur.city, cur.zip].filter(Boolean).join(", ") || "No address") + '</div>' +
+      (function(){ var sl = srcLead(cur); return mapsHtml(cur.address, [cur.city, cur.zip].filter(Boolean).join(" "), sl && sl.lat, sl && sl.lng); })() +
       (srcLead(cur) ? '<div class="tm-sub">Met at the door ' + ageDays(srcLead(cur)) + ' days ago</div>' : '') +
       '<div class="tm-sub">Tries: ' + (cur.tries || 0) + (cur.notes ? ' · ' + esc(cur.notes) : '') + '</div>' +
       (hours ? '<a class="tm-call" id="tmCall" href="tel:+1' + digits(cur.phone) + '">📞 Call ' + esc(fmtPh(cur.phone)) + '</a>'
@@ -411,6 +412,14 @@
       '<div class="tm-row2" style="padding-bottom:10px"><input id="vmP" value="' + num + '" placeholder="Callback number" inputmode="tel"></div></details>';
   }
   // Sold before -> book a Reload (next project for an existing customer) and send it to the confirmer
+  // See the house: Apple Maps (satellite) or Google Maps (Street View when we have the pin)
+  function mapsHtml(addr, zip, lat, lng){
+    var a = [addr, zip].filter(Boolean).join(", "); if (!a && !(lat && lng)) return "";
+    var q = a ? a + (/\bCA\b/i.test(a) ? "" : ", CA") : lat + "," + lng;
+    var apple = "https://maps.apple.com/?q=" + encodeURIComponent(q) + (lat && lng ? "&ll=" + lat + "," + lng : "&address=" + encodeURIComponent(q)) + "&t=k";
+    var goo = lat && lng ? "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=" + lat + "," + lng : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+    return '<div class="tm-maps"><a href="' + esc(apple) + '" target="_blank" rel="noopener">\ud83d\uddfa\ufe0f Apple Maps</a><a href="' + esc(goo) + '" target="_blank" rel="noopener">\ud83c\udf0e Google Maps' + (lat && lng ? ' \u00b7 Street View' : '') + '</a></div>';
+  }
   function formReload(){
     var f = document.getElementById("tmForm"), sl = srcLead(cur), ps = products();
     var had = sl && (sl.interests || []).filter(function(x){ return ps.indexOf(x) > -1; })[0];
@@ -588,6 +597,7 @@
     ".tm-campb{display:flex;justify-content:space-between;width:100%;padding:12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700;font-size:14.5px;text-align:left}.tm-campb:disabled{opacity:.45}.tm-campb b{color:var(--brand)}" +
     ".tm-sub2 select{width:100%;padding:11px;margin-bottom:6px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff}" +
     ".tm-row2>*{flex:1 1 0!important;width:auto!important;min-width:0}" +
+    ".tm-maps{display:flex;gap:6px;margin:8px 0 2px}.tm-maps a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:10px;border:1px solid var(--border);background:#f7f8f9;color:var(--text);font-weight:800;font-size:13.5px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
