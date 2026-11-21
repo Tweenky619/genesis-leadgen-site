@@ -344,14 +344,22 @@
       return '<div class="tm-rp"><b>' + esc(x[0]) + (days ? ' <span style="font-weight:600;color:var(--text-muted)">\u00b7 follow up in ' + (days >= 30 ? Math.round(days / 30) + ' mo' : days + ' days') + '</span>' : '') + '</b><p>' + esc(txt) + '</p><a href="sms:+1' + d + '&body=' + encodeURIComponent(txt) + '" data-rp="' + esc(x[0]) + '" data-days="' + days + '">Send \u203a</a></div>'; }).join(""); };
     ov.innerHTML = '<div class="tm-sheet"><div class="tm-name" style="font-size:18px">\ud83d\udcac Text replies \u2014 ' + esc(name || fmtPh(d)) + '</div><div class="tm-sub">' + esc(fmtPh(d)) + ' \u00b7 always steer to the free inspection</div>' +
       sec("\ud83d\udc4d They\u2019re interested", R.pos, "#0b6b3a") + sec("\ud83d\udc4e \u201cNo thanks\u201d", R.neg, "#a8321f") +
+      '<textarea id="rpNote" rows="2" class="tm-q" placeholder="Note to stamp on the lead (optional) \u2014 e.g. what they said"></textarea>' +
       '<p class="tm-help" style="margin-top:10px">A \u201cno\u201d never kills the lead \u2014 sending one of these turns it into a follow-up and it comes back in Due. Only if they say stop: send nothing else and mark Do not call.</p>' +
       '<button type="button" class="tm-go" id="rpClose">Close</button></div>';
     document.body.appendChild(ov);
     ov.addEventListener("click", function(e){
       if (e.target === ov || e.target.id === "rpClose"){ ov.remove(); return; }
-      var a = e.target.closest("[data-rp]"); if (a && leadRef){
-        LG.addLog(leadRef, "Text reply sent: " + a.getAttribute("data-rp"));
-        var dd = +a.getAttribute("data-days"); if (dd) followUp(leadRef, dd, "Texted back \u201cno thanks\u201d"); else LG.save(); }
+      var a = e.target.closest("[data-rp]"); if (!a) return;
+      var note = (document.getElementById("rpNote") || {}).value; note = note ? note.trim() : "";
+      var stamp = "\ud83d\udcac Texted back \u2014 replied: " + a.getAttribute("data-rp") + (note ? " \u2014 \u201c" + note + "\u201d" : "");
+      if (leadRef){
+        LG.addLog(leadRef, stamp); if (note) leadRef.notes = (leadRef.notes ? leadRef.notes + "\n" : "") + new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ": " + note;
+        var dd = +a.getAttribute("data-days"); if (dd) followUp(leadRef, dd, "Texted back \u201cno thanks\u201d"); else LG.save();
+      }
+      var item = list.filter(function(c){ return leadRef ? c.src === leadRef.id : c.phone === d; })[0];
+      if (item){ item.hist = item.hist || []; item.hist.unshift({ ts: Date.now(), o: "text", note: stamp }); save(); }
+      setTimeout(function(){ ov.remove(); if (back) goBack(); else if (view.classList.contains("active")) render(); }, 300);
     });
   }
   window.TM_replies = function(l){ openReplies(l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" "), l.phone, (l.interests || [])[0], l.address, l.appt_date ? ldate(l) : "", l); };
@@ -381,7 +389,8 @@
     var ps = products(), slp = srcLead(cur), lp = slp && (slp.interests || []).filter(function(x){ return ps.indexOf(x) > -1; })[0];
     prod = prod && ps.indexOf(prod) > -1 ? prod : (cur.prod || lp || ps[0]);
     var hours = inHours();
-    return '<div class="tm-card">' +
+    return (back ? '<button type="button" class="tm-back" id="tmBack">\u21a9\ufe0f Back to campaign' + (back.cur && back.mode === "dial" ? ' \u2014 ' + esc(back.cur.name || fmtPh(back.cur.phone)) : '') + '</button>' : '') +
+      '<div class="tm-card">' +
       (cur.status === "cb" ? '<div class="tm-flag">⏰ Callback' + (cur.cb_note ? ' — ' + esc(cur.cb_note) : '') + '</div>' : '') +
       '<div class="tm-name">' + esc(cur.name || "Homeowner") + '</div>' +
       '<div class="tm-sub">' + esc([cur.address, cur.city, cur.zip].filter(Boolean).join(", ") || "No address") + '</div>' +
@@ -428,11 +437,15 @@
     if (!it){
       it = { id: "t_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), name: lname(l), phone: d, address: l.address || "", zip: l.zip || "", city: "",
         notes: [st, (l.interests || []).join(", ")].filter(Boolean).join(" \u00b7 "), tries: 0, hist: [], src: l.id, q: q, camp: "Search" };
-      list.unshift(it); save();
+      list.push(it); save();
     } else { it.src = it.src || l.id; if (DNC_ST[it.status] && it.status !== "dnc") delete it.status; }
     if (it.status === "dnc"){ alert(lname(l) + " is marked Do Not Call."); return; }
-    cur = it; prod = null; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0);
+    remember(); cur = it; prod = null; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0);
   }
+  // Searching a lead remembers where you were, so you can jump back to your campaign
+  var back = null;
+  function remember(){ if (!back) back = { mode: mode, cur: cur, lq: lq, curLead: curLead }; }
+  function goBack(){ if (!back) return; mode = back.mode; cur = back.cur; lq = back.lq; curLead = back.curLead; back = null; prod = null; sq = ""; render(); window.scrollTo(0, 0); toast("\u21a9\ufe0f Back to your campaign"); }
   function listHtml(){
     if (!list.length) return '<div class="tm-card tm-empty"><p>No numbers yet.</p></div>';
     var k = counts(), qd = digits(tq), ql = tq.trim().toLowerCase();
@@ -505,7 +518,9 @@
     if ((o === "na" || o === "vm") && c.tries >= 4) c.status = "ni", c.hist[0].note = "4 tries, no answer";
     calls.push({ ts: Date.now(), o: o, id: c.id });
     var sl = srcLead(c); if (sl && o !== "booked" && o !== "reload" && o !== "ni"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
-    save(); cur = null; prod = null; render();
+    save(); cur = null; prod = null;
+    if (back) return goBack();
+    render();
   }
   function formCb(){
     var f = document.getElementById("tmForm");
@@ -676,6 +691,7 @@
     var qi = document.getElementById("tmQ");
     if (qi) qi.addEventListener("input", function(){ tq = qi.value; var pos = qi.selectionStart; render(); var n = document.getElementById("tmQ"); if (n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });
     var rb2 = document.getElementById("tlRp"); if (rb2) rb2.onclick = function(){ if (curLead) window.TM_replies(curLead); };
+    var bk = document.getElementById("tmBack"); if (bk) bk.onclick = goBack;
     var rb = document.getElementById("tmRp");
     if (rb) rb.onclick = function(){ var sl = srcLead(cur); if (sl) return window.TM_replies(sl); openReplies(cur.name, cur.phone, prod, cur.address, "", null); };
     var vp = document.getElementById("vmP");
@@ -698,7 +714,7 @@
       if (c.lead_id && LG.openDetail){ LG.openDetail(c.lead_id); return; }
       if (sq && c.status !== "dnc" && DNC_ST[c.status]) delete c.status;
       if (DNC_ST[c.status]) { alert((c.name || fmtPh(c.phone)) + ": " + OUT[c.status].t + (c.hist && c.hist[0] && c.hist[0].note ? " (" + c.hist[0].note + ")" : "")); return; }
-      cur = c; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0); }; });
+      if (sq) remember(); cur = c; sq = ""; mode = "dial"; render(); window.scrollTo(0, 0); }; });
     var clr = document.getElementById("tmClear");
     if (clr) clr.onclick = function(){
       var n = list.filter(function(c){ return c.status === "booked" || c.status === "ni" || c.status === "wrong"; }).length;
@@ -766,6 +782,7 @@
     ".tm-ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:flex;align-items:flex-end}.tm-sheet{background:#fff;width:100%;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}" +
     ".tm-rp{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px}.tm-rp b{font-size:13px}.tm-rp p{margin:4px 0 8px;font-size:14.5px;line-height:1.4}.tm-rp a{display:inline-block;padding:8px 16px;border-radius:999px;background:var(--brand);color:#fff;font-weight:800;text-decoration:none;font-size:14px}" +
     ".tm-rpb{display:block;width:100%;margin-top:10px;padding:12px;border-radius:12px;border:2px solid var(--brand);background:#fff;color:var(--brand);font-weight:800;font-size:15px}" +
+    ".tm-back{display:block;width:100%;margin-bottom:10px;padding:12px;border-radius:12px;border:2px dashed var(--brand);background:#fff;color:var(--brand);font-weight:800;font-size:15px;text-align:left}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
