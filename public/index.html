@@ -1770,7 +1770,7 @@
     var th = q ? teleHits(q) : [];
     if(filtered.length === 0 && th.length){
       container.innerHTML = '<div class="empty-state" style="padding:16px"><h3>Not in your leads</h3><p>Found on your telemarketing call list:</p></div>' +
-        th.map(function(c){ return '<div class="lead-row" data-tele-open="1"><div class="main"><div class="name">' + esc(c.name || "Unknown") + '</div><div class="addr">' + esc(c.phone) + (c.address ? ' \u00b7 ' + esc(c.address) : '') + '</div><div class="addr" style="color:var(--brand-dark);font-weight:600;">\ud83d\udcde Call list' + (c.status ? ' \u00b7 last outcome: ' + esc(c.status) : '') + '</div></div></div>'; }).join("");
+        th.map(function(c){ return '<div class="lead-row" data-tele-open="1"><div class="main"><div class="name">' + esc(c.name || "Unknown") + '</div><div class="addr">' + esc(c.phone) + (c.address ? ' \u00b7 ' + esc(c.address) : '') + '</div><div class="addr" style="color:var(--brand-dark);font-weight:600;">\ud83d\udcde Call list' + (c.status ? ' \u00b7 last outcome: ' + esc(({na:"No answer",vm:"Left voicemail",cb:"Call back",ni:"Not interested",wrong:"Wrong number",dnc:"Do not call",booked:"Appointment set",reload:"Reload"})[c.status] || c.status) : '') + '</div></div></div>'; }).join("");
       container.querySelectorAll("[data-tele-open]").forEach(function(el){ el.addEventListener("click", function(){ var b = document.getElementById("teleBtn"); if(b) b.click(); }); });
       return;
     }
