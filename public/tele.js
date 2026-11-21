@@ -123,27 +123,27 @@
     var S = function(t, say, tip){ return '<div class="tm-s"><b>' + t + '</b><p>' + say + '</p>' + (tip ? '<i>' + tip + '</i>' : '') + '</div>'; };
     if (sl) return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", it\u2019s " + esc(rep()) + " with " + esc(co()) + " \u2014 we met at your door" + (met ? " " + esc(met) : "") + ". How are you?",
              "They already know you \u2014 smile, keep it friendly. If they say \u201cdoing fine, and yourself?\u201d: \u201cDoing great \u2014 first time I heard that all day!\u201d") +
-      S("2 · Why you're calling", "The reason I\u2019m calling \u2014 you mentioned your " + esc(prod.toLowerCase().replace("/", " and ")) + (sl.notes ? " (" + esc(String(sl.notes).slice(0, 80)) + ")" : "") + ", and my company, tomorrow is leaving estimates in your area. Have you noticed " + cue + " since we talked?",
+      S("2 · Why you're calling", "The reason I\u2019m calling \u2014 you mentioned your " + esc(prod.toLowerCase().replace("/", " and ")) + (sl.notes ? " (" + esc(String(sl.notes).slice(0, 80)) + ")" : "") + ", and my company, tomorrow is doing free inspections in your area. Have you noticed " + cue + " since we talked?",
              "Bring back what they told you at the door. Let them talk.") +
-      S("3 · Close", "I\u2019d love to get you on the schedule. Would 10 in the morning work, or does 2 in the afternoon sound better for you?", "Two times, both yeses. No prices on the phone.") +
+      S("3 · Close", "I\u2019d love to get you a free inspection so you know exactly where your " + esc(prod.toLowerCase().replace("/", " and ")) + " stands \u2014 no cost, no obligation. Would 10 in the morning work, or does 2 in the afternoon sound better for you?", "The goal of every call is the inspection. Two times, both yeses. No prices on the phone.") +
       S("4 · Lock it in", "Perfect. Still at " + esc(c.address || "[address]") + ", right? Will everyone on the title be home too, so they can see it firsthand?", "Then tap Appointment set \u2014 it updates this same lead.") +
       '<details class="tm-obj"><summary>Quick comebacks</summary>' +
-      S("\u201cJust send me a quote.\u201d", "I wish I could \u2014 every house is different, so it takes a quick look in person to give you a real number. Morning or afternoon better?") +
+      S("\u201cJust send me a quote.\u201d", "I wish I could \u2014 every house is different, so the free inspection is how we give you a real number. It\u2019s quick. Morning or afternoon better?") +
       S("\u201cI'm busy right now.\u201d", "No problem \u2014 when's a better time to call you back today?", "Tap Call back and set the time.") +
-      S("\u201cNot interested anymore.\u201d", "Totally fair. Is it the timing, or did you already get the " + esc(prod.toLowerCase()) + " taken care of?", "One try, then let it go politely.") +
+      S("\u201cNot interested anymore.\u201d", "Totally fair. Even if you\u2019re not ready, the free inspection tells you where things stand before it gets worse \u2014 no obligation. Would a quick look at 10 or 2 work?", "Always come back to the inspection. One try, then let it go politely.") +
       '</details>';
     return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", my name is " + esc(rep()) + " with " + esc(co()) + " — how are you?",
              "Say your name and company up front. If they say “doing fine, and yourself?”: “Doing great — first time I heard that all day!”") +
-      S("2 · Why you're calling", "The reason I'm calling — my company, tomorrow is leaving estimates in " + esc(c.city || "your neighborhood") + " on different services that we do. Have you noticed " + cue + "?",
+      S("2 · Why you're calling", "The reason I'm calling — my company, tomorrow is doing free inspections in " + esc(c.city || "your neighborhood") + " on different services that we do. Have you noticed " + cue + "?",
              "Let them talk. Whatever they say about the house is your opening.") +
-      S("3 · Close", "We'll be right in your area. Would 10 in the morning work, or does 2 in the afternoon sound better for you?",
+      S("3 · Close", "We'll be right in your area — I'd love to get you a free inspection, no cost, no obligation. Would 10 in the morning work, or does 2 in the afternoon sound better for you?",
              "Two times, both yeses. Don't quote prices on the phone — that's what the estimate is for.") +
       S("4 · Lock it in", "Perfect. I have you at " + esc(c.address || "[address]") + ", right? Will everyone on the title be home too, so they can see it firsthand? And this is the best number to confirm?",
              "Confirm address, all decision makers, best number. Then tap Appointment set.") +
       '<details class="tm-obj"><summary>Quick comebacks</summary>' +
-      S("“Just send me a quote.”", "I wish I could — every house is different, so it takes a quick look in person to give you a real number. Morning or afternoon better?") +
+      S("“Just send me a quote.”", "I wish I could — every house is different, so the free inspection is how we give you a real number. It's quick. Morning or afternoon better?") +
       S("“I'm busy right now.”", "No problem, I'll be quick — or when's a better time to call you back today?", "Tap Call back and set the time they give you.") +
-      S("“Not interested.”", "Totally fair. Is it the timing, or is the " + esc(prod.toLowerCase()) + " already taken care of?", "One try, then let it go politely.") +
+      S("“Not interested.”", "Totally fair. Even if you're not ready, a free inspection tells you where things stand — no obligation. Would a quick look at 10 or 2 work?", "Always come back to the inspection. One try, then let it go politely.") +
       S("“How did you get my number?”", "We reach out to homeowners in your area. If you'd rather not get calls, I'll take you off our list right now.", "If they want off: tap Do not call. Never call again.") +
       '</details>';
   }
