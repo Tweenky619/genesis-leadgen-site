@@ -119,7 +119,7 @@
     var S = function(t, say, tip){ return '<div class="tm-s"><b>' + t + '</b><p>' + say + '</p>' + (tip ? '<i>' + tip + '</i>' : '') + '</div>'; };
     return S("1 · Greet", "Hi, is this " + esc(first) + "? Hey " + esc(first) + ", my name is " + esc(rep()) + " with " + esc(co()) + " — how are you?",
              "Say your name and company up front. If they say “doing fine, and yourself?”: “Doing great — first time I heard that all day!”") +
-      S("2 · Why you're calling", "The reason I'm calling — my company, tomorrow is leaving estimates in " + esc(c.city || "your neighborhood") + " on " + (prod === "Solar" ? "solar" : "roofs, paint and windows") + ". Have you noticed " + cue + "?",
+      S("2 · Why you're calling", "The reason I'm calling — my company, tomorrow is leaving estimates in " + esc(c.city || "your neighborhood") + " on different services that we do. Have you noticed " + cue + "?",
              "Let them talk. Whatever they say about the house is your opening.") +
       S("3 · Close", "We'll be right in your area. Would 10 in the morning work, or does 2 in the afternoon sound better for you?",
              "Two times, both yeses. Don't quote prices on the phone — that's what the estimate is for.") +
