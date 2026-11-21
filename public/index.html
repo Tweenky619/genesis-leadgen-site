@@ -1076,7 +1076,7 @@
     <section class="view active" id="view-list">
       <div class="tc" id="timeClock"></div>
       <div class="search-wrap">
-        <input type="text" id="searchInput" placeholder="Search by name or address">
+        <input type="text" id="searchInput" placeholder="Search name, address or phone">
       </div>
       <div class="co-banner" id="coBanner" hidden></div>
       <div class="restore" id="restoreBox" hidden></div>
@@ -1730,6 +1730,14 @@
     window.scrollTo(0,0);
   }
 
+  // Phone search: type any part of a number (with or without +1, spaces, dashes) to find who's texting/calling
+  function phoneDigits(p){ var d = String(p || "").replace(/\D/g, ""); return d.length === 11 && d[0] === "1" ? d.slice(1) : d; }
+  function phoneHit(l, q){ var d = phoneDigits(q); if(d.length < 3) return false; return [l.phone, l.alt_phone].some(function(p){ return p && phoneDigits(p).indexOf(d) !== -1; }); }
+  function teleHits(q){
+    var d = phoneDigits(q); if(d.length < 3) return [];
+    var tl = []; try { tl = JSON.parse(localStorage.getItem(CO_PREFIX + "tele_v1") || "[]") || []; } catch(e){}
+    return tl.filter(function(c){ return !c.src && phoneDigits(c.phone).indexOf(d) !== -1; });
+  }
   function renderList(){
     if(typeof renderRestore === "function"){ try { renderRestore(); } catch(e){} }
     var q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
@@ -1749,7 +1757,7 @@
       if(!q && !tabFn(l)) return false;
       if(!q) return true;
       return (l.homeowner_name||"").toLowerCase().indexOf(q) !== -1 ||
-             (l.address||"").toLowerCase().indexOf(q) !== -1;
+             (l.address||"").toLowerCase().indexOf(q) !== -1 || phoneHit(l, q);
     });
 
     document.getElementById("headerSubtitle").textContent =
@@ -1757,6 +1765,13 @@
 
     if(filtered.length === 0 && !q && (currentTab === "today" || currentTab === "tomorrow") && leads.length){
       container.innerHTML = dayBanner(currentTab, []) + (currentTab === "tomorrow" ? slotsHtml([]) : "");
+      return;
+    }
+    var th = q ? teleHits(q) : [];
+    if(filtered.length === 0 && th.length){
+      container.innerHTML = '<div class="empty-state" style="padding:16px"><h3>Not in your leads</h3><p>Found on your telemarketing call list:</p></div>' +
+        th.map(function(c){ return '<div class="lead-row" data-tele-open="1"><div class="main"><div class="name">' + esc(c.name || "Unknown") + '</div><div class="addr">' + esc(c.phone) + (c.address ? ' \u00b7 ' + esc(c.address) : '') + '</div><div class="addr" style="color:var(--brand-dark);font-weight:600;">\ud83d\udcde Call list' + (c.status ? ' \u00b7 last outcome: ' + esc(c.status) : '') + '</div></div></div>'; }).join("");
+      container.querySelectorAll("[data-tele-open]").forEach(function(el){ el.addEventListener("click", function(){ var b = document.getElementById("teleBtn"); if(b) b.click(); }); });
       return;
     }
     if(filtered.length === 0){
@@ -3914,7 +3929,7 @@
 </script>
 <script src="playbook.js?v=11"></script>
 <script src="practice.js?v=59"></script>
-<script src="tele.js?v=22"></script>
+<script src="tele.js?v=23"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>

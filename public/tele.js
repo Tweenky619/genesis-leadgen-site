@@ -317,11 +317,15 @@
       '<li>Dial by hand only — no auto-dialers or recorded messages to cell phones without written consent.</li>' +
       '<li>No price quotes or promises on the phone.</li></ul></details>';
   }
+  var tq = "";
   function listHtml(){
     if (!list.length) return '<div class="tm-card tm-empty"><p>No numbers yet.</p></div>';
-    var k = counts();
-    var order = list.slice().sort(function(a, b){ var r = function(c){ return DNC_ST[c.status] ? 3 : c.status === "cb" ? 0 : !c.status ? 1 : 2; }; return r(a) - r(b); });
-    return '<div class="tm-sum">' + k.fresh + ' new · ' + k.cb + ' callbacks · ' + k.retry + ' retry · ' + k.done + ' done</div>' +
+    var k = counts(), qd = digits(tq), ql = tq.trim().toLowerCase();
+    var src = !ql ? list : list.filter(function(c){ return (qd.length >= 3 && c.phone.indexOf(qd) > -1) || (/[a-z]/.test(ql) && ((c.name || "").toLowerCase().indexOf(ql) > -1 || (c.address || "").toLowerCase().indexOf(ql) > -1)); });
+    var order = src.slice().sort(function(a, b){ var r = function(c){ return DNC_ST[c.status] ? 3 : c.status === "cb" ? 0 : !c.status ? 1 : 2; }; return r(a) - r(b); });
+    return '<input id="tmQ" class="tm-q" type="search" placeholder="\ud83d\udd0e Search phone or name" value="' + esc(tq) + '" inputmode="search">' +
+      (ql && !src.length ? '<div class="tm-card tm-empty"><p>No number on your call list matches.</p></div>' : '') +
+      '<div class="tm-sum">' + k.fresh + ' new · ' + k.cb + ' callbacks · ' + k.retry + ' retry · ' + k.done + ' done</div>' +
       order.map(function(c){
         var st = c.status ? OUT[c.status].t : "New";
         return '<div class="tm-row" data-pick="' + c.id + '"><div><b>' + esc(c.name || fmtPh(c.phone)) + '</b><span>' + esc(fmtPh(c.phone)) + (c.address ? ' · ' + esc(c.address) : '') + '</span></div>' +
@@ -552,6 +556,8 @@
       if (ios){ e.preventDefault(); window.location.href = "x-safari-" + BOOK_FORM; }
     });
     var bd = document.getElementById("bkDone"); if (bd) bd.onclick = function(){ lastBook = null; render(); };
+    var qi = document.getElementById("tmQ");
+    if (qi) qi.addEventListener("input", function(){ tq = qi.value; var pos = qi.selectionStart; render(); var n = document.getElementById("tmQ"); if (n){ n.focus(); try{ n.setSelectionRange(pos, pos); }catch(e){} } });
     var vp = document.getElementById("vmP");
     if (vp) vp.onchange = function(){ if (digits(vp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_vm_phone", digits(vp.value)); render(); };
     var cn = document.getElementById("cfN"), cp = document.getElementById("cfP");
@@ -635,6 +641,7 @@
     ".tm-maps{display:flex;gap:6px;margin:8px 0 2px}.tm-maps a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:10px;border:1px solid var(--border);background:#f7f8f9;color:var(--text);font-weight:800;font-size:13.5px}" +
     ".tm-notes{background:#fffbea;border:1px solid #f1e2a8;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px;line-height:1.45}.tm-notes p{margin:0 0 6px}.tm-notes b{font-weight:800}.tm-notes.empty{background:#f7f8f9;border-color:var(--border);color:var(--text-muted);font-size:13px}" +
     ".tm-bk{background:#eef7f1;border:2px solid #0b6b3a;border-radius:14px;padding:12px;margin-bottom:12px}.tm-bk b{display:block;font-size:16px;color:#0b6b3a}.tm-bk span{font-size:13.5px;color:var(--text-muted)}.tm-bk .tm-call{background:#6d28d9;margin-top:10px}" +
+    ".tm-q{width:100%;box-sizing:border-box;padding:12px;margin-bottom:8px;border:1px solid var(--border);border-radius:10px;font-size:16px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
