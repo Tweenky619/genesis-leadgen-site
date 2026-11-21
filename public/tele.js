@@ -22,7 +22,7 @@
     var p = [].map.call(document.querySelectorAll("#view-form .f_interest"), function(i){ return i.value; }).filter(function(v){ return v && v !== "Other"; });
     return p.length ? p.filter(function(v, i){ return p.indexOf(v) === i; }) : ["Roof", "Paint/Stucco", "Windows"];
   }
-  var DNC_ST = { dnc: 1, wrong: 1, booked: 1, ni: 1 };
+  var DNC_ST = { dnc: 1, wrong: 1, booked: 1, ni: 1, reload: 1 };
   var OUT = {
     na:     { t: "No answer",      c: "#6b7570", contact: false },
     vm:     { t: "Left voicemail", c: "#6b7570", contact: false },
@@ -30,7 +30,8 @@
     ni:     { t: "Not interested", c: "#a8321f", contact: true },
     wrong:  { t: "Wrong number",   c: "#6a2fb0", contact: false },
     dnc:    { t: "Do not call",    c: "#2b2b2b", contact: true },
-    booked: { t: "Appointment set",c: "#0b6b3a", contact: true }
+    booked: { t: "Appointment set",c: "#0b6b3a", contact: true },
+    reload: { t: "\ud83d\udcb0 Sold before \u2014 Reload", c: "#b7791f", contact: true }
   };
 
   // ---------- calling hours: 8 AM - 9 PM (federal rule, homeowner's local time) ----------
@@ -62,7 +63,7 @@
     var t0 = new Date(); t0.setHours(0,0,0,0); t0 = +t0;
     var tc = calls.filter(function(x){ return x.ts >= t0; });
     var contacts = tc.filter(function(x){ return OUT[x.o] && OUT[x.o].contact; }).length;
-    var appts = tc.filter(function(x){ return x.o === "booked"; }).length;
+    var appts = tc.filter(function(x){ return x.o === "booked" || x.o === "reload"; }).length;
     return { dials: tc.length, contacts: contacts, appts: appts,
       cr: tc.length ? Math.round(contacts / tc.length * 100) : 0, br: contacts ? Math.round(appts / contacts * 100) : 0 };
   }
@@ -292,7 +293,7 @@
         : '<details class="tm-script" open><summary>\ud83d\udcdd Phone script</summary>' + scriptHtml(cur, prod) + '</details>') +
       vmHtml(cur) +
       '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
-        ["na","vm","cb","ni","wrong","dnc","booked"].map(function(o){ return '<button data-out="' + o + '" style="--c:' + OUT[o].c + '"' + (o === "booked" ? ' class="big"' : '') + '>' + OUT[o].t + '</button>'; }).join("") +
+        ["na","vm","cb","ni","wrong","dnc","reload","booked"].map(function(o){ return '<button data-out="' + o + '" style="--c:' + OUT[o].c + '"' + (o === "booked" ? ' class="big"' : '') + '>' + OUT[o].t + '</button>'; }).join("") +
       '</div><div id="tmForm"></div>' +
       '<button type="button" class="tm-skip" id="tmSkip">Skip for now →</button></div>' + rules();
   }
@@ -375,7 +376,7 @@
     if (o !== "cb"){ delete c.cb_at; delete c.cb_note; }
     if ((o === "na" || o === "vm") && c.tries >= 4) c.status = "ni", c.hist[0].note = "4 tries, no answer";
     calls.push({ ts: Date.now(), o: o, id: c.id });
-    var sl = srcLead(c); if (sl && o !== "booked"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
+    var sl = srcLead(c); if (sl && o !== "booked" && o !== "reload"){ LG.addLog(sl, "Phone call (" + (c.camp || "telemarketing") + "): " + OUT[o].t + (extra ? " \u2014 " + extra : "")); if (o === "dnc"){ sl.status = "Not Interested"; LG.addLog(sl, "Do Not Call \u2014 asked not to be called"); } LG.save(); }
     save(); cur = null; prod = null; render();
   }
   function formCb(){
@@ -408,6 +409,46 @@
     return '<details class="tm-script" style="border-color:var(--border)"><summary>\ud83c\udf99\ufe0f Voicemail script</summary><div class="tm-s"><p>' + say +
       " If you\u2019re interested, call me back or just send me a text at " + num + " and I\u2019ll get you on the schedule. Again, it\u2019s " + me + ", " + num + ". Talk soon!</p><i>Under 30 seconds. Smile while you talk. Then tap Left voicemail.</i></div>" +
       '<div class="tm-row2" style="padding-bottom:10px"><input id="vmP" value="' + num + '" placeholder="Callback number" inputmode="tel"></div></details>';
+  }
+  // Sold before -> book a Reload (next project for an existing customer) and send it to the confirmer
+  function formReload(){
+    var f = document.getElementById("tmForm"), sl = srcLead(cur), ps = products();
+    var had = sl && (sl.interests || []).filter(function(x){ return ps.indexOf(x) > -1; })[0];
+    var opt = function(sel){ return ps.map(function(p){ return '<option' + (p === sel ? ' selected' : '') + '>' + esc(p) + '</option>'; }).join(""); };
+    var nm = sl ? lname(sl) : (cur.name || "");
+    f.innerHTML = '<div class="tm-sub2" style="border:2px solid #b7791f"><div class="tm-lbl" style="color:#b7791f">\ud83d\udcb0 Reload \u2014 existing customer</div>' +
+      '<p class="tm-help">\u201cHow\u2019s the ' + esc((had || "project").toLowerCase()) + ' treating you? \u2026 Since you\u2019re already a customer, I\u2019d love to get you a free inspection on your ___ while we\u2019re in the area. 10 or 2?\u201d</p>' +
+      '<div class="tm-lbl">They bought</div><select id="rlSold">' + opt(had || ps[0]) + '</select>' +
+      '<div class="tm-lbl">Reload project</div><select id="rlNew">' + opt(ps.filter(function(p){ return p !== (had || ps[0]); })[0] || ps[0]) + '</select>' +
+      (sl ? '' : '<input id="rlName" placeholder="Name" value="' + esc(nm) + '"><input id="rlAddr" placeholder="Address" value="' + esc(cur.address) + '">') +
+      '<div class="tm-lbl">Appointment</div><div class="tm-row2"><input type="date" id="rlD" value="' + isoAdd(1) + '"><select id="rlT">' + timesHtml() + '</select></div>' +
+      '<div class="tm-quick"><button data-rq="10:00 AM">10 AM</button><button data-rq="2:00 PM">2 PM</button><button data-rq="6:00 PM">6 PM</button></div>' +
+      '<textarea id="rlN" rows="2" placeholder="Notes (what they want done)"></textarea>' +
+      '<button type="button" class="tm-go" style="background:#b7791f" id="rlSave">\ud83d\udcb0 Book reload & send to ' + esc(cfName()) + '</button></div>';
+    f.querySelectorAll("[data-rq]").forEach(function(b){ b.onclick = function(){ document.getElementById("rlT").value = b.getAttribute("data-rq"); }; });
+    document.getElementById("rlSave").onclick = function(){
+      var d = document.getElementById("rlD").value, t = document.getElementById("rlT").value, sold = document.getElementById("rlSold").value, nw = document.getElementById("rlNew").value;
+      if (!d){ alert("Pick the appointment date."); return; }
+      var nt = document.getElementById("rlN").value.trim(), l = sl;
+      if (!l){
+        var parts = (document.getElementById("rlName").value.trim() || "").split(" ");
+        l = { id: LG.uid(), first_name: parts[0] || "", last_name: parts.slice(1).join(" "), homeowner_name: parts.join(" "), phone: fmtPh(cur.phone),
+          address: document.getElementById("rlAddr").value.trim(), zip: cur.zip || "", created_at: Date.now(), log: [], source: "Telemarketing" };
+        LG.leads.push(l);
+      }
+      l.sold_before = sold; l.reload = true; l.interests = [nw];
+      l.appt_date = d; l.appt_time = t; l.status = "Appt Set"; l.next_followup = "";
+      try{ l.appt_day = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }); }catch(e){}
+      l.notes = "RELOAD \u2014 sold " + sold + " before" + (nt ? ". " + nt : "") + (l.notes ? "\n" + l.notes : "");
+      LG.addLog(l, "Reload booked by phone \u2014 " + nw + " (sold " + sold + " before) \u2014 " + d + " " + t);
+      l.cf_sent = Date.now(); LG.addLog(l, "Sent to " + cfName() + " to confirm (reload)");
+      LG.save(); cur.lead_id = l.id; if (LG.refresh) LG.refresh();
+      var body = "Hey " + cfName() + ", RELOAD to confirm \u2014 sold " + sold + " before, now " + nw + ". Thank you!\n\n" + (LG.leadText ? LG.leadText(l) : lname(l));
+      record("reload", nw + " " + d + " " + t);
+      toast("\ud83d\udcb0 Reload booked \u2014 " + t + ". Opening Messages to " + cfName() + "\u2026");
+      setTimeout(function(){ location.href = smsUrl(body); }, 400);
+    };
+    f.scrollIntoView({ block: "center", behavior: "smooth" });
   }
   function formBook(){
     var f = document.getElementById("tmForm"), nm = (cur.name || "").split(" ");
@@ -453,6 +494,7 @@
       var o = b.getAttribute("data-out");
       if (o === "cb") return formCb();
       if (o === "booked") return formBook();
+      if (o === "reload") return formReload();
       if (o === "dnc" && !confirm("Mark " + (cur.name || fmtPh(cur.phone)) + " as Do Not Call? They won't come up again.")) return;
       record(o);
     }; });
@@ -544,6 +586,8 @@
     ".tm-rate{display:flex;align-items:center;gap:5px;margin-bottom:6px}.tm-rate span{width:70px;font-weight:700;font-size:13px}.tm-rate button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:800}.tm-rate button.on{background:var(--brand);color:#fff}" +
     ".tm-row2 input{flex:1;min-width:0}.tm-card .tm-row2 input{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:15px;margin-bottom:6px}" +
     ".tm-campb{display:flex;justify-content:space-between;width:100%;padding:12px;margin-bottom:6px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700;font-size:14.5px;text-align:left}.tm-campb:disabled{opacity:.45}.tm-campb b{color:var(--brand)}" +
+    ".tm-sub2 select{width:100%;padding:11px;margin-bottom:6px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff}" +
+    ".tm-row2>*{flex:1 1 0!important;width:auto!important;min-width:0}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
