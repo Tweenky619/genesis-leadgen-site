@@ -544,9 +544,12 @@
       if (l.cf_sent && !confirm(lname(l) + " was already sent to " + cfName() + ". Send again?")) return;
       markSent([l]); location.href = smsUrl(cfBody([l])); setTimeout(render, 600); }; });
     var bf = document.getElementById("bkForm");
-    if (bf) bf.addEventListener("click", function(){
+    if (bf) bf.addEventListener("click", function(e){
       var l = LG.leads.filter(function(x){ return lastBook && x.id === lastBook.id; })[0]; if (!l) return;
       LG.addLog(l, "Booking form opened"); LG.save();
+      // iPhone: open in the real Safari app (not a sheet over this app) so you can switch back and forth
+      var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (ios){ e.preventDefault(); window.location.href = "x-safari-" + BOOK_FORM; }
     });
     var bd = document.getElementById("bkDone"); if (bd) bd.onclick = function(){ lastBook = null; render(); };
     var vp = document.getElementById("vmP");
