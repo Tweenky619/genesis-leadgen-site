@@ -214,7 +214,7 @@
     }
     var l = curLead, d = digits(l.phone);
     return h + '<div class="tm-card"><button type="button" class="tm-skip" style="text-align:left;margin:0 0 6px;padding:0" id="tlBack">\u2190 ' + LQ[lq].t + ' list</button>' +
-      '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div>' + mapsHtml(l.address, l.zip, l.lat, l.lng) + '<div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
+      '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div>' + mapsHtml(l.address, l.zip, l.lat, l.lng) + notesHtml(l) + '<div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
       (d.length === 10 && inHours() ? '<a class="tm-call" id="tmCall" href="tel:+1' + d + '">\ud83d\udcde Call ' + esc(fmtPh(d)) + '</a>' : d.length !== 10 ? '<div class="tm-call off">No phone number on this lead</div>' : '<div class="tm-call off">\ud83c\udf19 Outside calling hours (8 AM \u2013 9 PM)</div>') +
       '<div class="tm-timer" id="tmTimer"></div>' +
       (lq !== "blow" ? '<div class="tm-row2"><input id="tlCon" placeholder="Contractor" value="' + esc(getSet("tele_contractor", "Tidal Remodeling")) + '"><input id="tlRep" placeholder="Rep who went out" value="' + esc(getSet("tele_rep", "Ryan")) + '"></div>' : '') +
@@ -282,7 +282,7 @@
       (cur.status === "cb" ? '<div class="tm-flag">⏰ Callback' + (cur.cb_note ? ' — ' + esc(cur.cb_note) : '') + '</div>' : '') +
       '<div class="tm-name">' + esc(cur.name || "Homeowner") + '</div>' +
       '<div class="tm-sub">' + esc([cur.address, cur.city, cur.zip].filter(Boolean).join(", ") || "No address") + '</div>' +
-      (function(){ var sl = srcLead(cur); return mapsHtml(cur.address, [cur.city, cur.zip].filter(Boolean).join(" "), sl && sl.lat, sl && sl.lng); })() +
+      (function(){ var sl = srcLead(cur); return mapsHtml(cur.address, [cur.city, cur.zip].filter(Boolean).join(" "), sl && sl.lat, sl && sl.lng) + notesHtml(sl); })() +
       (srcLead(cur) ? '<div class="tm-sub">Met at the door ' + ageDays(srcLead(cur)) + ' days ago</div>' : '') +
       '<div class="tm-sub">Tries: ' + (cur.tries || 0) + (cur.notes ? ' · ' + esc(cur.notes) : '') + '</div>' +
       (hours ? '<a class="tm-call" id="tmCall" href="tel:+1' + digits(cur.phone) + '">📞 Call ' + esc(fmtPh(cur.phone)) + '</a>'
@@ -419,6 +419,22 @@
     var apple = "https://maps.apple.com/?q=" + encodeURIComponent(q) + (lat && lng ? "&ll=" + lat + "," + lng : "&address=" + encodeURIComponent(q)) + "&t=k";
     var goo = lat && lng ? "https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=" + lat + "," + lng : "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
     return '<div class="tm-maps"><a href="' + esc(apple) + '" target="_blank" rel="noopener">\ud83d\uddfa\ufe0f Apple Maps</a><a href="' + esc(goo) + '" target="_blank" rel="noopener">\ud83c\udf0e Google Maps' + (lat && lng ? ' \u00b7 Street View' : '') + '</a></div>';
+  }
+  // Notes you took at the door when the lead was generated
+  function notesHtml(l){
+    if (!l) return "";
+    var F = [["spouse","Spouse / DM"],["years_owned","Years owned"],["roof_age","Roof age"],["roof_layers","Roof layers"],["roof_leaks","Leaks"],["leak_location","Leak location"],
+      ["solar_panels","Solar"],["last_painted","Last painted"],["paint_colors","Colors"],["cracks","Cracks"],["wear_tear","Wear & tear"],["fascia","Fascia/wood"],
+      ["window_count","Windows"],["sliding_doors","Sliding doors"],["french_doors","French doors"]];
+    var rows = F.filter(function(f){ var v = l[f[0]]; return v && v !== "No" && String(v).trim(); }).map(function(f){ return '<div><b>' + f[1] + ':</b> ' + esc(l[f[0]]) + '</div>'; });
+    var pn = l.project_notes && typeof l.project_notes === "object" ? Object.keys(l.project_notes).filter(function(k){ return l.project_notes[k]; }).map(function(k){ return '<div><b>' + esc(k) + ':</b> ' + esc(l.project_notes[k]) + '</div>'; }) : [];
+    var others = (l.others || []).filter(function(o){ return o.name; }).map(function(o){ return '<div><b>' + esc(o.rel) + ':</b> ' + esc(o.name) + '</div>'; });
+    var notes = l.notes ? '<p>' + esc(l.notes).replace(/\n/g, "<br>") + '</p>' : "";
+    var prods = (l.interests || []).length ? '<div><b>Interested in:</b> ' + esc(l.interests.join(", ")) + '</div>' : "";
+    var body = notes + prods + pn.join("") + rows.join("") + others.join("");
+    if (!body) return '<div class="tm-notes empty">\ud83d\udcdd No door notes on this lead.</div>';
+    var d = ""; try{ d = new Date(+l.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }catch(e){}
+    return '<div class="tm-notes"><div class="tm-lbl" style="margin:0 0 6px">\ud83d\udcdd Door notes' + (d ? ' \u00b7 ' + d : '') + '</div>' + body + '</div>';
   }
   function formReload(){
     var f = document.getElementById("tmForm"), sl = srcLead(cur), ps = products();
@@ -598,6 +614,7 @@
     ".tm-sub2 select{width:100%;padding:11px;margin-bottom:6px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff}" +
     ".tm-row2>*{flex:1 1 0!important;width:auto!important;min-width:0}" +
     ".tm-maps{display:flex;gap:6px;margin:8px 0 2px}.tm-maps a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:10px;border:1px solid var(--border);background:#f7f8f9;color:var(--text);font-weight:800;font-size:13.5px}" +
+    ".tm-notes{background:#fffbea;border:1px solid #f1e2a8;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px;line-height:1.45}.tm-notes p{margin:0 0 6px}.tm-notes b{font-weight:800}.tm-notes.empty{background:#f7f8f9;border-color:var(--border);color:var(--text-muted);font-size:13px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
