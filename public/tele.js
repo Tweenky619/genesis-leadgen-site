@@ -261,7 +261,7 @@
     var l = LG.leads.filter(function(x){ return x.id === lastBook.id; })[0]; if (!l){ lastBook = null; return ""; }
     return '<div class="tm-bk"><b>\u2705 ' + esc(lastBook.label) + ' \u2014 ' + esc(lname(l)) + '</b><span>' + esc(ldate(l)) + '</span>' +
       '<a class="tm-call" id="bkForm" href="' + BOOK_FORM + '" target="_blank" rel="noopener">\ud83d\udcf2 Submit on booking form</a>' +
-      '<p class="tm-help">Tapping copies the lead details so you can paste them into the form.</p><button type="button" class="tm-skip" id="bkDone">Done \u2014 next call \u2192</button></div>';
+      '<button type="button" class="tm-skip" id="bkDone">Done \u2014 next call \u2192</button></div>';
   }
 
   // ---------- render ----------
@@ -546,10 +546,7 @@
     var bf = document.getElementById("bkForm");
     if (bf) bf.addEventListener("click", function(){
       var l = LG.leads.filter(function(x){ return lastBook && x.id === lastBook.id; })[0]; if (!l) return;
-      var txt = (LG.leadText ? LG.leadText(l) : lname(l)) + (lastBook.label === "Reload booked" ? "\nRELOAD" : "") + "\nSet by phone (telemarketing)";
-      try{ navigator.clipboard && navigator.clipboard.writeText(txt).catch(function(){}); }catch(e){}
-      LG.addLog(l, "Booking form opened (details copied)"); LG.save();
-      toast("\ud83d\udccb Lead details copied \u2014 paste them into the form.");
+      LG.addLog(l, "Booking form opened"); LG.save();
     });
     var bd = document.getElementById("bkDone"); if (bd) bd.onclick = function(){ lastBook = null; render(); };
     var vp = document.getElementById("vmP");
