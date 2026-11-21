@@ -461,7 +461,14 @@
     if (r.added){ mode = "dial"; render(); }
   }
 
-  btn.addEventListener("click", function(){ mode = list.length ? "dial" : "add"; render(); LG.showView("view-tele"); });
+  // First campaigns, ready to go: Reset (No Demo) first, then Rehash, then New / never booked
+  function autoCampaigns(){
+    if (getSet("tele_auto_v1", "")) return;
+    var tot = 0; ["reset", "rehash", "fresh"].forEach(function(k){ tot += addCamp(k).added; });
+    setSet("tele_auto_v1", "1");
+    if (tot) toast("\ud83d\udcde " + tot + " of your leads loaded: Reset \u2192 Rehash \u2192 New. Start dialing!");
+  }
+  btn.addEventListener("click", function(){ autoCampaigns(); mode = list.length ? "dial" : "add"; render(); LG.showView("view-tele"); });
   document.getElementById("backFromTeleBtn").addEventListener("click", function(){ clearInterval(timerInt); LG.showView("view-list"); if (LG.refresh) LG.refresh(); });
 
   var css = document.createElement("style");
