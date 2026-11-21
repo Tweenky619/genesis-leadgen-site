@@ -133,18 +133,105 @@
       '</details>';
   }
 
+  // ---------- calls to my own leads: SoCal's Blowout, Reset Reconfirmation and Rehash scripts ----------
+  var LQ = {
+    blow:   { t: "\ud83d\udca8 Blowout", st: ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"], h: "Missed appointments \u2014 get them rescheduled" },
+    reset:  { t: "\ud83d\udd01 Reset confirm", st: ["Rep Reset","Reset"], up: true, h: "Upcoming resets \u2014 confirm and make sure they let the rep in" },
+    rehash: { t: "\u267b\ufe0f Rehash", st: ["Pitch & Miss"], h: "Demo, no sale \u2014 ratings, then send a manager" }
+  };
+  var lq = "blow", curLead = null, rate = {};
+  function getSet(k, d){ try{ return localStorage.getItem(PRE + k) || d; }catch(e){ return d; } }
+  function setSet(k, v){ try{ localStorage.setItem(PRE + k, v); }catch(e){} }
+  function leadsFor(q){
+    var t = todayISO();
+    return LG.leads.filter(function(l){ var st = l.status || "New"; return LQ[q].st.indexOf(st) > -1 && (!LQ[q].up || !l.appt_date || l.appt_date >= t); })
+      .sort(function(a, b){ return String(a.last_tele || 0).localeCompare(String(b.last_tele || 0)); });
+  }
+  function lname(l){ return l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Homeowner"; }
+  function lfirst(l){ return l.first_name || lname(l).split(" ")[0]; }
+  function lprod(l){ var i = (l.interests || []).filter(function(x){ return !/^Other/.test(x); })[0] || (l.interests || [])[0] || "roof"; return String(i).replace(/^Other:\s*/, "").replace("Paint/Stucco", "paint and stucco").toLowerCase(); }
+  function ldate(l){ var d = l.appt_date ? new Date(l.appt_date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }) : "[DATE]"; return d + (l.appt_time ? " at " + l.appt_time : ""); }
+  function leadScript(q, l){
+    var me = esc(rep()), f = esc(lfirst(l)), p = esc(lprod(l)), con = esc(getSet("tele_contractor", "Tidal Remodeling")), rp = esc(getSet("tele_rep", "Ryan"));
+    if (q === "blow"){
+      var age = /roof/.test(p) && /^\d+/.test(String(l.roof_age || "")) ? " since you haven\u2019t got your roof done for the past " + esc(String(l.roof_age).match(/^\d+/)[0]) + " years" : "";
+      return "Hi " + f + ", how\u2019s your day going? This is " + me + " calling from " + esc(co()) + ", finally getting back to you. We had an appointment with you on " + esc(ldate(l)) + " to give you a free estimate on the " + p + age +
+        ". One of my guys came over and it seems like you had something come up and couldn\u2019t make the appointment. Are you still at " + esc(l.address || "[ADDRESS]") + "? <i>(Great.)</i> We\u2019re back in your area again, and based on the notes here about your " + p +
+        ", I\u2019d like to get you rescheduled for a free inspection. I have available tomorrow 10am, 2pm, or 6pm \u2014 which works best for you?";
+    }
+    if (q === "reset"){
+      return "Hi " + f + ", how\u2019s your day going? This is " + me + " calling from " + con + ". The reason for my call is I just wanna confirm we do have an appointment on " + esc(ldate(l)) + ". One of the guys that\u2019s coming over, his name is " + rp +
+        ", please make sure to let him in and we\u2019re gonna go through the estimate. Once again, there\u2019s no need to pay for anything \u2014 the estimate is good for if and when you\u2019re ready. All we ask back is you think about us when you are ready. Fair enough?";
+    }
+    return "Hey " + f + ", how\u2019s your day going? This is " + me + ", finally got around to giving you a call back regarding your appointment with " + con + ". One of my guys, " + rp + ", came over to give you a free estimate on your " + p + ".<br><br>" +
+      "Let me ask you, how would you rate " + rp + " on a scale of 1 to 5? <i>(Great, thank you.)</i><br><br>How was the product \u2014 can you rate the product please from 1 to 5? <i>(Great, so you can definitely see it on your home \u2014 thank you so much.)</i><br><br>" +
+      "On a scale of 1 to 5, how would you rate the company? <i>(Excellent \u2014 someone you can see yourself doing business with? Beautiful, thank you so much.)</i><br><br>" +
+      "So let me ask you this: pretty much you loved everything, it sounds to me like it came down to the investment \u2014 you wish the price was cheaper? Cause what I wanna do is send a manager over. You guys have been pre-approved for a free marketing home, so I wanna send a manager over to take a look at the project and give you a better price in writing. The only one that can do it is the manager, and it\u2019s not gonna take two hours anymore \u2014 it\u2019ll be very quick. What time works best for you: 10am, 2pm, or 6pm?";
+  }
+  function leadsHtml(){
+    var h = '<div class="tm-prod" style="margin-bottom:10px">' + Object.keys(LQ).map(function(k){ return '<button data-lq="' + k + '"' + (k === lq ? ' class="on"' : '') + '>' + LQ[k].t + ' (' + leadsFor(k).length + ')</button>'; }).join("") + '</div>';
+    if (curLead && LG.leads.indexOf(curLead) < 0) curLead = null;
+    if (!curLead){
+      var ls = leadsFor(lq);
+      return h + '<div class="tm-sum">' + LQ[lq].h + '</div>' + (ls.length ? ls.map(function(l){
+        return '<div class="tm-row" data-ld="' + esc(l.id) + '"><div><b>' + esc(lname(l)) + '</b><span>' + esc(l.phone || "No phone") + ' \u00b7 ' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</span></div><em>' + (l.last_tele ? 'Called<br>' + new Date(l.last_tele).toLocaleDateString([], { month: "short", day: "numeric" }) : 'Call \u203a') + '</em></div>'; }).join("")
+        : '<div class="tm-card tm-empty"><p>No leads here right now.</p></div>');
+    }
+    var l = curLead, d = digits(l.phone);
+    return h + '<div class="tm-card"><button type="button" class="tm-skip" style="text-align:left;margin:0 0 6px;padding:0" id="tlBack">\u2190 ' + LQ[lq].t + ' list</button>' +
+      '<div class="tm-name">' + esc(lname(l)) + '</div><div class="tm-sub">' + esc(l.address || "") + '</div><div class="tm-sub">' + esc(l.status) + (l.appt_date ? ' \u00b7 ' + esc(ldate(l)) : '') + '</div>' +
+      (d.length === 10 && inHours() ? '<a class="tm-call" id="tmCall" href="tel:' + d + '">\ud83d\udcde Call ' + esc(fmtPh(d)) + '</a>' : d.length !== 10 ? '<div class="tm-call off">No phone number on this lead</div>' : '<div class="tm-call off">\ud83c\udf19 Outside calling hours (8 AM \u2013 9 PM)</div>') +
+      '<div class="tm-timer" id="tmTimer"></div>' +
+      (lq !== "blow" ? '<div class="tm-row2"><input id="tlCon" placeholder="Contractor" value="' + esc(getSet("tele_contractor", "Tidal Remodeling")) + '"><input id="tlRep" placeholder="Rep who went out" value="' + esc(getSet("tele_rep", "Ryan")) + '"></div>' : '') +
+      '<details class="tm-script" open><summary>\ud83d\udcdd ' + LQ[lq].t.replace(/^\S+\s/, "") + ' script</summary><div class="tm-s"><p>' + leadScript(lq, l) + '</p></div></details>' +
+      (lq === "rehash" ? '<div class="tm-lbl">Ratings (1\u20135)</div>' + ["Rep","Product","Company"].map(function(k){ return '<div class="tm-rate"><span>' + k + '</span>' + [1,2,3,4,5].map(function(n){ return '<button data-rate="' + k + '" data-n="' + n + '"' + (rate[k] === n ? ' class="on"' : '') + '>' + n + '</button>'; }).join("") + '</div>'; }).join("") : '') +
+      '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
+        (lq === "reset" ? '<button data-lo="conf" style="--c:#0b6b3a" class="big">Confirmed \u2014 fair enough</button>' : '<button data-lo="resched" style="--c:#0b6b3a" class="big">Rescheduled</button>') +
+        '<button data-lo="na" style="--c:#6b7570">No answer</button><button data-lo="vm" style="--c:#6b7570">Left voicemail</button>' +
+        (lq === "reset" ? '<button data-lo="resched" style="--c:#8a5a00">Moved the time</button>' : '<button data-lo="cb" style="--c:#8a5a00">Call back</button>') +
+        '<button data-lo="ni" style="--c:#a8321f">Not interested</button>' +
+      '</div><div id="tlForm"></div><button type="button" class="tm-skip" id="tlOpen">Open full lead \u2192</button></div>' + rules();
+  }
+  function leadOutcome(o){
+    var l = curLead, tag = { blow: "Blowout call", reset: "Reset reconfirm call", rehash: "Rehash call" }[lq];
+    var rt = lq === "rehash" && (rate.Rep || rate.Product || rate.Company) ? " \u2014 ratings: rep " + (rate.Rep || "-") + ", product " + (rate.Product || "-") + ", company " + (rate.Company || "-") : "";
+    function done(text){ l.last_tele = Date.now(); LG.addLog(l, tag + ": " + text + rt); LG.save(); calls.push({ ts: Date.now(), o: o === "resched" || o === "conf" ? "booked" : o === "ni" ? "ni" : o === "cb" ? "cb" : "na", id: l.id }); save(); rate = {}; curLead = null; if (LG.refresh) LG.refresh(); render(); toast("\u2705 " + lname(l) + " \u2014 " + text); }
+    var f = document.getElementById("tlForm");
+    if (o === "resched"){
+      f.innerHTML = '<div class="tm-sub2"><div class="tm-lbl">New appointment</div><div class="tm-row2"><input type="date" id="tlD" value="' + isoAdd(1) + '"><select id="tlT">' + timesHtml().replace(" selected", "") + '</select></div>' +
+        '<div class="tm-quick"><button data-qt="10:00 AM">10 AM</button><button data-qt="2:00 PM">2 PM</button><button data-qt="6:00 PM">6 PM</button></div><button type="button" class="tm-go green" id="tlSave">Save new time</button></div>';
+      f.querySelectorAll("[data-qt]").forEach(function(b){ b.onclick = function(){ document.getElementById("tlT").value = b.getAttribute("data-qt"); }; });
+      document.getElementById("tlSave").onclick = function(){
+        var d = document.getElementById("tlD").value, t = document.getElementById("tlT").value; if (!d){ alert("Pick the date."); return; }
+        l.appt_date = d; l.appt_time = t; l.status = "Appt Set"; l.next_followup = "";
+        try{ l.appt_day = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }); }catch(e){}
+        done("rescheduled for " + ldate(l) + (lq === "rehash" ? " (manager visit)" : ""));
+      };
+      return f.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    if (o === "cb"){
+      f.innerHTML = '<div class="tm-sub2"><div class="tm-lbl">Call back on</div><input type="date" id="tlCb" value="' + isoAdd(1) + '"><button type="button" class="tm-go" id="tlCbS">Save callback</button></div>';
+      document.getElementById("tlCbS").onclick = function(){ var d = document.getElementById("tlCb").value; l.next_followup = d; done("call back " + d); };
+      return f.scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    if (o === "conf"){ l.status = "Confirmed"; return done("confirmed for " + ldate(l)); }
+    if (o === "ni"){ if (!confirm("Mark " + lname(l) + " Not Interested?")) return; l.status = "Not Interested"; return done("Not Interested"); }
+    done(o === "vm" ? "left voicemail" : "no answer");
+  }
+
   // ---------- render ----------
   var mode = "dial", cur = null, prod = null, timerT0 = 0, timerInt = null;
   function header(){
     var s = todayStats(), k = counts();
     return '<div class="tm-stats"><div><b>' + s.dials + '</b><span>Dials</span></div><div><b>' + s.contacts + '</b><span>Contacts</span></div><div><b>' + s.appts + '</b><span>Appts</span></div><div><b>' + s.cr + '%</b><span>Contact</span></div><div><b>' + s.br + '%</b><span>Booking</span></div></div>' +
-      '<div class="tm-tabs"><button data-tm="dial"' + (mode === "dial" ? ' class="on"' : '') + '>📞 Dial</button><button data-tm="list"' + (mode === "list" ? ' class="on"' : '') + '>📋 List (' + k.all + ')</button><button data-tm="add"' + (mode === "add" ? ' class="on"' : '') + '>➕ Add</button></div>';
+      '<div class="tm-tabs"><button data-tm="dial"' + (mode === "dial" ? ' class="on"' : '') + '>📞 Dial</button><button data-tm="list"' + (mode === "list" ? ' class="on"' : '') + '>📋 List (' + k.all + ')</button><button data-tm="leads"' + (mode === "leads" ? ' class="on"' : '') + '>\ud83d\udd01 Leads</button><button data-tm="add"' + (mode === "add" ? ' class="on"' : '') + '>➕ Add</button></div>';
   }
   function render(){
     clearInterval(timerInt);
     var h = header();
     if (mode === "add") h += addHtml();
     else if (mode === "list") h += listHtml();
+    else if (mode === "leads") h += leadsHtml();
     else h += dialHtml();
     body.innerHTML = h;
     wire();
@@ -268,6 +355,13 @@
       if (o === "dnc" && !confirm("Mark " + (cur.name || fmtPh(cur.phone)) + " as Do Not Call? They won't come up again.")) return;
       record(o);
     }; });
+    body.querySelectorAll("[data-lq]").forEach(function(b){ b.onclick = function(){ lq = b.getAttribute("data-lq"); curLead = null; rate = {}; render(); }; });
+    body.querySelectorAll("[data-ld]").forEach(function(r){ r.onclick = function(){ curLead = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-ld"); })[0] || null; rate = {}; render(); window.scrollTo(0, 0); }; });
+    body.querySelectorAll("[data-lo]").forEach(function(b){ b.onclick = function(){ leadOutcome(b.getAttribute("data-lo")); }; });
+    body.querySelectorAll("[data-rate]").forEach(function(b){ b.onclick = function(){ rate[b.getAttribute("data-rate")] = +b.getAttribute("data-n"); render(); }; });
+    var tb = document.getElementById("tlBack"); if (tb) tb.onclick = function(){ curLead = null; render(); };
+    var to = document.getElementById("tlOpen"); if (to) to.onclick = function(){ if (curLead && LG.openDetail) LG.openDetail(curLead.id); };
+    ["tlCon","tlRep"].forEach(function(id){ var el = document.getElementById(id); if (el) el.onchange = function(){ setSet(id === "tlCon" ? "tele_contractor" : "tele_rep", el.value.trim()); render(); }; });
     var call = document.getElementById("tmCall");
     if (call) call.addEventListener("click", function(){
       timerT0 = Date.now(); clearInterval(timerInt);
@@ -310,7 +404,7 @@
   css.textContent =
     ".tm-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:10px}.tm-stats div{background:#fff;border:1px solid var(--border);border-radius:10px;padding:8px 2px;text-align:center}" +
     ".tm-stats b{display:block;font-size:18px;color:var(--brand)}.tm-stats span{font-size:10.5px;font-weight:700;color:var(--text-muted);text-transform:uppercase}" +
-    ".tm-tabs{display:flex;gap:6px;margin-bottom:12px}.tm-tabs button{flex:1;padding:10px 4px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:800;font-size:14px;color:var(--text)}.tm-tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}" +
+    ".tm-tabs{display:flex;gap:6px;margin-bottom:12px}.tm-tabs button{flex:1;padding:10px 2px;white-space:nowrap;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:800;font-size:14px;color:var(--text)}.tm-tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}" +
     ".tm-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}.tm-empty{text-align:center}.tm-name{font-size:22px;font-weight:800}.tm-sub{color:var(--text-muted);font-size:14px;margin-top:2px}" +
     ".tm-flag{background:#fff4e0;color:#8a5a00;font-weight:800;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:13px}" +
     ".tm-call{display:block;text-align:center;text-decoration:none;margin:12px 0 4px;padding:16px;border-radius:12px;background:#0b6b3a;color:#fff;font-weight:800;font-size:19px}.tm-call.off{background:#e9edf2;color:#6b7570;font-size:15px}" +
@@ -326,6 +420,8 @@
     ".tm-file{display:block;text-align:center;margin-top:8px;padding:12px;border-radius:10px;border:2px dashed var(--border);font-weight:800;color:var(--brand)}" +
     ".tm-sum{font-size:13px;font-weight:700;color:var(--text-muted);margin:0 2px 8px}.tm-row{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:6px}" +
     ".tm-row span{display:block;font-size:12.5px;color:var(--text-muted)}.tm-row em{font-style:normal;font-size:12px;font-weight:800;text-align:right;flex:none}.tm-clear{width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-weight:700}" +
+    ".tm-rate{display:flex;align-items:center;gap:5px;margin-bottom:6px}.tm-rate span{width:70px;font-weight:700;font-size:13px}.tm-rate button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--border);background:#fff;font-weight:800}.tm-rate button.on{background:var(--brand);color:#fff}" +
+    ".tm-row2 input{flex:1;min-width:0}.tm-card .tm-row2 input{padding:10px;border:1px solid var(--border);border-radius:10px;font-size:15px;margin-bottom:6px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
