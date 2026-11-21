@@ -137,8 +137,17 @@
   var LQ = {
     blow:   { t: "\ud83d\udca8 Blowout", st: ["Blow Out","No Show","No Mr./Mrs.","Call to Cancel"], h: "Missed appointments \u2014 get them rescheduled" },
     reset:  { t: "\ud83d\udd01 Reset confirm", st: ["Rep Reset","Reset"], up: true, h: "Upcoming resets \u2014 confirm and make sure they let the rep in" },
-    rehash: { t: "\u267b\ufe0f Rehash", st: ["Pitch & Miss"], h: "Demo, no sale \u2014 ratings, then send a manager" }
+    rehash: { t: "\u267b\ufe0f Rehash", st: ["Pitch & Miss"], h: "Demo, no sale \u2014 ratings, then send a manager" },
+    conf:   { t: "\ud83d\udce4 To confirm", st: ["Appt Set","Rep Reset","Reset","Rolled","Confirm NA"], up: true, h: "Upcoming appointments \u2014 text them to your confirmer" }
   };
+  function cfName(){ return getSet("tele_cf_name", "Jorge"); }
+  function cfPhone(){ return digits(getSet("tele_cf_phone", "6197174342")); }
+  function smsUrl(body){ return "sms:+1" + cfPhone() + "&body=" + encodeURIComponent(body); }
+  function cfBody(ls){
+    return "Hey " + cfName() + ", " + (ls.length > 1 ? ls.length + " leads to confirm" : "lead to confirm") + " \u2014 thank you!\n\n" +
+      ls.map(function(l){ return LG.leadText ? LG.leadText(l) : [lname(l), l.phone, l.address, ldate(l)].join("\n"); }).join("\n\n\u2014\u2014\u2014\n\n");
+  }
+  function markSent(ls){ ls.forEach(function(l){ l.cf_sent = Date.now(); LG.addLog(l, "Sent to " + cfName() + " to confirm"); }); LG.save(); if (LG.refresh) LG.refresh(); }
   var lq = "blow", curLead = null, rate = {};
   function getSet(k, d){ try{ return localStorage.getItem(PRE + k) || d; }catch(e){ return d; } }
   function setSet(k, v){ try{ localStorage.setItem(PRE + k, v); }catch(e){} }
@@ -147,6 +156,7 @@
     return LG.leads.filter(function(l){ var st = l.status || "New"; return LQ[q].st.indexOf(st) > -1 && (!LQ[q].up || !l.appt_date || l.appt_date >= t); })
       .sort(function(a, b){ return String(a.last_tele || 0).localeCompare(String(b.last_tele || 0)); });
   }
+  function timeKey(t){ var m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i); if (!m) return "99"; return ("0" + ((+m[1] % 12) + (/pm/i.test(m[3]) ? 12 : 0))).slice(-2) + m[2]; }
   function lname(l){ return l.homeowner_name || [l.first_name, l.last_name].filter(Boolean).join(" ") || "Homeowner"; }
   function lfirst(l){ return l.first_name || lname(l).split(" ")[0]; }
   function lprod(l){ var i = (l.interests || []).filter(function(x){ return !/^Other/.test(x); })[0] || (l.interests || [])[0] || "roof"; return String(i).replace(/^Other:\s*/, "").replace("Paint/Stucco", "paint and stucco").toLowerCase(); }
@@ -171,6 +181,15 @@
   function leadsHtml(){
     var h = '<div class="tm-prod" style="margin-bottom:10px">' + Object.keys(LQ).map(function(k){ return '<button data-lq="' + k + '"' + (k === lq ? ' class="on"' : '') + '>' + LQ[k].t + ' (' + leadsFor(k).length + ')</button>'; }).join("") + '</div>';
     if (curLead && LG.leads.indexOf(curLead) < 0) curLead = null;
+    if (lq === "conf"){
+      var cl = leadsFor("conf").sort(function(a, b){ return (a.appt_date + timeKey(a.appt_time)).localeCompare(b.appt_date + timeKey(b.appt_time)); });
+      var unsent = cl.filter(function(l){ return !l.cf_sent; });
+      return h + '<div class="tm-card"><div class="tm-lbl" style="margin-top:0">Confirmer</div><div class="tm-row2"><input id="cfN" value="' + esc(cfName()) + '" placeholder="Name"><input id="cfP" value="' + esc(fmtPh(cfPhone())) + '" placeholder="Phone" inputmode="tel"></div>' +
+        (unsent.length ? '<a class="tm-call" id="cfAll" href="' + esc(smsUrl(cfBody(unsent))) + '">\ud83d\udcac Text ' + unsent.length + ' new to ' + esc(cfName()) + '</a>' : '<div class="tm-call off">Everything here was sent to ' + esc(cfName()) + ' \u2705</div>') +
+        '<p class="tm-help">Opens Messages with every lead not sent yet. Tap a lead below to send just that one.</p></div>' +
+        (cl.length ? cl.map(function(l){ return '<div class="tm-row" data-cf="' + esc(l.id) + '"><div><b>' + esc(lname(l)) + '</b><span>' + esc(ldate(l)) + ' \u00b7 ' + esc(l.status) + '</span></div><em style="color:' + (l.cf_sent ? '#0b6b3a' : '#1d4f8a') + '">' + (l.cf_sent ? 'Sent \u2713' : 'Text \u203a') + '</em></div>'; }).join("")
+          : '<div class="tm-card tm-empty"><p>No upcoming appointments to confirm.</p></div>');
+    }
     if (!curLead){
       var ls = leadsFor(lq);
       return h + '<div class="tm-sum">' + LQ[lq].h + '</div>' + (ls.length ? ls.map(function(l){
@@ -359,6 +378,15 @@
     body.querySelectorAll("[data-ld]").forEach(function(r){ r.onclick = function(){ curLead = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-ld"); })[0] || null; rate = {}; render(); window.scrollTo(0, 0); }; });
     body.querySelectorAll("[data-lo]").forEach(function(b){ b.onclick = function(){ leadOutcome(b.getAttribute("data-lo")); }; });
     body.querySelectorAll("[data-rate]").forEach(function(b){ b.onclick = function(){ rate[b.getAttribute("data-rate")] = +b.getAttribute("data-n"); render(); }; });
+    var ca = document.getElementById("cfAll");
+    if (ca) ca.addEventListener("click", function(){ markSent(leadsFor("conf").filter(function(l){ return !l.cf_sent; })); setTimeout(render, 600); });
+    body.querySelectorAll("[data-cf]").forEach(function(r){ r.onclick = function(){
+      var l = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-cf"); })[0]; if (!l) return;
+      if (l.cf_sent && !confirm(lname(l) + " was already sent to " + cfName() + ". Send again?")) return;
+      markSent([l]); location.href = smsUrl(cfBody([l])); setTimeout(render, 600); }; });
+    var cn = document.getElementById("cfN"), cp = document.getElementById("cfP");
+    if (cn) cn.onchange = function(){ setSet("tele_cf_name", cn.value.trim() || "Jorge"); render(); };
+    if (cp) cp.onchange = function(){ if (digits(cp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_cf_phone", digits(cp.value)); render(); };
     var tb = document.getElementById("tlBack"); if (tb) tb.onclick = function(){ curLead = null; render(); };
     var to = document.getElementById("tlOpen"); if (to) to.onclick = function(){ if (curLead && LG.openDetail) LG.openDetail(curLead.id); };
     ["tlCon","tlRep"].forEach(function(id){ var el = document.getElementById(id); if (el) el.onchange = function(){ setSet(id === "tlCon" ? "tele_contractor" : "tele_rep", el.value.trim()); render(); }; });
