@@ -240,7 +240,7 @@
         var d = document.getElementById("tlD").value, t = document.getElementById("tlT").value; if (!d){ alert("Pick the date."); return; }
         l.appt_date = d; l.appt_time = t; l.status = "Appt Set"; l.next_followup = "";
         try{ l.appt_day = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }); }catch(e){}
-        done("rescheduled for " + ldate(l) + (lq === "rehash" ? " (manager visit)" : ""));
+        lastBook = { id: l.id, label: "Rescheduled" }; done("rescheduled for " + ldate(l) + (lq === "rehash" ? " (manager visit)" : ""));
       };
       return f.scrollIntoView({ block: "center", behavior: "smooth" });
     }
@@ -254,6 +254,16 @@
     done(o === "vm" ? "left voicemail" : "no answer");
   }
 
+  // ---------- booking form (monday.com) after every phone booking ----------
+  var BOOK_FORM = "https://wkf.ms/3mOAl1A", lastBook = null;
+  function bookedPanel(){
+    if (!lastBook) return "";
+    var l = LG.leads.filter(function(x){ return x.id === lastBook.id; })[0]; if (!l){ lastBook = null; return ""; }
+    return '<div class="tm-bk"><b>\u2705 ' + esc(lastBook.label) + ' \u2014 ' + esc(lname(l)) + '</b><span>' + esc(ldate(l)) + '</span>' +
+      '<a class="tm-call" id="bkForm" href="' + BOOK_FORM + '" target="_blank" rel="noopener">\ud83d\udcf2 Submit on booking form</a>' +
+      '<p class="tm-help">Tapping copies the lead details so you can paste them into the form.</p><button type="button" class="tm-skip" id="bkDone">Done \u2014 next call \u2192</button></div>';
+  }
+
   // ---------- render ----------
   var mode = "dial", cur = null, prod = null, timerT0 = 0, timerInt = null;
   function header(){
@@ -263,7 +273,7 @@
   }
   function render(){
     clearInterval(timerInt);
-    var h = header();
+    var h = header() + bookedPanel();
     if (mode === "add") h += addHtml();
     else if (mode === "list") h += listHtml();
     else if (mode === "leads") h += leadsHtml();
@@ -469,7 +479,7 @@
       l.cf_sent = Date.now(); LG.addLog(l, "Sent to " + cfName() + " to confirm (reload)");
       LG.save(); cur.lead_id = l.id; if (LG.refresh) LG.refresh();
       var body = "Hey " + cfName() + ", RELOAD to confirm \u2014 sold " + sold + " before, now " + nw + ". Thank you!\n\n" + (LG.leadText ? LG.leadText(l) : lname(l));
-      record("reload", nw + " " + d + " " + t);
+      lastBook = { id: l.id, label: "Reload booked" }; record("reload", nw + " " + d + " " + t);
       toast("\ud83d\udcb0 Reload booked \u2014 " + t + ". Opening Messages to " + cfName() + "\u2026");
       setTimeout(function(){ location.href = smsUrl(body); }, 400);
     };
@@ -494,7 +504,7 @@
         try{ src.appt_day = new Date(d + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }); }catch(e){}
         var nt = document.getElementById("tbN").value.trim(); if (nt) src.notes = (src.notes ? src.notes + "\n" : "") + nt;
         LG.addLog(src, "Booked by phone (" + (cur.camp || "telemarketing") + ") \u2014 " + d + " " + t); LG.save(); cur.lead_id = src.id;
-        if (LG.refresh) LG.refresh(); record("booked", d + " " + t);
+        if (LG.refresh) LG.refresh(); lastBook = { id: src.id, label: "Booked" }; record("booked", d + " " + t);
         toast("\u2705 Booked " + lname(src) + " \u2014 " + t + ". Lead updated."); return;
       }
       var lead = { id: LG.uid(), first_name: fn, last_name: ln, homeowner_name: [fn, ln].filter(Boolean).join(" "),
@@ -505,7 +515,7 @@
       LG.addLog(lead, "Booked by phone (telemarketing) — " + prod);
       LG.leads.push(lead); LG.save(); cur.lead_id = lead.id;
       if (LG.refresh) LG.refresh();
-      record("booked", d + " " + t);
+      lastBook = { id: lead.id, label: "Booked" }; record("booked", d + " " + t);
       toast("✅ Booked " + (lead.homeowner_name || "appointment") + " — " + t + ". It's in your leads.");
     };
     f.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -533,6 +543,15 @@
       var l = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-cf"); })[0]; if (!l) return;
       if (l.cf_sent && !confirm(lname(l) + " was already sent to " + cfName() + ". Send again?")) return;
       markSent([l]); location.href = smsUrl(cfBody([l])); setTimeout(render, 600); }; });
+    var bf = document.getElementById("bkForm");
+    if (bf) bf.addEventListener("click", function(){
+      var l = LG.leads.filter(function(x){ return lastBook && x.id === lastBook.id; })[0]; if (!l) return;
+      var txt = (LG.leadText ? LG.leadText(l) : lname(l)) + (lastBook.label === "Reload booked" ? "\nRELOAD" : "") + "\nSet by phone (telemarketing)";
+      try{ navigator.clipboard && navigator.clipboard.writeText(txt).catch(function(){}); }catch(e){}
+      LG.addLog(l, "Booking form opened (details copied)"); LG.save();
+      toast("\ud83d\udccb Lead details copied \u2014 paste them into the form.");
+    });
+    var bd = document.getElementById("bkDone"); if (bd) bd.onclick = function(){ lastBook = null; render(); };
     var vp = document.getElementById("vmP");
     if (vp) vp.onchange = function(){ if (digits(vp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_vm_phone", digits(vp.value)); render(); };
     var cn = document.getElementById("cfN"), cp = document.getElementById("cfP");
@@ -615,6 +634,7 @@
     ".tm-row2>*{flex:1 1 0!important;width:auto!important;min-width:0}" +
     ".tm-maps{display:flex;gap:6px;margin:8px 0 2px}.tm-maps a{flex:1;text-align:center;text-decoration:none;padding:9px 4px;border-radius:10px;border:1px solid var(--border);background:#f7f8f9;color:var(--text);font-weight:800;font-size:13.5px}" +
     ".tm-notes{background:#fffbea;border:1px solid #f1e2a8;border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14.5px;line-height:1.45}.tm-notes p{margin:0 0 6px}.tm-notes b{font-weight:800}.tm-notes.empty{background:#f7f8f9;border-color:var(--border);color:var(--text-muted);font-size:13px}" +
+    ".tm-bk{background:#eef7f1;border:2px solid #0b6b3a;border-radius:14px;padding:12px;margin-bottom:12px}.tm-bk b{display:block;font-size:16px;color:#0b6b3a}.tm-bk span{font-size:13.5px;color:var(--text-muted)}.tm-bk .tm-call{background:#6d28d9;margin-top:10px}" +
     ".tm-toast{position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:13px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)}";
   document.head.appendChild(css);
 })();
