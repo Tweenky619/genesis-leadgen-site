@@ -290,6 +290,7 @@
       (cur.camp ? '<div class="tm-flag" style="background:#e9edf2;color:#152535">\ud83d\udccb ' + esc(cur.camp) + '</div>' : '') +
       (cur.q && srcLead(cur) ? '<details class="tm-script" open><summary>\ud83d\udcdd ' + (cur.q === "blow" ? "Blowout" : "Rehash") + ' script</summary><div class="tm-s"><p>' + leadScript(cur.q, srcLead(cur)) + '</p></div></details>'
         : '<details class="tm-script" open><summary>\ud83d\udcdd Phone script</summary>' + scriptHtml(cur, prod) + '</details>') +
+      vmHtml(cur) +
       '<div class="tm-lbl">Outcome</div><div class="tm-out">' +
         ["na","vm","cb","ni","wrong","dnc","booked"].map(function(o){ return '<button data-out="' + o + '" style="--c:' + OUT[o].c + '"' + (o === "booked" ? ' class="big"' : '') + '>' + OUT[o].t + '</button>'; }).join("") +
       '</div><div id="tmForm"></div>' +
@@ -396,6 +397,18 @@
   }
   function timesHtml(){ var o = ""; for (var m = 540; m <= 1140; m += 30){ var h = Math.floor(m / 60), mm = m % 60, ap = h >= 12 ? "PM" : "AM", hh = h % 12 || 12; var t = hh + ":" + (mm ? "30" : "00") + " " + ap; o += '<option' + (t === "10:00 AM" ? " selected" : "") + '>' + t + '</option>'; } return o; }
   function srcLead(c){ return c && c.src ? LG.leads.filter(function(l){ return l.id === c.src; })[0] : null; }
+  // Voicemail: under 30 seconds, name + company twice, one reason, the free inspection, number twice
+  function vmHtml(c){
+    var sl = srcLead(c), f = esc(sl ? lfirst(sl) : ((c.name || "").split(" ")[0] || "there")), me = esc(rep()), num = esc(fmtPh(getSet("tele_vm_phone", "6198796874")));
+    var p = esc(String(prod || "roof").toLowerCase().replace("/", " and ")), say;
+    if (c.q === "blow") say = "Hi " + f + ", it\u2019s " + me + " with " + esc(co()) + ". We had you down for a free estimate on your " + p + " and looks like something came up \u2014 no worries at all. We\u2019re back in your area tomorrow and I saved you a spot for a free inspection.";
+    else if (c.q === "rehash") say = "Hi " + f + ", it\u2019s " + me + " with " + esc(co()) + ". Quick follow-up on the estimate for your " + p + " \u2014 I have some good news on the price I want to share with you.";
+    else if (sl) say = "Hi " + f + ", it\u2019s " + me + " with " + esc(co()) + " \u2014 we met at your door about your " + p + ". We\u2019re doing free inspections in your area tomorrow and I saved you a spot \u2014 no cost, no obligation.";
+    else say = "Hi " + f + ", this is " + me + " with " + esc(co()) + ". We\u2019re doing free inspections in your neighborhood tomorrow on " + p + ", and I\u2019d love to save you a spot \u2014 no cost, no obligation.";
+    return '<details class="tm-script" style="border-color:var(--border)"><summary>\ud83c\udf99\ufe0f Voicemail script</summary><div class="tm-s"><p>' + say +
+      " Give me a call or text back at " + num + ". Again, it\u2019s " + me + " with " + esc(co()) + ", " + num + ". Talk soon!</p><i>Under 30 seconds. Smile while you talk. Then tap Left voicemail.</i></div>" +
+      '<div class="tm-row2" style="padding-bottom:10px"><input id="vmP" value="' + num + '" placeholder="Callback number" inputmode="tel"></div></details>';
+  }
   function formBook(){
     var f = document.getElementById("tmForm"), nm = (cur.name || "").split(" ");
     f.innerHTML = '<div class="tm-sub2"><div class="tm-lbl">Appointment</div>' +
@@ -453,6 +466,8 @@
       var l = LG.leads.filter(function(x){ return x.id === r.getAttribute("data-cf"); })[0]; if (!l) return;
       if (l.cf_sent && !confirm(lname(l) + " was already sent to " + cfName() + ". Send again?")) return;
       markSent([l]); location.href = smsUrl(cfBody([l])); setTimeout(render, 600); }; });
+    var vp = document.getElementById("vmP");
+    if (vp) vp.onchange = function(){ if (digits(vp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_vm_phone", digits(vp.value)); render(); };
     var cn = document.getElementById("cfN"), cp = document.getElementById("cfP");
     if (cn) cn.onchange = function(){ setSet("tele_cf_name", cn.value.trim() || "Jorge"); render(); };
     if (cp) cp.onchange = function(){ if (digits(cp.value).length !== 10){ alert("Enter a 10-digit number."); return; } setSet("tele_cf_phone", digits(cp.value)); render(); };
