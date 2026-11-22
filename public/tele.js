@@ -10,6 +10,15 @@
   // ---------- storage ----------
   function load(k){ try{ return JSON.parse(localStorage.getItem(k) || "[]") || []; }catch(e){ return []; } }
   var list = load(KEY), calls = load(LOGK);
+  window.TM_busy = function(){ return view.classList.contains("active"); };
+  // sync: another device's changes arrived — reload, keep the card you're on, re-render unless a form is half filled
+  window.TM_reload = function(){
+    var cid = cur && cur.id; list = load(KEY); calls = load(LOGK);
+    cur = cid ? list.filter(function(c){ return c.id === cid; })[0] || null : null;
+    if (curLead){ var lid = curLead.id; curLead = LG.leads.filter(function(l){ return l.id === lid; })[0] || null; }
+    var f = document.getElementById("tmForm"), typing = (f && f.innerHTML) || document.querySelector(".tm-ov");
+    if (view.classList.contains("active") && !typing) render();
+  };
   function save(){ try{ localStorage.setItem(KEY, JSON.stringify(list)); localStorage.setItem(LOGK, JSON.stringify(calls.slice(-5000))); }catch(e){} }
   function esc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
   function digits(p){ return String(p || "").replace(/\D/g, "").replace(/^1(\d{10})$/, "$1"); }
