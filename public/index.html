@@ -1151,6 +1151,7 @@
             <label class="interest-toggle"><input type="checkbox" class="f_interest" value="Other">Other&nbsp;<span style="font-weight:600;opacity:.7">(non-core)</span></label>
           </div>
           <input type="text" id="f_other_project" placeholder="What project? (gutters, fence, solar...)" style="margin-top:10px;display:none;">
+          <a class="qr-link qr-form-link" href="https://wkf.ms/43D9ZjP" target="_blank" rel="noopener">&#128242; Non-core? Book it on the QR form</a>
           <div id="projNotes"></div>
         </div>
 
@@ -2002,6 +2003,10 @@
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
+      ((l.interests || []).some(function(i){ return /^Other/.test(i); }) ?
+        '<div class="qr-box"><div class="lbl">Non-core project \u2014 book it on the QR form</div>' +
+        '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
+        '</div>' : '') +
 
       buildQuickActions(l) +
       buildFollowUp(l) +
