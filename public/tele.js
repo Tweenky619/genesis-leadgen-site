@@ -414,7 +414,7 @@
     return '<details class="tm-rules"><summary>⚖️ Calling rules</summary><ul>' +
       '<li>Call only <b>8 AM – 9 PM</b> the homeowner’s time.</li>' +
       '<li>Say your name and company at the start of every call.</li>' +
-      '<li>Your own door leads gave you their number \u2014 you can call them back. Purchased or cold lists must be scrubbed against the National Do Not Call Registry first.</li>' +
+      '<li>Door leads (they asked about a project): OK to call for <b>3 months</b>. Customers who bought: <b>18 months</b>. Older than that and their number is on the National Do Not Call Registry \u2192 don\u2019t call unless they gave written permission. Purchased or cold lists: scrub against the Registry first.</li>' +
       '<li>Anyone who asks not to be called → tap <b>Do not call</b>. They’re never shown again.</li>' +
       '<li>Dial by hand only — no auto-dialers or recorded messages to cell phones without written consent.</li>' +
       '<li>No price quotes or promises on the phone.</li></ul></details>';
@@ -471,8 +471,8 @@
     ["a7",   "\ud83d\udd25 This week (0\u20137 days)", 0, 7],
     ["a30",  "\ud83d\udcc5 1\u20134 weeks old (8\u201330 days)", 8, 30],
     ["a90",  "\ud83d\uddd3\ufe0f 1\u20133 months old", 31, 90],
-    ["a180", "\ud83d\udd70\ufe0f 3\u20136 months old", 91, 180],
-    ["aold", "\ud83d\udce6 6+ months old", 181, 99999]
+    ["a180", "\ud83d\udd70\ufe0f 3\u20136 months old \u26a0\ufe0f check Do Not Call", 91, 180],
+    ["aold", "\ud83d\udce6 6+ months old \u26a0\ufe0f check Do Not Call", 181, 99999]
   ];
   function ageDays(l){ return Math.floor((Date.now() - (+l.created_at || Date.now())) / 864e5); }
   function ageOk(l){ var st = l.status || "New", t = todayISO(); return st !== "Sold" && st !== "Not Interested" && !(l.appt_date && l.appt_date >= t && ["Appt Set","Confirmed","Sent to Monday","Rep Reset","Reset","Rolled","Confirm NA"].indexOf(st) > -1); }
