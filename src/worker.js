@@ -59,7 +59,11 @@ export default {
       return J({ ok: true, n: stmts.length });
     }
     // Rep copy lives at /rep — same files, served from the root
+    // Villa Pacifica owners link is discontinued along with Canvassing Arena
     if (url.pathname === "/owners/art" || url.pathname.startsWith("/owners/art/")) {
+      return new Response('<!DOCTYPE html><meta name="viewport" content="width=device-width,initial-scale=1"><title>No longer available</title><body style="font-family:-apple-system,system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;margin:0;color:#152535"><div><h2>This app is no longer available</h2></div></body>', { status: 410, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+    }
+    if (false) {
       const rest = url.pathname.slice(11) || "/";
       const target = new URL("/owners" + (rest === "/" ? "/" : rest), url);
       return env.ASSETS.fetch(new Request(target.toString(), request));
