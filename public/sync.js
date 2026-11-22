@@ -85,8 +85,8 @@
     });
   }
   function phAllIds(){ return phStore("readonly").then(function(st){ return new Promise(function(res){ var q = st.getAllKeys(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return null; }); }
-  function phGet(id){ return phStore("readonly").then(function(st){ return new Promise(function(res){ var q = st.get(id); q.onsuccess = function(){ res(q.result || null); }; q.onerror = function(){ res(null); }; }); }); }
-  function phPut(rec){ return phStore("readwrite").then(function(st){ return new Promise(function(res){ var q = st.put(rec); q.onsuccess = res; q.onerror = res; }); }); }
+  function phGet(id){ return phStore("readonly").then(function(st){ return new Promise(function(res){ var q = st.get(id); q.onsuccess = function(){ var r = q.result || null; res(r && window.LG_photoUnpack ? window.LG_photoUnpack(r) : r); }; q.onerror = function(){ res(null); }; }); }); }
+  function phPut(rec){ return (window.LG_photoPack ? window.LG_photoPack(rec) : Promise.resolve(rec)).then(function(r2){ rec = r2; return phStore("readwrite"); }).then(function(st){ return new Promise(function(res){ var q = st.put(rec); q.onsuccess = res; q.onerror = res; }); }); }
   function phDel(id){ return phStore("readwrite").then(function(st){ return new Promise(function(res){ var q = st.delete(id); q.onsuccess = res; q.onerror = res; }); }); }
   function blobToData(b){ return new Promise(function(res){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ res(null); }; fr.readAsDataURL(b); }); }
   function dataToBlob(d){ return fetch(d).then(function(r){ return r.blob(); }); }

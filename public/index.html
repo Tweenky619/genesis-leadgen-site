@@ -640,6 +640,7 @@
   .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
   .photo-grid:empty{display:none;}
   .share-photos{width:100%;margin-top:10px;padding:12px;border-radius:10px;border:2px solid var(--brand);background:var(--card);color:var(--brand);font-weight:800;font-size:15px;}
+  .photo-lost{aspect-ratio:1;border-radius:10px;border:1px dashed #c0392b;color:#c0392b;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;background:#fdf0ee;}
   .photo-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;cursor:pointer;background:#e9ebee;}
   .photo-add{display:block;margin-top:10px;text-align:center;padding:13px;border:2px dashed var(--border);border-radius:12px;background:var(--card);font-weight:700;color:var(--brand);cursor:pointer;}
   .photo-add:active{background:var(--brand-light);}
@@ -2691,17 +2692,22 @@
       r.onerror = function(){ rej(r.error); };
     });
   }
+  // iPad/iPhone Safari can lose Blobs kept in IndexedDB ("broken image"), so photos are stored as raw bytes
+  function toBuf(b){ return b.arrayBuffer ? b.arrayBuffer() : new Promise(function(res, rej){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ rej(fr.error); }; fr.readAsArrayBuffer(b); }); }
+  function packRec(rec){ if(!rec.blob || rec.buf) return Promise.resolve(rec); return toBuf(rec.blob).then(function(buf){ var o = {}; for(var k in rec){ if(k !== "blob") o[k] = rec[k]; } o.buf = buf; o.type = rec.blob.type || "image/jpeg"; return o; }); }
+  function unpackRec(rec){ if(rec && rec.buf && !rec.blob){ rec.blob = new Blob([rec.buf], { type: rec.type || "image/jpeg" }); } return rec; }
+  window.LG_photoPack = packRec; window.LG_photoUnpack = unpackRec;
   function photoTx(mode){ return openPhotoDB().then(function(db){ return db.transaction("photos", mode).objectStore("photos"); }); }
   function photosFor(leadId){
     return photoTx("readonly").then(function(st){
       return new Promise(function(res){
         var q = st.index("leadId").getAll(leadId);
-        q.onsuccess = function(){ res((q.result || []).sort(function(a,b){ return a.ts - b.ts; })); };
+        q.onsuccess = function(){ res((q.result || []).map(unpackRec).sort(function(a,b){ return a.ts - b.ts; })); };
         q.onerror = function(){ res([]); };
       });
     }).catch(function(){ return []; });
   }
-  function photoPut(rec){ return photoTx("readwrite").then(function(st){ return new Promise(function(res, rej){ var q = st.put(rec); q.onsuccess = res; q.onerror = function(){ rej(q.error); }; }); }); }
+  function photoPut(rec){ return packRec(rec).then(function(r2){ rec = r2; return photoTx("readwrite"); }).then(function(st){ return new Promise(function(res, rej){ var q = st.put(rec); q.onsuccess = res; q.onerror = function(){ rej(q.error); }; }); }); }
   function photoDelete(id){ return photoTx("readwrite").then(function(st){ return new Promise(function(res){ var q = st.delete(id); q.onsuccess = res; q.onerror = res; }); }).catch(function(){}); }
   function photoDeleteForLead(leadId){
     return photosFor(leadId).then(function(list){ return Promise.all(list.map(function(p){ return photoDelete(p.id); })); });
@@ -2712,13 +2718,14 @@
       try {
         var r = indexedDB.open(name, 1);
         r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
-        r.onsuccess = function(){ var db = r.result; try { var q = db.transaction("photos", "readonly").objectStore("photos").getAll(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; } catch(e){ res([]); } };
+        r.onsuccess = function(){ var db = r.result; try { var q = db.transaction("photos", "readonly").objectStore("photos").getAll(); q.onsuccess = function(){ res((q.result || []).map(unpackRec)); }; q.onerror = function(){ res([]); }; } catch(e){ res([]); } };
         r.onerror = function(){ res([]); };
       } catch(e){ res([]); }
     });
   }
   function blobToData(b){ return new Promise(function(res){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ res(""); }; fr.readAsDataURL(b); }); }
   function dataToBlob(d){ var p = d.split(","), m = (p[0].match(/:(.*?);/) || [])[1] || "image/jpeg", bin = atob(p[1] || ""), u = new Uint8Array(bin.length); for(var i = 0; i < bin.length; i++){ u[i] = bin.charCodeAt(i); } return new Blob([u], { type: m }); }
+  function dataToBuf(d){ var bin = atob((d.split(",")[1]) || ""), u = new Uint8Array(bin.length); for(var i = 0; i < bin.length; i++){ u[i] = bin.charCodeAt(i); } return u.buffer; }
   function fullBackup(){
     var store = {}; for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); store[k] = localStorage.getItem(k); }
     var out = { app: "leadgen-full-backup", version: 1, created: new Date().toISOString(), storage: store, photos: {} };
@@ -2737,7 +2744,7 @@
         var r = indexedDB.open(pre + "lead_photos", 1);
         r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
         r.onsuccess = function(){ var db = r.result, tx = db.transaction("photos", "readwrite"), st = tx.objectStore("photos");
-          (obj.photos[pre] || []).forEach(function(p){ if(p.data){ st.put({ id: p.id, leadId: p.leadId, ts: p.ts, blob: dataToBlob(p.data) }); } });
+          (obj.photos[pre] || []).forEach(function(p){ if(p.data){ var b = dataToBlob(p.data); st.put({ id: p.id, leadId: p.leadId, ts: p.ts, buf: dataToBuf(p.data), type: b.type }); } });
           tx.oncomplete = function(){ res(); }; tx.onerror = function(){ res(); }; };
         r.onerror = function(){ res(); };
       });
@@ -2831,7 +2838,7 @@
       shownBlobs[gridId] = list;
       grid.innerHTML = list.map(function(p){
         var u = URL.createObjectURL(p.blob); shownUrls[gridId].push(u);
-        return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo">';
+        return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo" onerror="this.outerHTML=\'<div class=&quot;photo-lost&quot;>Photo didn\\u2019t save \\u2014 please retake</div>\'">';
       }).join("");
       if(wrapId){ document.getElementById(wrapId).style.display = list.length ? "" : "none"; }
     });
@@ -3936,7 +3943,7 @@
 <script src="playbook.js?v=11"></script>
 <script src="practice.js?v=59"></script>
 <script src="tele.js?v=29"></script>
-<script src="sync.js?v=2"></script>
+<script src="sync.js?v=3"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
