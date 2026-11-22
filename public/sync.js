@@ -63,11 +63,65 @@
   }
   var canGz = typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
   function gz(bytes, mode){ var cs = mode === "c" ? new CompressionStream("gzip") : new DecompressionStream("gzip"); return new Response(new Blob([bytes]).stream().pipeThrough(cs)).arrayBuffer(); }
-  function seal(obj){
-    var raw = enc(JSON.stringify(obj));
-    return (canGz ? gz(raw, "c") : Promise.resolve(raw)).then(function(data){
+  function seal(obj, noGz){
+    var raw = enc(JSON.stringify(obj)), z = canGz && !noGz;
+    return (z ? gz(raw, "c") : Promise.resolve(raw)).then(function(data){
       return keyP.then(function(key){ var iv = crypto.getRandomValues(new Uint8Array(12));
-        return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, data).then(function(ct){ return (canGz ? "g1:" : "p1:") + b64(iv) + ":" + b64(ct); }); });
+        return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, data).then(function(ct){ return (z ? "g1:" : "p1:") + b64(iv) + ":" + b64(ct); }); });
+    });
+  }
+
+  // ---- photos (IndexedDB) ----
+  var PH_K = PRE + "sync_ph";   // photo id -> ts we know about (negative = deleted)
+  var phMeta = jget(PH_K, {});
+  function savePh(){ set(PH_K, JSON.stringify(phMeta)); }
+  function phStore(mode){
+    return new Promise(function(res, rej){
+      if (!window.indexedDB) return rej(new Error("no idb"));
+      var r = indexedDB.open(PRE + "lead_photos", 1);
+      r.onupgradeneeded = function(){ var st = r.result.createObjectStore("photos", { keyPath: "id" }); st.createIndex("leadId", "leadId"); };
+      r.onsuccess = function(){ try{ res(r.result.transaction("photos", mode).objectStore("photos")); }catch(e){ rej(e); } };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  function phAllIds(){ return phStore("readonly").then(function(st){ return new Promise(function(res){ var q = st.getAllKeys(); q.onsuccess = function(){ res(q.result || []); }; q.onerror = function(){ res([]); }; }); }).catch(function(){ return null; }); }
+  function phGet(id){ return phStore("readonly").then(function(st){ return new Promise(function(res){ var q = st.get(id); q.onsuccess = function(){ res(q.result || null); }; q.onerror = function(){ res(null); }; }); }); }
+  function phPut(rec){ return phStore("readwrite").then(function(st){ return new Promise(function(res){ var q = st.put(rec); q.onsuccess = res; q.onerror = res; }); }); }
+  function phDel(id){ return phStore("readwrite").then(function(st){ return new Promise(function(res){ var q = st.delete(id); q.onsuccess = res; q.onerror = res; }); }); }
+  function blobToData(b){ return new Promise(function(res){ var fr = new FileReader(); fr.onload = function(){ res(fr.result); }; fr.onerror = function(){ res(null); }; fr.readAsDataURL(b); }); }
+  function dataToBlob(d){ return fetch(d).then(function(r){ return r.blob(); }); }
+  var phGot = 0, phLeft = 0;
+  function applyPhoto(row, obj){
+    var id = row.k.slice(6);
+    if (obj.del){ phMeta[id] = -Math.abs(row.mt); return phDel(id).then(function(){ phGot++; }); }
+    if ((phMeta[id] || 0) < 0) return Promise.resolve();          // deleted here already
+    return phGet(id).then(function(have){
+      if (have){ phMeta[id] = Math.abs(row.mt) || 1; return; }
+      return dataToBlob(obj.data).then(function(blob){ return phPut({ id: id, leadId: obj.leadId, ts: obj.ts, blob: blob }); })
+        .then(function(){ phMeta[id] = Math.abs(row.mt) || 1; phGot++; });
+    });
+  }
+  // push new local photos and deletions (a few per round so leads never wait on uploads)
+  function pushPhotos(space){
+    return phAllIds().then(function(ids){
+      if (ids === null) return;
+      var here = {}, jobs = [];
+      ids.forEach(function(id){ here[id] = 1; if (!phMeta[id]) jobs.push({ id: id }); });
+      Object.keys(phMeta).forEach(function(id){ if (phMeta[id] > 0 && !here[id]) jobs.push({ id: id, del: true }); });
+      phLeft = jobs.length;
+      return jobs.slice(0, 12).reduce(function(p, j){
+        return p.then(function(){
+          var mt = Date.now();
+          var payP = j.del ? Promise.resolve({ del: true }) : phGet(j.id).then(function(rec){ if (!rec || !rec.blob) return null; return blobToData(rec.blob).then(function(d){ return d ? { leadId: rec.leadId, ts: rec.ts, data: d } : null; }); });
+          return payP.then(function(pay){
+            if (!pay || (pay.data && pay.data.length > 1400000)){ phMeta[j.id] = 1; phLeft--; return; }   // missing or too big: stays on this device
+            return seal(pay, true).then(function(sv){
+              return fetch("/sync/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ space: space, dev: dev, items: [{ k: "photo:" + j.id, v: sv, mt: mt }] }) })
+                .then(function(r){ if (r.ok){ phMeta[j.id] = j.del ? -mt : mt; phLeft--; } });
+            });
+          });
+        });
+      }, Promise.resolve()).then(savePh);
     });
   }
   function open(s){
@@ -117,6 +171,7 @@
       .then(function(rows){
         return rows.reduce(function(p, row){
           return p.then(function(){
+            if (row.k.indexOf("photo:") === 0){ if (row.dev === dev) return; return open(row.v).then(function(obj){ return applyPhoto(row, obj); }).catch(function(){}); }
             if (!synced(row.k) || row.dev === dev && (meta.k[row.k] || 0) <= row.mt) return;
             return open(row.v).then(function(remote){
               var m = mergeKey(row.k, remote, row.mt);
@@ -148,27 +203,33 @@
           });
         }, Promise.resolve()).then(function(){ set(PRE + "sync_pushed", JSON.stringify(pushed)); });
       })
+      .then(function(){ set(SINCE_K, String(pullNext)); savePh(); return pushPhotos(space); })
       .then(function(){
         set(LAST_K, JSON.stringify({ ts: Date.now(), ok: true }));
         if (changedLocal) afterChange();
+        else if (phGot){ try{ if (LG.refreshDetail) LG.refreshDetail(); }catch(e){} toast("\ud83d\udcf8 " + phGot + " photo" + (phGot === 1 ? "" : "s") + " synced from your other device."); }
+        phGot = 0;
         lastErr = ""; paint();
+        if (phLeft > 0 || pullMore){ clearTimeout(dirtyT); dirtyT = setTimeout(run, 2500); }
       })
       .catch(function(e){ lastErr = "offline"; paint(); })
       .then(function(){ running = false; });
   }
+  var pullMore = false, pullNext = 0;
   function pullAll(){
-    var since = parseInt(get(SINCE_K) || "0", 10) || 0, rows = [];
+    var since = parseInt(get(SINCE_K) || "0", 10) || 0, rows = [], pages = 0; pullMore = false;
     function page(){
       return spaceP.then(function(space){ return fetch("/sync/pull?space=" + space + "&since=" + since, { cache: "no-store" }); })
         .then(function(r){ if (!r.ok) throw new Error("pull"); return r.json(); })
-        .then(function(d){ rows = rows.concat(d.items || []); since = d.next || since; if (d.more) return page(); });
+        .then(function(d){ rows = rows.concat(d.items || []); since = d.next || since; pages++; if (d.more){ if (pages < 4) return page(); pullMore = true; } });
     }
-    return page().then(function(){ set(SINCE_K, String(since)); return rows; });
+    return page().then(function(){ pullNext = since; return rows; });   // "since" is saved only after these rows are applied
   }
   function afterChange(){
     try{ if (LG.reload) LG.reload(); }catch(e){}
     try{ if (window.TM_reload) window.TM_reload(); }catch(e){}
-    toast("☁️ Synced — updates from your other device are in.");
+    try{ if (LG.refreshDetail) LG.refreshDetail(); }catch(e){}
+    toast("\u2601\ufe0f Synced \u2014 updates from your other device are in." + (phGot ? " (+" + phGot + " photo" + (phGot === 1 ? "" : "s") + ")" : ""));
   }
   function toast(msg){ var t = document.createElement("div"); t.style.cssText = "position:fixed;left:16px;right:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));background:#152535;color:#fff;padding:12px 14px;border-radius:12px;font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25)"; t.textContent = msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3000); }
 
@@ -180,7 +241,7 @@
   function paint(){
     var c = code(), l = status();
     box.innerHTML = '<div class="co-lbl">☁️ Sync phone ↔ iPad</div>' + (c
-      ? '<p style="margin:4px 0 8px">On — changes on either device show up on the other within a minute.' + (l ? ' Last synced ' + ago(l.ts) + '.' : '') + (lastErr === "offline" ? ' <b>Offline — will retry.</b>' : lastErr === "decrypt" ? ' <b>Code mismatch on some data.</b>' : '') + '</p>' +
+      ? '<p style="margin:4px 0 8px">On — changes on either device show up on the other within a minute.' + (l ? ' Last synced ' + ago(l.ts) + '.' : '') + (phLeft > 0 ? ' Sending photos\u2026 ' + phLeft + ' left.' : ' Photos included.') + (lastErr === "offline" ? ' <b>Offline — will retry.</b>' : lastErr === "decrypt" ? ' <b>Code mismatch on some data.</b>' : '') + '</p>' +
         '<div style="font-size:22px;font-weight:800;letter-spacing:2px;text-align:center;padding:10px;border:2px dashed var(--border);border-radius:12px;margin-bottom:8px" id="syncCodeShow">' + c + '</div>' +
         '<p style="margin:0 0 8px">On your other device: open this same app → ⇅ → <b>I have a code</b> → enter this code. Keep it private — it unlocks your leads.</p>' +
         '<button type="button" id="syncNow">🔄 Sync now</button><button type="button" id="syncOff" style="background:#fff;color:#a8321f;border:1px solid #e3b4ab">Turn off sync on this device</button>'
@@ -191,7 +252,7 @@
     if ((b = document.getElementById("syncStart"))) b.onclick = function(){
       var c2 = newCode(); try{ ls.setItem(CODE_K, c2); }catch(e){}
       meta.k = meta.k || {}; for (var i = 0; i < ls.length; i++){ var k = ls.key(i); if (synced(k) && !meta.k[k]) meta.k[k] = Date.now(); }
-      ihash = {}; saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); run();
+      ihash = {}; phMeta = {}; savePh(); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); run();
     };
     if ((b = document.getElementById("syncHave"))) b.onclick = function(){
       var c2 = norm(prompt("Enter the sync code shown on your phone (⇅ → Sync phone ↔ iPad):") || "");
@@ -199,7 +260,7 @@
       try{ ls.setItem(CODE_K, c2); }catch(e){}
       // this device's existing data counts as older, so the phone's copy wins where they differ (lists still merge)
       Object.keys(meta.k).forEach(function(k){ meta.k[k] = 1; }); Object.keys(meta.it).forEach(function(k){ Object.keys(meta.it[k]).forEach(function(id){ meta.it[k][id] = meta.it[k][id] < 0 ? -1 : 1; }); });
-      ihash = {}; set(PRE + "sync_base", "1"); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); toast("🔑 Linked — pulling your leads…"); run();
+      ihash = {}; phMeta = {}; savePh(); set(PRE + "sync_base", "1"); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); toast("🔑 Linked — pulling your leads…"); run();
     };
     if ((b = document.getElementById("syncNow"))) b.onclick = function(){ run().then(function(){ toast("☁️ Synced"); }); };
     if ((b = document.getElementById("syncOff"))) b.onclick = function(){ if (!confirm("Turn off sync on this device? Your leads stay here; they just stop updating from your other device.")) return; try{ rawRemove.call(ls, CODE_K); }catch(e){} paint(); };

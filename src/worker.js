@@ -37,10 +37,10 @@ export default {
         if (request.method !== "GET" || !/^[0-9a-f]{64}$/.test(space || "")) return J({ error: "bad" }, 400);
         const since = Math.max(0, parseInt(url.searchParams.get("since") || "0", 10) || 0);
         const now = Date.now();
-        const r = await env.DB.prepare("SELECT k, v, mt, dev, updated FROM sync_items WHERE space = ?1 AND updated > ?2 ORDER BY updated LIMIT 200").bind(space, since).all();
+        const r = await env.DB.prepare("SELECT k, v, mt, dev, updated FROM sync_items WHERE space = ?1 AND updated > ?2 ORDER BY updated LIMIT 30").bind(space, since).all();
         const items = r.results || [];
         const next = items.length ? items[items.length - 1].updated : since;
-        return J({ now, next, more: items.length === 200, items });
+        return J({ now, next, more: items.length === 30, items });
       }
       if (request.method !== "POST") return J({ error: "method" }, 405);
       let body = {};
