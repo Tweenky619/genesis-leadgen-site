@@ -26,22 +26,21 @@
     "@media (max-width:600px) and (orientation:portrait){#slx .pick{grid-template-columns:1fr;align-content:start}#slx .sq{aspect-ratio:auto;min-height:140px;flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}#slx .sq i{flex:0 0 auto;align-self:center;font-size:56px}#slx .sq span{display:flex;flex-direction:column}}" +
     "#slx .cnt{font-weight:700;font-size:14px;color:#C3CDD3;min-width:48px;text-align:right}" +
     "#slx .x{border:0;background:#1e2a35;color:#fff;font-size:20px;width:40px;height:40px;border-radius:20px}" +
-    "#slx .stage{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
+    "#slx .stage{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;touch-action:pan-x;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
     "#slx .stage::-webkit-scrollbar{display:none}" +
     "#slx .sl{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 0 calc(env(safe-area-inset-bottom) + 8px)}" +
     "#slx .sl img{max-width:100%;max-height:100%;object-fit:contain;display:block}" +
-    "#slx .nav{position:absolute;top:70px;bottom:0;width:22%;border:0;background:transparent}" +
-    "#slx .nav.l{left:0}#slx .nav.r{right:0}" +
+    
     ".slx-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}" +
     ".slx-go{flex:1 1 auto;border:0;border-radius:6px;padding:12px 14px;font-weight:800;font-size:15px;background:#14212B;color:#fff}";
   document.head.appendChild(css);
   var root = document.createElement("div"); root.id = "slx"; root.hidden = true;
   root.innerHTML = '<div class="bar"><button class="back">\u25c0 Sets</button><div class="ttl">Damage slicks</div><div class="cnt"></div><button class="nl" aria-label="Add">+</button><button class="x" aria-label="Close">\u2715</button></div>' +
     '<div class="pick">' + ORDER.map(function(k){ var t = SETS[k]; return '<button class="sq" data-set="' + k + '" style="background:' + t.bg + '"><i>' + t.ic + '</i><span><b>' + t.name + '</b><small>' + t.sub + '</small></span></button>'; }).join("") + '</div>' +
-    '<div class="stage"></div><button class="nav l" aria-label="Previous"></button><button class="nav r" aria-label="Next"></button>';
+    '<div class="stage"></div>';
   document.body.appendChild(root);
-  var stage = root.querySelector(".stage"), cnt = root.querySelector(".cnt"), pick = root.querySelector(".pick"), ttl = root.querySelector(".ttl"), back = root.querySelector(".back"), navs = root.querySelectorAll(".nav"), cur = null;
-  function mode(slides){ pick.style.display = slides ? "none" : ""; stage.style.display = slides ? "" : "none"; back.style.display = slides ? "" : "none"; cnt.style.display = slides ? "" : "none"; navs.forEach(function(n){ n.style.display = slides ? "" : "none"; }); }
+  var stage = root.querySelector(".stage"), cnt = root.querySelector(".cnt"), pick = root.querySelector(".pick"), ttl = root.querySelector(".ttl"), back = root.querySelector(".back"), cur = null;
+  function mode(slides){ pick.style.display = slides ? "none" : ""; stage.style.display = slides ? "" : "none"; back.style.display = slides ? "" : "none"; cnt.style.display = slides ? "" : "none"; }
   function picker(){ cur = null; stage.innerHTML = ""; ttl.textContent = "Damage slicks"; mode(false); }
   function idx(){ return Math.round(stage.scrollLeft / Math.max(1, stage.clientWidth)); }
   function upd(){ if (cur) cnt.textContent = (idx() + 1) + " / " + SETS[cur].n; }
@@ -57,8 +56,14 @@
   function close(){ root.hidden = true; document.body.style.overflow = ""; stage.innerHTML = ""; cur = null; }
   stage.addEventListener("scroll", upd, { passive: true });
   root.querySelector(".x").onclick = close;
-  root.querySelector(".nav.l").onclick = function(){ go(-1); };
-  root.querySelector(".nav.r").onclick = function(){ go(1); };
+  // swipe (finger drag) to change slides; a quick tap on the left/right side also works
+  var tx = null, ty = null, t0 = 0, sl0 = 0;
+  stage.addEventListener("touchstart", function(e){ var t = e.touches[0]; tx = t.clientX; ty = t.clientY; t0 = Date.now(); sl0 = stage.scrollLeft; }, { passive: true });
+  stage.addEventListener("touchend", function(e){
+    if (tx === null || !cur) return; var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){ var base = Math.round(sl0 / Math.max(1, stage.clientWidth)); var i = Math.max(0, Math.min(SETS[cur].n - 1, base + (dx < 0 ? 1 : -1))); setTimeout(function(){ stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }, 0); }
+  }, { passive: true });
+  stage.addEventListener("click", function(e){ if (!cur) return; var w = stage.clientWidth; if (e.clientX < w * 0.25) go(-1); else if (e.clientX > w * 0.75) go(1); });
   root.querySelectorAll(".sq").forEach(function(t){ t.onclick = function(){ load(t.getAttribute("data-set")); }; });
   back.onclick = picker;
   root.querySelector(".nl").onclick = function(){ close(); var b = document.getElementById("newBtnTop") || document.getElementById("newBtnFab"); if (b) b.click(); };
