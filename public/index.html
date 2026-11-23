@@ -1041,7 +1041,7 @@
   html.socal-main .pb-e{background:#f3faf6;}
   html.socal-main .pg-links a{display:block;padding:8px 10px;margin-top:6px;border:1px solid var(--border);border-radius:8px;color:#1d4f8a;text-decoration:none;font-weight:600;background:#fff;}
   html.socal-main .pg-say{margin-top:8px;background:#fff8f5;border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:14px;line-height:1.45;}
-  html.wl-app:not(.wl-mine) #teleBtn{display:none!important;}
+  html.wl-app:not(.wl-mine) #teleBtn,html.wl-app:not(.wl-mine) #slicksBtn{display:none!important;}
   html.socal-main #hdrTag, html.socal-main .co-pick, html.socal-main #coBanner, html.socal-main #arenaBtn, html.socal-main #arenaBell{display:none!important;}
 </style>
 <script>
@@ -1062,6 +1062,7 @@
       <button class="icon-btn" id="statsBtn" title="Stats">&#128202;</button>
       <button class="icon-btn" id="practiceBtn" title="Practice">&#127919;</button>
       <button class="icon-btn" id="teleBtn" title="Telemarketing">&#128222;</button>
+      <button class="icon-btn" id="slicksBtn" title="Damage slicks">&#128214;</button>
       <button class="icon-btn" id="leadMapBtn" title="Map">&#128506;&#65039;</button>
       <button class="icon-btn" id="arenaBtn" title="Canvassing Arena">&#128205;</button>
       <button class="icon-btn" id="backupBtn" title="Backup / Import">&#8645;</button>
@@ -2007,7 +2008,7 @@
         '<div class="qr-box"><div class="lbl">Non-core project \u2014 book it on the QR form</div>' +
         '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
         '</div>' : '') +
-
+      (window.SLX ? SLX.forLead(l) : '') +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
@@ -3949,6 +3950,7 @@
 <script src="practice.js?v=59"></script>
 <script src="tele.js?v=29"></script>
 <script src="sync.js?v=3"></script>
+<script src="slicks.js?v=1"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTORS</div></div>
