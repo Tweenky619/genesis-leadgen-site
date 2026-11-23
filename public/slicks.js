@@ -48,7 +48,7 @@
     cur = set;
     ttl.textContent = SETS[set].name; mode(true);
     var h = ""; for (var i = 1; i <= SETS[set].n; i++){ var f = (i < 10 ? "0" : "") + i;
-      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + set + "/" + f + '.jpg?v=1" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
+      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + set + "/" + f + '.jpg?v=2" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
     Z = { s: 1, x: 0, y: 0, img: null }; stage.style.overflowX = ""; stage.innerHTML = h; stage.scrollLeft = 0; upd();
   }
   function go(d){ zreset(); var i = Math.max(0, Math.min(SETS[cur].n - 1, idx() + d)); stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }
