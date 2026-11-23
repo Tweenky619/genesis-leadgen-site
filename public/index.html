@@ -1049,6 +1049,12 @@
 <script>
   if (window.LG_WL && window.LG_CFG){ var st0 = document.createElement("style"); st0.textContent = ":root{--brand:" + window.LG_CFG.brand + ";--accent:" + window.LG_CFG.accent + ";}"; document.head.appendChild(st0); }
 </script>
+<script>
+  // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
+  window.LG_BUILD = "1795466012";
+  (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
+    chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
+</script>
 </head>
 <body>
 <div id="app">
