@@ -1051,7 +1051,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795466012";
+  window.LG_BUILD = "1795469522";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -2017,6 +2017,7 @@
         '<a class="qr-link" href="' + QR_FORM_URL + '" target="_blank" rel="noopener">\ud83d\udcf2 Open QR booking form</a>' +
         '</div>' : '') +
       (window.SLX ? SLX.forLead(l) : '') +
+      reminderHtml(l) +
       buildQuickActions(l) +
       buildFollowUp(l) +
       '<div id="detailPhotosWrap" style="display:none;margin-bottom:16px;"><div class="form-section-title">Photos of concern areas</div><div class="photo-grid" id="detailPhotos"></div><button type="button" class="share-photos" id="sharePhotosBtn">&#128228; Share photos</button></div>' +
@@ -2360,7 +2361,24 @@
   // ---- Follow-up ----
   function digits(p){ return (p||"").replace(/[^0-9+]/g, ""); }
   // US numbers always dialed as +1 so calls/texts route right from Mexico (Tijuana) or anywhere
+  document.addEventListener("click", function(e){ var a = e.target.closest && e.target.closest("[data-remind]"); if (!a) return; var l = leads.find(function(x){ return x.id === a.getAttribute("data-remind"); }); if (l){ addLog(l, "Texted reminder flyer"); save(); } });
   function usDial(p){ var d = String(p || "").replace(/\D/g, ""); if(d.length === 10) return "+1" + d; if(d.length === 11 && d[0] === "1") return "+" + d; return digits(p); }
+  // reminder flyer: text the homeowner their appointment + a link to the flyer filled in with it (Art's apps only)
+  function reminderHtml(l){
+    var H = document.documentElement; if (!(window.LG_SOCAL || H.classList.contains("wl-mine"))) return "";
+    if (!l.phone) return "";
+    if (!l.appt_date) return '<div class="slx-row"><button type="button" class="slx-go" style="opacity:.5" disabled>\ud83d\udcc4 Reminder flyer \u2014 set a date &amp; time first</button></div>';
+    var P = { "Roof": "roof", "Paint/Stucco": "paint & stucco", "Fascia/Trim Boards": "fascia & trim", "Windows": "windows" };
+    var ps = (l.interests || []).map(function(i){ return P[i] || (/^Other/.test(i) ? String(i).replace(/^Other:?\s*/, "").toLowerCase() : String(i).toLowerCase()); }).filter(Boolean);
+    var proj = ps.length ? ps.join(" & ") : "home";
+    var projBox = ps.length ? ps.map(function(x){ return x.replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }).join(", ") : "Exterior";
+    var dt = new Date(l.appt_date + "T12:00:00"), dLabel = dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+    var url = location.origin + "/flyer/?a=Art&d=" + encodeURIComponent(l.appt_date) + "&t=" + encodeURIComponent(l.appt_time || "") + "&p=" + encodeURIComponent(projBox);
+    var nm = (l.first_name || "").trim();
+    var body = "Hi" + (nm ? " " + nm : "") + ", it's Art from SoCal Contractor Exchange. Great meeting you today! Your free " + proj + " inspection is set for " + dLabel + (l.appt_time ? " at " + l.appt_time : "") +
+      ". Jorge from our office will call you to confirm from (619) 393-5297, so please pick up. Here's our flyer with the details: " + url + " See you then!";
+    return '<div class="slx-row"><a class="slx-go" style="text-align:center;text-decoration:none;background:#D9542C" data-remind="' + esc(l.id) + '" href="sms:' + esc(usDial(l.phone)) + '&body=' + encodeURIComponent(body) + '">\ud83d\udcc4 Send reminder flyer</a></div>';
+  }
   function buildQuickActions(l){
     var b = [];
     if(l.phone){
