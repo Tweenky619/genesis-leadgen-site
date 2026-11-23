@@ -1051,7 +1051,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795469942";
+  window.LG_BUILD = "1795470515";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -2383,7 +2383,7 @@
       '<a class="slx-go" style="text-align:center;text-decoration:none" data-remind="' + esc(l.id) + '" href="sms:' + esc(usDial(l.phone)) + '&body=' + encodeURIComponent(body) + '">\ud83d\udcac Step 2 \u2014 Open text to ' + esc(nm || "homeowner") + '</a>' +
       '<div style="font-size:12px;color:#64748b;text-align:center">In Messages, tap the text box \u2192 <b>Paste</b> to add the flyer, then send.</div></div>';
   }
-  var REM_BOX = {"fa": [780, 1987, 62], "fd": [780, 2049, 62], "ft": [780, 2110, 62], "fp": [780, 2172, 62], "sp": 228};
+  var REM_BOX = {"fa": [979, 848, 69], "fd": [979, 917, 69], "ft": [979, 985, 69], "fp": [979, 1054, 69], "sp": 191};
   function remindBlob(l){
     var r = remindInfo(l);
     return new Promise(function(res, rej){
@@ -2391,12 +2391,12 @@
         var c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight; var x = c.getContext("2d"); x.drawImage(img, 0, 0);
         x.fillStyle = "#1B2731"; x.textAlign = "right"; x.textBaseline = "middle";
         [["fa", "Art"], ["fd", r.date], ["ft", r.time || "\u2014"], ["fp", r.box]].forEach(function(f){
-          var b = REM_BOX[f[0]], size = 39, maxW = b[0] - REM_BOX.sp - 24;
-          do { x.font = "700 " + size + "px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"; size -= 2; } while (x.measureText(f[1]).width > maxW && size > 18);
+          var b = REM_BOX[f[0]], size = 38, maxW = b[0] - REM_BOX.sp - 24;
+          do { x.font = "800 " + size + "px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"; size -= 2; } while (x.measureText(f[1]).width > maxW && size > 18);
           x.fillText(f[1], b[0], b[1] + b[2] / 2);
         });
         c.toBlob(function(bl){ bl ? res(bl) : rej(new Error("no image")); }, "image/png");
-      }; img.onerror = rej; img.src = "/flyer/back-blank.jpg?v=1";
+      }; img.onerror = rej; img.src = "/flyer/mini-blank.jpg?v=1";
     });
   }
   function toast(msg){ var t = document.createElement("div"); t.textContent = msg; t.style.cssText = "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#14212B;color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:99999;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.3)"; document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3500); }
