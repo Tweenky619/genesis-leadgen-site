@@ -8,6 +8,10 @@
     windows: { name: "Windows", n: 7, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" }
   };
   var ORDER = ["roof", "stucco", "windows"];
+  // preview of the new roof pitch slides + tap-a-photo: open the app once with ?slxpreview=1 (or =0 to turn off)
+  var PV = false; try { var q = (location.search.match(/slxpreview=(\d)/) || [])[1]; if (q) localStorage.setItem("slx_preview", q); PV = localStorage.getItem("slx_preview") === "1"; } catch(e){}
+  var PH = PV ? {"roof": [[], [["missing", 0.0889, 0.2515, 0.2648, 0.4352, "Missing shingles"], ["ridge", 0.3676, 0.2515, 0.2648, 0.4352, "Damaged ridge caps"], ["mold", 0.6463, 0.2515, 0.2648, 0.4352, "Dark streaks"]], [["dead_a", 0.0889, 0.2515, 0.4042, 0.2176, "Worn shingles"], ["dead_b", 0.5069, 0.2515, 0.4042, 0.2176, "What protects a shingle"], ["dead_c", 0.0889, 0.525, 0.4042, 0.2176, "Granules: new vs. 10 years"], ["dead_d", 0.5069, 0.525, 0.4042, 0.2176, "Exposed fiberglass = dead shingles"]], [], [["leak_c", 0.0889, 0.2025, 0.4042, 0.3889, "What people expect: a stain on the ceiling"], ["leak_b", 0.5069, 0.2025, 0.4042, 0.3889, "What happens first: water gets under the shingles"]], [["leak_a", 0.0889, 0.2515, 0.4042, 0.3889, "Wet, stained insulation"], ["leak_d", 0.5069, 0.2515, 0.4042, 0.3889, "Stained, rotting decking"]], [], [["wood_a", 0.0889, 0.2117, 0.4042, 0.2778, "Rotted roof decking"], ["wood_b", 0.5069, 0.2117, 0.4042, 0.2778, "Sections of decking replaced"], ["wood_c", 0.0889, 0.5454, 0.4042, 0.2778, "Eaves and rafters exposed"], ["wood_d", 0.5069, 0.5454, 0.4042, 0.2778, "New wood going down"]], [], []], "stucco": [[], [["stucco_a", 0.0889, 0.2117, 0.4042, 0.2778, "Paint and stucco blistering"], ["stucco_m", 0.5069, 0.2117, 0.4042, 0.2778, "Efflorescence: white, powdery salt"], ["stucco_b", 0.0889, 0.5454, 0.4042, 0.2778, "Stucco breaking away"], ["stucco_c", 0.5069, 0.5454, 0.4042, 0.2778, "Crumbling at the foundation"]], [["framing", 0.0889, 0.2154, 0.4444, 0.5185, "House framing — what’s behind the stucco"]], [], [["wood_a", 0.0889, 0.2117, 0.4042, 0.2778, "Rotted roof decking"], ["wood_b", 0.5069, 0.2117, 0.4042, 0.2778, "Sections of decking replaced"], ["wood_c", 0.0889, 0.5454, 0.4042, 0.2778, "Eaves and rafters exposed"], ["wood_d", 0.5069, 0.5454, 0.4042, 0.2778, "New wood going down"]], [], [], []], "windows": [[], [["win_fog", 0.0889, 0.2154, 0.4444, 0.2593, "Foggy glass — the seal has failed"], ["win_frame", 0.0889, 0.5268, 0.4444, 0.2593, "Broken frames and tracks"]], [["win_room", 0.0889, 0.2154, 0.4444, 0.5185, "New windows: quiet, bright, comfortable"]], [], [], [], []]} : {};
+  if (PV){ SETS.roof.n = 10; SETS.roof.dir = "roof-preview"; }
   var css = document.createElement("style");
   css.textContent =
     "#slx{position:fixed;inset:0;z-index:99999;background:#14212B;display:flex;flex-direction:column;color:#F3EFE7;font-family:-apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}" +
@@ -31,6 +35,9 @@
     "#slx .sl{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 0 calc(env(safe-area-inset-bottom) + 8px)}" +
     "#slx .sl{overflow:hidden}#slx .sl img{max-width:100%;max-height:100%;object-fit:contain;display:block;will-change:transform;transform-origin:center center}" +
     
+    "#slxF{position:fixed;inset:0;z-index:100000;background:#0b1117;display:flex;align-items:center;justify-content:center}" +
+    "#slxF[hidden]{display:none}#slxF img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.5)}" +
+    "#slxF .fx{position:absolute;top:calc(env(safe-area-inset-top) + 10px);right:14px;border:0;background:#1e2a35;color:#fff;font-size:20px;width:44px;height:44px;border-radius:22px}" +
     ".slx-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}" +
     ".slx-go{flex:1 1 auto;border:0;border-radius:6px;padding:12px 14px;font-weight:800;font-size:15px;background:#14212B;color:#fff}";
   document.head.appendChild(css);
@@ -39,6 +46,15 @@
     '<div class="pick">' + ORDER.map(function(k){ var t = SETS[k]; return '<button class="sq" data-set="' + k + '" style="background:' + t.bg + '"><i>' + t.ic + '</i><span><b>' + t.name + '</b><small>' + t.sub + '</small></span></button>'; }).join("") + '</div>' +
     '<div class="stage"></div>';
   document.body.appendChild(root);
+  var F = document.createElement("div"); F.id = "slxF"; F.hidden = true; F.innerHTML = '<img alt=""><button class="fx" aria-label="Back">\u2715</button>'; document.body.appendChild(F);
+  F.addEventListener("click", function(){ F.hidden = true; F.querySelector("img").removeAttribute("src"); });
+  function photoAt(e){   // which photo on the current slide was tapped (only when not zoomed)
+    if (!PV || !cur || Z.s > 1 || !PH[cur]) return null; var i = idx(), rows = PH[cur][i]; if (!rows || !rows.length) return null;
+    var im = stage.children[i] && stage.children[i].querySelector("img"); if (!im) return null; var r = im.getBoundingClientRect();
+    var fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    for (var j = 0; j < rows.length; j++){ var p = rows[j]; if (fx >= p[1] && fx <= p[1] + p[3] && fy >= p[2] && fy <= p[2] + p[4]) return p; }
+    return null;
+  }
   var stage = root.querySelector(".stage"), cnt = root.querySelector(".cnt"), pick = root.querySelector(".pick"), ttl = root.querySelector(".ttl"), back = root.querySelector(".back"), cur = null;
   function mode(slides){ pick.style.display = slides ? "none" : ""; stage.style.display = slides ? "" : "none"; back.style.display = slides ? "" : "none"; cnt.style.display = slides ? "" : "none"; }
   function picker(){ cur = null; stage.innerHTML = ""; ttl.textContent = "Damage slicks"; mode(false); }
@@ -48,12 +64,12 @@
     cur = set;
     ttl.textContent = SETS[set].name; mode(true);
     var h = ""; for (var i = 1; i <= SETS[set].n; i++){ var f = (i < 10 ? "0" : "") + i;
-      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + set + "/" + f + '.jpg?v=2" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
+      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + (SETS[set].dir || set) + "/" + f + '.jpg?v=2" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
     Z = { s: 1, x: 0, y: 0, img: null }; stage.style.overflowX = ""; stage.innerHTML = h; stage.scrollLeft = 0; upd();
   }
   function go(d){ zreset(); var i = Math.max(0, Math.min(SETS[cur].n - 1, idx() + d)); stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }
   function open(set){ root.hidden = false; document.body.style.overflow = "hidden"; if (SETS[set]) load(set); else picker(); }
-  function close(){ root.hidden = true; document.body.style.overflow = ""; stage.innerHTML = ""; cur = null; }
+  function close(){ F.hidden = true; root.hidden = true; document.body.style.overflow = ""; stage.innerHTML = ""; cur = null; }
   stage.addEventListener("scroll", upd, { passive: true });
   root.querySelector(".x").onclick = close;
   // swipe to change slides; pinch to zoom (spread = bigger, pinch = smaller); drag to look around while zoomed; double-tap to reset
@@ -93,7 +109,8 @@
   }, { passive: true });
   root.addEventListener("gesturestart", function(e){ e.preventDefault(); });   // stop Safari zooming the whole page
   stage.addEventListener("scroll", function(){ if (Z.img && Z.s === 1) Z.img = null; }, { passive: true });
-  stage.addEventListener("click", function(e){ if (!cur || Z.s > 1) return; var w = stage.clientWidth; if (e.clientX < w * 0.25) go(-1); else if (e.clientX > w * 0.75) go(1); });
+  stage.addEventListener("click", function(e){ if (!cur || Z.s > 1) return;
+    var ph = photoAt(e); if (ph){ lastTap = 0; var fi = F.querySelector("img"); fi.src = "slicks/photos/" + ph[0] + ".jpg?v=1"; fi.alt = ph[5] || ""; F.hidden = false; return; } var w = stage.clientWidth; if (e.clientX < w * 0.25) go(-1); else if (e.clientX > w * 0.75) go(1); });
   root.querySelectorAll(".sq").forEach(function(t){ t.onclick = function(){ load(t.getAttribute("data-set")); }; });
   back.onclick = picker;
   root.querySelector(".nl").onclick = function(){ close(); var b = document.getElementById("newBtnTop") || document.getElementById("newBtnFab"); if (b) b.click(); };
