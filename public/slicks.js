@@ -26,10 +26,10 @@
     "@media (max-width:600px) and (orientation:portrait){#slx .pick{grid-template-columns:1fr;align-content:start}#slx .sq{aspect-ratio:auto;min-height:140px;flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}#slx .sq i{flex:0 0 auto;align-self:center;font-size:56px}#slx .sq span{display:flex;flex-direction:column}}" +
     "#slx .cnt{font-weight:700;font-size:14px;color:#C3CDD3;min-width:48px;text-align:right}" +
     "#slx .x{border:0;background:#1e2a35;color:#fff;font-size:20px;width:40px;height:40px;border-radius:20px}" +
-    "#slx .stage{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;touch-action:pan-x;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
+    "#slx .stage{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;touch-action:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
     "#slx .stage::-webkit-scrollbar{display:none}" +
     "#slx .sl{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 0 calc(env(safe-area-inset-bottom) + 8px)}" +
-    "#slx .sl img{max-width:100%;max-height:100%;object-fit:contain;display:block}" +
+    "#slx .sl{overflow:hidden}#slx .sl img{max-width:100%;max-height:100%;object-fit:contain;display:block;will-change:transform;transform-origin:center center}" +
     
     ".slx-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}" +
     ".slx-go{flex:1 1 auto;border:0;border-radius:6px;padding:12px 14px;font-weight:800;font-size:15px;background:#14212B;color:#fff}";
@@ -49,21 +49,51 @@
     ttl.textContent = SETS[set].name; mode(true);
     var h = ""; for (var i = 1; i <= SETS[set].n; i++){ var f = (i < 10 ? "0" : "") + i;
       h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + set + "/" + f + '.jpg?v=1" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
-    stage.innerHTML = h; stage.scrollLeft = 0; upd();
+    Z = { s: 1, x: 0, y: 0, img: null }; stage.style.overflowX = ""; stage.innerHTML = h; stage.scrollLeft = 0; upd();
   }
-  function go(d){ var i = Math.max(0, Math.min(SETS[cur].n - 1, idx() + d)); stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }
+  function go(d){ zreset(); var i = Math.max(0, Math.min(SETS[cur].n - 1, idx() + d)); stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }
   function open(set){ root.hidden = false; document.body.style.overflow = "hidden"; if (SETS[set]) load(set); else picker(); }
   function close(){ root.hidden = true; document.body.style.overflow = ""; stage.innerHTML = ""; cur = null; }
   stage.addEventListener("scroll", upd, { passive: true });
   root.querySelector(".x").onclick = close;
-  // swipe (finger drag) to change slides; a quick tap on the left/right side also works
-  var tx = null, ty = null, t0 = 0, sl0 = 0;
-  stage.addEventListener("touchstart", function(e){ var t = e.touches[0]; tx = t.clientX; ty = t.clientY; t0 = Date.now(); sl0 = stage.scrollLeft; }, { passive: true });
-  stage.addEventListener("touchend", function(e){
-    if (tx === null || !cur) return; var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)){ var base = Math.round(sl0 / Math.max(1, stage.clientWidth)); var i = Math.max(0, Math.min(SETS[cur].n - 1, base + (dx < 0 ? 1 : -1))); setTimeout(function(){ stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }, 0); }
+  // swipe to change slides; pinch to zoom (spread = bigger, pinch = smaller); drag to look around while zoomed; double-tap to reset
+  var tx = null, ty = null, sl0 = 0, Z = { s: 1, x: 0, y: 0, img: null }, P = null, pan = null, pinched = false, lastTap = 0;
+  function zimg(){ var i = Math.round(stage.scrollLeft / Math.max(1, stage.clientWidth)); var sl = stage.children[i]; return sl ? sl.querySelector("img") : null; }
+  function zapply(){ if (!Z.img) return; var w = Z.img.clientWidth, h = Z.img.clientHeight, mx = w * (Z.s - 1) / 2, my = h * (Z.s - 1) / 2;
+    Z.x = Math.max(-mx, Math.min(mx, Z.x)); Z.y = Math.max(-my, Math.min(my, Z.y));
+    Z.img.style.transform = Z.s > 1 ? "translate(" + Z.x + "px," + Z.y + "px) scale(" + Z.s + ")" : ""; stage.style.overflowX = Z.s > 1 ? "hidden" : ""; }
+  function zreset(){ if (Z.img){ Z.img.style.transition = "transform .2s"; Z.s = 1; Z.x = Z.y = 0; zapply(); var im = Z.img; setTimeout(function(){ im.style.transition = ""; }, 220); } Z = { s: 1, x: 0, y: 0, img: null }; stage.style.overflowX = ""; }
+  function dist(a, b){ return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+  stage.addEventListener("touchstart", function(e){
+    if (!cur) return;
+    if (e.touches.length === 2){ pinched = true; tx = null; var im = zimg(); if (Z.img !== im){ zreset(); Z.img = im; }
+      P = { d: dist(e.touches[0], e.touches[1]), s: Z.s, x: Z.x, y: Z.y, mx: (e.touches[0].clientX + e.touches[1].clientX) / 2, my: (e.touches[0].clientY + e.touches[1].clientY) / 2 }; return; }
+    if (e.touches.length === 1){ var t = e.touches[0];
+      if (Z.s > 1){ pan = { x: t.clientX, y: t.clientY, ox: Z.x, oy: Z.y }; tx = null; }
+      else { tx = t.clientX; ty = t.clientY; sl0 = stage.scrollLeft; pinched = false; } }
   }, { passive: true });
-  stage.addEventListener("click", function(e){ if (!cur) return; var w = stage.clientWidth; if (e.clientX < w * 0.25) go(-1); else if (e.clientX > w * 0.75) go(1); });
+  stage.addEventListener("touchmove", function(e){
+    if (P && e.touches.length === 2 && Z.img){ e.preventDefault();
+      var r = Z.img.getBoundingClientRect(), cx0 = r.left + r.width / 2 - Z.x, cy0 = r.top + r.height / 2 - Z.y;   // image centre when not panned
+      var ns = Math.max(1, Math.min(3.5, P.s * dist(e.touches[0], e.touches[1]) / P.d));
+      var mx = (e.touches[0].clientX + e.touches[1].clientX) / 2, my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      Z.x = (P.mx - cx0) - (P.mx - cx0 - P.x) * ns / P.s + (mx - P.mx); Z.y = (P.my - cy0) - (P.my - cy0 - P.y) * ns / P.s + (my - P.my);
+      Z.s = ns; zapply(); return; }
+    if (pan && e.touches.length === 1 && Z.s > 1){ e.preventDefault(); var t = e.touches[0]; Z.x = pan.ox + (t.clientX - pan.x); Z.y = pan.oy + (t.clientY - pan.y); zapply(); return; }
+    if (tx !== null && e.touches.length === 1 && Z.s === 1){ e.preventDefault(); stage.style.scrollSnapType = "none"; stage.scrollLeft = sl0 - (e.touches[0].clientX - tx); }   // slide follows your finger
+  }, { passive: false });
+  stage.addEventListener("touchend", function(e){
+    if (P && e.touches.length < 2){ P = null; if (Z.s < 1.05) zreset(); return; }
+    if (pan && e.touches.length === 0){ pan = null; }
+    if (e.touches.length === 0 && e.changedTouches.length === 1 && !pinched){ var now = Date.now(); if (now - lastTap < 300){ lastTap = 0; if (Z.s > 1) zreset(); else { Z.img = zimg(); Z.s = 2.2; Z.x = Z.y = 0; if (Z.img){ Z.img.style.transition = "transform .2s"; zapply(); var im = Z.img; setTimeout(function(){ im.style.transition = ""; }, 220); } } tx = null; return; } lastTap = now; }
+    if (tx === null || !cur || Z.s > 1) { tx = null; return; } var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty; tx = null;
+    var base = Math.round(sl0 / Math.max(1, stage.clientWidth)), i = base;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) i = Math.max(0, Math.min(SETS[cur].n - 1, base + (dx < 0 ? 1 : -1)));
+    stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); setTimeout(function(){ stage.style.scrollSnapType = ""; }, 450);
+  }, { passive: true });
+  root.addEventListener("gesturestart", function(e){ e.preventDefault(); });   // stop Safari zooming the whole page
+  stage.addEventListener("scroll", function(){ if (Z.img && Z.s === 1) Z.img = null; }, { passive: true });
+  stage.addEventListener("click", function(e){ if (!cur || Z.s > 1) return; var w = stage.clientWidth; if (e.clientX < w * 0.25) go(-1); else if (e.clientX > w * 0.75) go(1); });
   root.querySelectorAll(".sq").forEach(function(t){ t.onclick = function(){ load(t.getAttribute("data-set")); }; });
   back.onclick = picker;
   root.querySelector(".nl").onclick = function(){ close(); var b = document.getElementById("newBtnTop") || document.getElementById("newBtnFab"); if (b) b.click(); };
