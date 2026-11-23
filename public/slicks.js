@@ -5,9 +5,10 @@
   var SETS = {
     roof:    { name: "Roof", n: 10, ic: "\ud83c\udfe0", sub: "Shingles \u00b7 leaks \u00b7 wood", bg: "#E8B04A" },
     stucco:  { name: "Paint & Stucco", n: 10, ic: "\ud83e\uddf1", sub: "Cracks \u00b7 stucco cancer", bg: "#E2672B" },
-    windows: { name: "Windows", n: 8, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" }
+    windows: { name: "Windows", n: 8, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" },
+    flyer:   { name: "Flyer", n: 2, ic: "\ud83d\udcc4", sub: "Front \u00b7 back \u00b7 QR code", bg: "#9FB3C2" }
   };
-  var ORDER = ["roof", "stucco", "windows"];
+  var ORDER = ["roof", "stucco", "windows", "flyer"];
   // preview of the new roof pitch slides + tap-a-photo: open the app once with ?slxpreview=1 (or =0 to turn off)
   var PV = false; try { var q = (location.search.match(/slxpreview=(\d)/) || [])[1]; if (q) localStorage.setItem("slx_preview", q); PV = localStorage.getItem("slx_preview") === "1"; } catch(e){}
   PV = true;   // live: pitch slides + tap-a-photo for everyone
@@ -21,7 +22,7 @@
     "#slx .ttl{flex:1;font-weight:900;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#E2672B}" +
     "#slx .nl{border:0;width:40px;height:40px;border-radius:20px;padding:0;font-size:26px;font-weight:600;line-height:1;background:#1e2a35;color:#fff}" +
     "#slx .back{border:0;border-radius:6px;padding:10px 14px;font-weight:800;font-size:14px;background:#1e2a35;color:#F3EFE7}" +
-    "#slx .pick{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:16px 20px calc(env(safe-area-inset-bottom) + 20px);align-content:center;overflow:auto}" +
+    "#slx .pick{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:16px 20px calc(env(safe-area-inset-bottom) + 20px);align-content:center;overflow:auto}" +
     "#slx .sq{aspect-ratio:1;border:0;border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;text-align:left;padding:20px;color:#14212B;font-family:inherit}" +
     "#slx .sq i{font-style:normal;font-size:clamp(44px,8vw,80px);flex:1;align-self:center;display:flex;align-items:center}" +
     "#slx .sq b{font-size:clamp(20px,3vw,30px);font-weight:900;text-transform:uppercase;line-height:1.05}" +
