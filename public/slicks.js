@@ -6,11 +6,14 @@
     roof:    { name: "Roof", n: 10, ic: "\ud83c\udfe0", sub: "Shingles \u00b7 leaks \u00b7 wood", bg: "#E8B04A" },
     stucco:  { name: "Paint & Stucco", n: 10, ic: "\ud83e\uddf1", sub: "Cracks \u00b7 stucco cancer", bg: "#E2672B" },
     windows: { name: "Windows", n: 8, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" },
+    cards:   { name: "Slick cards", n: 18, ic: "\ud83d\uddc2\ufe0f", sub: "All 18 cards", bg: "#C3CDD3" },
     flyer:   { name: "Flyer", n: 2, ic: "\ud83d\udcc4", sub: "Front \u00b7 back \u00b7 QR code", bg: "#9FB3C2" }
   };
   var ORDER = ["roof", "stucco", "windows", "flyer"];
   // preview of the new roof pitch slides + tap-a-photo: open the app once with ?slxpreview=1 (or =0 to turn off)
   var PV = false; try { var q = (location.search.match(/slxpreview=(\d)/) || [])[1]; if (q) localStorage.setItem("slx_preview", q); PV = localStorage.getItem("slx_preview") === "1"; } catch(e){}
+  var CPV = PV;   // preview flag still controls new squares (slick cards)
+  if (CPV) ORDER.splice(3, 0, "cards");
   PV = true;   // live: pitch slides + tap-a-photo for everyone
   var PH = PV ? {"roof": [[], [["missing", 0.0889, 0.2515, 0.2648, 0.4352, "Missing shingles"], ["ridge", 0.3676, 0.2515, 0.2648, 0.4352, "Damaged ridge caps"], ["mold", 0.6463, 0.2515, 0.2648, 0.4352, "Dark streaks"]], [["dead_a", 0.0889, 0.2515, 0.4042, 0.2176, "Worn shingles"], ["dead_b", 0.5069, 0.2515, 0.4042, 0.2176, "What protects a shingle"], ["dead_c", 0.0889, 0.525, 0.4042, 0.2176, "Granules: new vs. 10 years"], ["dead_d", 0.5069, 0.525, 0.4042, 0.2176, "Exposed fiberglass = dead shingles"]], [], [["leak_c", 0.0889, 0.2025, 0.4042, 0.3889, "What people expect: a stain on the ceiling"], ["leak_b", 0.5069, 0.2025, 0.4042, 0.3889, "What happens first: water gets under the shingles"]], [["leak_a", 0.0889, 0.2515, 0.4042, 0.3889, "Wet, stained insulation"], ["leak_d", 0.5069, 0.2515, 0.4042, 0.3889, "Stained, rotting decking"]], [], [["wood_a", 0.0889, 0.2117, 0.4042, 0.2778, "Rotted roof decking"], ["wood_b", 0.5069, 0.2117, 0.4042, 0.2778, "Sections of decking replaced"], ["wood_c", 0.0889, 0.5454, 0.4042, 0.2778, "Eaves and rafters exposed"], ["wood_d", 0.5069, 0.5454, 0.4042, 0.2778, "New wood going down"]], [], []], "stucco": [[], [["stucco_a", 0.0889, 0.2025, 0.4042, 0.3981, "Chipping and peeling"], ["stucco_b", 0.5069, 0.2025, 0.4042, 0.3981, "Stucco letting go"]], [["stucco_m", 0.0889, 0.2515, 0.4042, 0.3704, "Efflorescence: white, powdery stains"], ["stucco_c", 0.5069, 0.2515, 0.4042, 0.3704, "Stucco crumbling at the bottom"]], [["framing", 0.0889, 0.2552, 0.4444, 0.4352, "House framing — what’s behind the stucco"]], [], [["wood_c", 0.0889, 0.2515, 0.4042, 0.3704, "Eaves and rafters exposed"], ["wood_a", 0.5069, 0.2515, 0.4042, 0.3704, "Rotted wood"]], [], [], [], []], "windows": [[], [["win_fog", 0.0889, 0.2552, 0.4444, 0.4352, "Foggy glass — the seal has failed"]], [["win_room", 0.0889, 0.2552, 0.4444, 0.4352, "New windows: quiet, bright, comfortable"]], [["win_frame", 0.0889, 0.2552, 0.4444, 0.4352, "Worn frames and tracks"]], [], [], [], []]} : {};
   
@@ -29,7 +32,7 @@
     "#slx .sq small{font-size:14px;font-weight:700;opacity:.8;margin-top:6px}" +
     "#slx .sq span{display:flex;flex-direction:column}" +
     "#slx .sq:active{transform:scale(.97)}" +
-    "@media (max-width:600px) and (orientation:portrait){#slx .pick{grid-template-columns:1fr;align-content:start}#slx .sq{aspect-ratio:auto;min-height:140px;flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}#slx .sq i{flex:0 0 auto;align-self:center;font-size:56px}#slx .sq span{display:flex;flex-direction:column}}" +
+    "@media (max-width:600px) and (orientation:portrait){#slx .pick{grid-template-columns:1fr!important;align-content:start}#slx .sq{aspect-ratio:auto;min-height:140px;flex-direction:row;align-items:center;justify-content:flex-start;gap:18px}#slx .sq i{flex:0 0 auto;align-self:center;font-size:56px}#slx .sq span{display:flex;flex-direction:column}}" +
     "#slx .cnt{font-weight:700;font-size:14px;color:#C3CDD3;min-width:48px;text-align:right}" +
     "#slx .x{border:0;background:#1e2a35;color:#fff;font-size:20px;width:40px;height:40px;border-radius:20px}" +
     "#slx .stage{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;touch-action:none;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}" +
@@ -48,6 +51,7 @@
     '<div class="pick">' + ORDER.map(function(k){ var t = SETS[k]; return '<button class="sq" data-set="' + k + '" style="background:' + t.bg + '"><i>' + t.ic + '</i><span><b>' + t.name + '</b><small>' + t.sub + '</small></span></button>'; }).join("") + '</div>' +
     '<div class="stage"></div>';
   document.body.appendChild(root);
+  root.querySelector(".pick").style.gridTemplateColumns = "repeat(" + (ORDER.length > 4 ? 3 : ORDER.length) + ",minmax(0,1fr))";
   var F = document.createElement("div"); F.id = "slxF"; F.hidden = true; F.innerHTML = '<img alt=""><button class="fx" aria-label="Back">\u2715</button>'; document.body.appendChild(F);
   F.addEventListener("click", function(){ F.hidden = true; F.querySelector("img").removeAttribute("src"); });
   function photoAt(e){   // which photo on the current slide was tapped (only when not zoomed)
