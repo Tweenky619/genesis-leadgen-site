@@ -3,15 +3,16 @@
   var H = document.documentElement;
   if (H.classList.contains("wl-app") && !H.classList.contains("wl-mine")) { var b0 = document.getElementById("slicksBtn"); if (b0) b0.remove(); return; }
   var SETS = {
-    roof:    { name: "Roof", n: 9, ic: "\ud83c\udfe0", sub: "Shingles \u00b7 leaks \u00b7 wood", bg: "#E8B04A" },
-    stucco:  { name: "Paint & Stucco", n: 8, ic: "\ud83e\uddf1", sub: "Cracks \u00b7 stucco cancer", bg: "#E2672B" },
-    windows: { name: "Windows", n: 7, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" }
+    roof:    { name: "Roof", n: 10, ic: "\ud83c\udfe0", sub: "Shingles \u00b7 leaks \u00b7 wood", bg: "#E8B04A" },
+    stucco:  { name: "Paint & Stucco", n: 10, ic: "\ud83e\uddf1", sub: "Cracks \u00b7 stucco cancer", bg: "#E2672B" },
+    windows: { name: "Windows", n: 8, ic: "\ud83e\ude9f", sub: "Fog \u00b7 drafts \u00b7 frames", bg: "#F3EFE7" }
   };
   var ORDER = ["roof", "stucco", "windows"];
   // preview of the new roof pitch slides + tap-a-photo: open the app once with ?slxpreview=1 (or =0 to turn off)
   var PV = false; try { var q = (location.search.match(/slxpreview=(\d)/) || [])[1]; if (q) localStorage.setItem("slx_preview", q); PV = localStorage.getItem("slx_preview") === "1"; } catch(e){}
+  PV = true;   // live: pitch slides + tap-a-photo for everyone
   var PH = PV ? {"roof": [[], [["missing", 0.0889, 0.2515, 0.2648, 0.4352, "Missing shingles"], ["ridge", 0.3676, 0.2515, 0.2648, 0.4352, "Damaged ridge caps"], ["mold", 0.6463, 0.2515, 0.2648, 0.4352, "Dark streaks"]], [["dead_a", 0.0889, 0.2515, 0.4042, 0.2176, "Worn shingles"], ["dead_b", 0.5069, 0.2515, 0.4042, 0.2176, "What protects a shingle"], ["dead_c", 0.0889, 0.525, 0.4042, 0.2176, "Granules: new vs. 10 years"], ["dead_d", 0.5069, 0.525, 0.4042, 0.2176, "Exposed fiberglass = dead shingles"]], [], [["leak_c", 0.0889, 0.2025, 0.4042, 0.3889, "What people expect: a stain on the ceiling"], ["leak_b", 0.5069, 0.2025, 0.4042, 0.3889, "What happens first: water gets under the shingles"]], [["leak_a", 0.0889, 0.2515, 0.4042, 0.3889, "Wet, stained insulation"], ["leak_d", 0.5069, 0.2515, 0.4042, 0.3889, "Stained, rotting decking"]], [], [["wood_a", 0.0889, 0.2117, 0.4042, 0.2778, "Rotted roof decking"], ["wood_b", 0.5069, 0.2117, 0.4042, 0.2778, "Sections of decking replaced"], ["wood_c", 0.0889, 0.5454, 0.4042, 0.2778, "Eaves and rafters exposed"], ["wood_d", 0.5069, 0.5454, 0.4042, 0.2778, "New wood going down"]], [], []], "stucco": [[], [["stucco_a", 0.0889, 0.2025, 0.4042, 0.3981, "Chipping and peeling"], ["stucco_b", 0.5069, 0.2025, 0.4042, 0.3981, "Stucco letting go"]], [["stucco_m", 0.0889, 0.2515, 0.4042, 0.3704, "Efflorescence: white, powdery stains"], ["stucco_c", 0.5069, 0.2515, 0.4042, 0.3704, "Stucco crumbling at the bottom"]], [["framing", 0.0889, 0.2552, 0.4444, 0.4352, "House framing — what’s behind the stucco"]], [], [["wood_c", 0.0889, 0.2515, 0.4042, 0.3704, "Eaves and rafters exposed"], ["wood_a", 0.5069, 0.2515, 0.4042, 0.3704, "Rotted wood"]], [], [], [], []], "windows": [[], [["win_fog", 0.0889, 0.2552, 0.4444, 0.4352, "Foggy glass — the seal has failed"]], [["win_room", 0.0889, 0.2552, 0.4444, 0.4352, "New windows: quiet, bright, comfortable"]], [["win_frame", 0.0889, 0.2552, 0.4444, 0.4352, "Worn frames and tracks"]], [], [], [], []]} : {};
-  if (PV){ SETS.roof.n = 10; SETS.roof.dir = "roof-preview"; SETS.stucco.n = 10; SETS.stucco.dir = "stucco-preview"; SETS.windows.n = 8; SETS.windows.dir = "windows-preview"; }
+  
   var css = document.createElement("style");
   css.textContent =
     "#slx{position:fixed;inset:0;z-index:99999;background:#14212B;display:flex;flex-direction:column;color:#F3EFE7;font-family:-apple-system,system-ui,sans-serif;-webkit-user-select:none;user-select:none}" +
@@ -64,7 +65,7 @@
     cur = set;
     ttl.textContent = SETS[set].name; mode(true);
     var h = ""; for (var i = 1; i <= SETS[set].n; i++){ var f = (i < 10 ? "0" : "") + i;
-      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + (SETS[set].dir || set) + "/" + f + '.jpg?v=2" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
+      h += '<div class="sl"><img ' + (i <= 2 ? "" : 'loading="lazy" ') + 'src="slicks/sets/' + (SETS[set].dir || set) + "/" + f + '.jpg?v=3" alt="' + SETS[set].name + ' slide ' + i + '"></div>'; }
     Z = { s: 1, x: 0, y: 0, img: null }; stage.style.overflowX = ""; stage.innerHTML = h; stage.scrollLeft = 0; upd();
   }
   function go(d){ zreset(); var i = Math.max(0, Math.min(SETS[cur].n - 1, idx() + d)); stage.scrollTo({ left: i * stage.clientWidth, behavior: "smooth" }); }
