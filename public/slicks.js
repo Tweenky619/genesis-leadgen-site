@@ -14,7 +14,7 @@
     "#slx[hidden]{display:none}" +
     "#slx .bar{display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;flex:0 0 auto}" +
     "#slx .ttl{flex:1;font-weight:900;font-size:15px;letter-spacing:2px;text-transform:uppercase;color:#E2672B}" +
-    "#slx .nl{border:0;border-radius:6px;padding:10px 14px;font-weight:800;font-size:14px;background:#E2672B;color:#14212B;white-space:nowrap}" +
+    "#slx .nl{border:0;width:40px;height:40px;border-radius:20px;padding:0;font-size:26px;font-weight:600;line-height:1;background:#1e2a35;color:#fff}" +
     "#slx .back{border:0;border-radius:6px;padding:10px 14px;font-weight:800;font-size:14px;background:#1e2a35;color:#F3EFE7}" +
     "#slx .pick{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:18px;padding:16px 20px calc(env(safe-area-inset-bottom) + 20px);align-content:center;overflow:auto}" +
     "#slx .sq{aspect-ratio:1;border:0;border-radius:6px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;text-align:left;padding:20px;color:#14212B;font-family:inherit}" +
@@ -36,7 +36,7 @@
     ".slx-go{flex:1 1 auto;border:0;border-radius:6px;padding:12px 14px;font-weight:800;font-size:15px;background:#14212B;color:#fff}";
   document.head.appendChild(css);
   var root = document.createElement("div"); root.id = "slx"; root.hidden = true;
-  root.innerHTML = '<div class="bar"><button class="back">\u25c0 Sets</button><div class="ttl">Damage slicks</div><div class="cnt"></div><button class="nl">+ New lead</button><button class="x" aria-label="Close">\u2715</button></div>' +
+  root.innerHTML = '<div class="bar"><button class="back">\u25c0 Sets</button><div class="ttl">Damage slicks</div><div class="cnt"></div><button class="nl" aria-label="Add">+</button><button class="x" aria-label="Close">\u2715</button></div>' +
     '<div class="pick">' + ORDER.map(function(k){ var t = SETS[k]; return '<button class="sq" data-set="' + k + '" style="background:' + t.bg + '"><i>' + t.ic + '</i><span><b>' + t.name + '</b><small>' + t.sub + '</small></span></button>'; }).join("") + '</div>' +
     '<div class="stage"></div><button class="nav l" aria-label="Previous"></button><button class="nav r" aria-label="Next"></button>';
   document.body.appendChild(root);
