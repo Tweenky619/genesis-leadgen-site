@@ -7,11 +7,11 @@
 <script>
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
   window.LG_WL = /^\/(app|custom)(\/|$)/.test(location.pathname);
-  // /app is Art's own program (always Goldenbee MALAJ Home Connectors); /custom is the customizable copy for future companies
+  // /app is Art's own program (always Goldenbee MALAJ Home Connector); /custom is the customizable copy for future companies
   window.LG_MINE = /^\/app(\/|$)/.test(location.pathname);
   window.LG_WLP = window.LG_MINE ? "wl_" : "wc_";
   if (window.LG_MINE) document.documentElement.className += " wl-mine";
-  // Main address = SoCal Contractor Exchange Lead Gen again (Art is back with SoCal, Nov 20, 2026); Goldenbee MALAJ Home Connectors stays at /app
+  // Main address = SoCal Contractor Exchange Lead Gen again (Art is back with SoCal, Nov 20, 2026); Goldenbee MALAJ Home Connector stays at /app
   window.LG_SOCAL = !window.LG_WL && !/^\/(rep|ruben)(\/|$)/.test(location.pathname) && location.hostname !== "villapacifica-leadgen.pages.dev";
   if (window.LG_SOCAL){ try{ localStorage.setItem("lg_company", "socal"); }catch(e){} document.documentElement.className += " socal-main"; }
   window.LG_CFG = null;
@@ -28,28 +28,28 @@
       if (c0.features) for (var f in c0.features) cfg.features[f] = c0.features[f]; }
     cfg.isNew = !c0;
     if (window.LG_MINE){   // Art's program: name, logo and colors are fixed
-      cfg.company = "Goldenbee MALAJ Home Connectors"; cfg.logo = ""; cfg.brand = WL_DEF.brand; cfg.accent = WL_DEF.accent;
+      cfg.company = "Goldenbee MALAJ Home Connector"; cfg.logo = ""; cfg.brand = WL_DEF.brand; cfg.accent = WL_DEF.accent;
       if (!cfg.rep) cfg.rep = "Art Delgado Mora";
       if (!localStorage.getItem("wl_art_solar_v1")){   // one-time: go by "Art" + add Solar to products
         if (/^Arturo\b/.test(cfg.rep)) cfg.rep = cfg.rep.replace(/^Arturo\b/, "Art");
         if (!cfg.products.some(function(x){ return /^solar$/i.test(x); })) cfg.products = cfg.products.concat(["Solar"]);
         try{ var c2 = JSON.parse(localStorage.getItem("wl_config") || "null") || {}; c2.rep = cfg.rep; c2.products = cfg.products; localStorage.setItem("wl_config", JSON.stringify(c2)); localStorage.setItem("wl_art_solar_v1", "1"); }catch(e){}
       }
-      cfg.tag = "";   // the logo already says Home Connectors
+      cfg.tag = "";   // the logo already says Home Connector
       cfg.features.clock = false;   // Art: no time clock on his program
       if (!localStorage.getItem("wl_practice_on")){ cfg.features.practice = true; try{ var c1 = JSON.parse(localStorage.getItem("wl_config") || "null") || {}; c1.features = c1.features || {}; c1.features.practice = true; localStorage.setItem("wl_config", JSON.stringify(c1)); localStorage.setItem("wl_practice_on", "1"); }catch(e){} }
       cfg.isNew = false;
     }
-    // Goldenbee MALAJ Home Connectors: platinum logo + platinum scheme unless the company picked its own
+    // Goldenbee MALAJ Home Connector: platinum logo + platinum scheme unless the company picked its own
     if (/goldenbee\s*malaj/i.test(cfg.company)){
-      if (!cfg.logo || /^\/goldenbee-(malaj-platinum|hc-platinum|hc-logo|hc-logo-v2)\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo-v3.png";
+      if (!cfg.logo || /^\/goldenbee-(malaj-platinum|hc-platinum|hc-logo|hc-logo-v2|hc-logo-v3)\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo-v4.png";
       cfg.icon = "/goldenbee-hc-icon-v3.png";
       if (cfg.brand === WL_DEF.brand && cfg.accent === WL_DEF.accent){ cfg.brand = "#1d1f23"; cfg.accent = "#7d838c"; }
     }
     window.LG_CFG = cfg;
     var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
     document.documentElement.className += cls;
-    document.title = window.LG_MINE ? "Goldenbee MALAJ Home Connectors" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
+    document.title = window.LG_MINE ? "Goldenbee MALAJ Home Connector" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
     document.addEventListener("DOMContentLoaded", function(){
       var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_MINE ? "/manifest-app.webmanifest" : "/manifest-custom.webmanifest";
       var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_MINE ? "Goldenbee" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
@@ -1447,7 +1447,7 @@
           if(/^vp_/.test(mk) && !/^vp_(arena|push)/.test(mk)){ var nk = "wl_" + mk.slice(3); if(localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(mk)); }
         }
         localStorage.setItem("wl_migrate_photos", "1");
-        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connectors", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-logo-v3.png", brand: "#1d1f23", accent: "#7d838c" }));
+        if(!localStorage.getItem("wl_config")) localStorage.setItem("wl_prefill", JSON.stringify({ company: "Goldenbee MALAJ Home Connector", rep: "Arturo Delgado Mora", logo: "/goldenbee-hc-logo-v4.png", brand: "#1d1f23", accent: "#7d838c" }));
       }
       localStorage.setItem("wl_migrated", "1");
     }catch(e){}
@@ -3996,7 +3996,7 @@
         try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
-      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connectors \u2014 your program."; }
+      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connector \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
   }
