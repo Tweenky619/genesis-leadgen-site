@@ -168,6 +168,7 @@
   .slot-t{flex:0 0 46px;font-weight:800;color:var(--accent);font-size:13px;line-height:1.1;padding-top:8px;text-align:right;}
   .slot-b{flex:1;min-width:0;}
   .slot-b .lead-row{margin-bottom:6px;}
+  .slot-n{font-size:12px;font-weight:800;color:#b45309;margin:0 0 4px 2px;}
   .slot-open{border:1.5px dashed var(--border);border-radius:12px;padding:9px 14px;color:var(--text-muted);font-size:14px;}
   .day-box{background:#fff;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
   .day-box .dh{font-weight:800;color:var(--brand);font-size:15px;display:flex;justify-content:space-between;gap:8px;}
@@ -1051,7 +1052,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795470515";
+  window.LG_BUILD = "1795546989";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -1693,7 +1694,7 @@
     return OUT_TYPES.some(function(t){ return (ev[t] || []).some(function(ts){ return ts >= a && ts < b; }); });
   }
   function isTodayLead(l){ return l.appt_date === todayISO() || hadOutcomeToday(l); }
-  function nextWorkISO(){ var d = new Date(); d.setDate(d.getDate() + 1); if(d.getDay() === 0){ d.setDate(d.getDate() + 1); } return isoOf(d); }
+  function nextWorkISO(){ var d = new Date(); d.setDate(d.getDate() + 1); if(d.getDay() === 0 && !(typeof SCHEDULE !== "undefined" && SCHEDULE.Sunday)){ d.setDate(d.getDate() + 1); } return isoOf(d); }
   function nextWorkLabel(){ var n = nextWorkISO(); return n === addDaysISO(1) ? "Tomorrow" : new Date(n + "T12:00").toLocaleDateString("en-US", { weekday: "long" }); }
   function timeMins(t){ var m = String(t || "").match(/(\d+):(\d+)\s*(AM|PM)/i); if(!m) return 9999; var h = +m[1] % 12 + (/pm/i.test(m[3]) ? 12 : 0); return h * 60 + +m[2]; }
   var BOOKED_ST = ["Appt Set","Sent to Monday","Confirmed","Reset","Rolled","Rep Reset","Confirm NA","New","Contacted","No Answer"];
@@ -1720,12 +1721,13 @@
   // Tomorrow laid out as 10 AM - 6 PM spots
   function slotsHtml(list){
     var out = "", used = {};
-    for(var m = 600; m <= 1080; m += 30){
+    var tw = SCHEDULE[DAYS[new Date(nextWorkISO() + "T12:00:00").getDay()]] || [10, 19];
+    for(var m = tw[0] * 60; m <= tw[1] * 60; m += 30){
       var inSlot = list.filter(function(l){ return Math.floor(timeMins(l.appt_time) / 30) * 30 === m; });
       inSlot.forEach(function(l){ used[l.id] = 1; });
       var lbl = m % 60 ? halfLabel(Math.floor(m / 60)) : hourLabel(m / 60);
       out += '<div class="slot"><div class="slot-t">' + lbl.replace(" ", "<br>") + '</div><div class="slot-b">' +
-        (inSlot.length ? inSlot.map(leadRowHtml).join("") : '<div class="slot-open">Open</div>') + '</div></div>';
+        (inSlot.length ? (inSlot.length > 1 ? '<div class="slot-n">' + inSlot.length + ' booked</div>' : '') + inSlot.map(leadRowHtml).join("") : '<div class="slot-open">Open</div>') + '</div></div>';
     }
     var rest = list.filter(function(l){ return !used[l.id]; });
     if(rest.length){ out += '<div class="slot"><div class="slot-t">Other</div><div class="slot-b">' + rest.map(leadRowHtml).join("") + '</div></div>'; }
@@ -3018,6 +3020,12 @@
     var daySel = document.getElementById("f_appt_day");
     if(daySel){ Array.prototype.slice.call(daySel.options).forEach(function(o){ if(o.value && !SCHEDULE[o.value]) o.remove(); }); if(SCHEDULE.Sunday){ var so = document.createElement("option"); so.textContent = "Sunday"; daySel.appendChild(so); } }
   }
+  // Art's own apps (SoCal + Goldenbee): every day of the week, 10 AM - 7 PM, stacking allowed
+  if(!WL || document.documentElement.classList.contains("wl-mine")){
+    SCHEDULE = { Sunday:[10,19], Monday:[10,19], Tuesday:[10,19], Wednesday:[10,19], Thursday:[10,19], Friday:[10,19], Saturday:[10,19] };
+    var daySel2 = document.getElementById("f_appt_day");
+    if(daySel2 && !Array.prototype.some.call(daySel2.options, function(o){ return o.value === "Sunday" || o.text === "Sunday"; })){ var so2 = document.createElement("option"); so2.textContent = "Sunday"; daySel2.appendChild(so2); }
+  }
   var DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   function hourLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":00 " + ap; }
   function halfLabel(h){ var ap = h >= 12 ? "PM" : "AM"; var hh = h % 12 || 12; return hh + ":30 " + ap; }
@@ -3030,8 +3038,10 @@
     var win = SCHEDULE[day];
     var opts = [];
     if(win){ opts = slotsFor(win); }
+    var dsel = document.getElementById("f_appt_date").value, me = (typeof editingId !== "undefined") ? editingId : null;
+    function nBooked(t){ if(!dsel) return 0; return leads.filter(function(l){ return l.id !== me && l.appt_date === dsel && l.appt_time === t; }).length; }
     var html = '<option value="">' + (win ? "Select time" : "Pick a date first") + '</option>' +
-      opts.map(function(t){ return '<option' + (t === cur ? ' selected' : '') + '>' + t + '</option>'; }).join("");
+      opts.map(function(t){ var n = nBooked(t); return '<option value="' + t + '"' + (t === cur ? ' selected' : '') + '>' + t + (n ? " \u00b7 " + n + " booked" : "") + '</option>'; }).join("");
     if(cur && opts.indexOf(cur) === -1){ html += '<option selected>' + esc(cur) + '</option>'; }
     sel.innerHTML = html;
     hint.className = "sched-hint";
