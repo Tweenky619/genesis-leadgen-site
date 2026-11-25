@@ -445,6 +445,19 @@
   .form-section-title:first-child{margin-top:0;}
 
   .yesno-group{display:flex;gap:8px;}
+  .hc-only{display:none;}
+  html.solar-on .hc-only{display:block;}
+  .solar-fit{margin:-4px 0 14px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:700;display:none;}
+  .solar-fit.yes{display:block;background:#fff6db;color:#7a4a00;border:1.5px solid #f2c94c;}
+  .id-row{display:flex;gap:8px;margin:0 0 16px;}
+  .id-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;font-weight:800;font-size:15px;border:2px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;}
+  .id-btn.main{background:#3a0d18;border-color:#c9ccd2;color:#fff;}
+  .id-btn.ghost{flex:0 0 auto;font-size:13px;font-weight:700;}
+  .id-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;}
+  .id-ov[hidden]{display:none;}
+  .id-ov img{max-width:100%;max-height:78vh;border-radius:14px;}
+  .id-ov button{padding:12px 28px;border-radius:999px;border:0;font-weight:800;font-size:16px;background:#fff;color:#111;}
+  .solar-fit.no{display:block;background:var(--card);color:var(--text-muted);border:1.5px dashed var(--border);font-weight:600;}
   .yesno-toggle{
     flex:1;
     padding:11px;
@@ -1098,11 +1111,12 @@
   html.lg-mine.dark #app:has(#view-list.active) header.topbar{background:rgba(38,19,24,.6)!important;}
   /* Home Connector light mode: burgundy background, white cards */
   html.lg-mine:not(.dark){--bg:#6e1b2d;--card:#e5e4e2;--border:#c9ccd2;}
-  html.lg-mine:not(.dark) form label:not(.interest-toggle):not(.photo-add):not(.sole):not(.yesno-toggle),html.lg-mine:not(.dark) .form-section-title,html.lg-mine:not(.dark) .form-section-title *,html.lg-mine:not(.dark) .empty-state,html.lg-mine:not(.dark) .empty-state h3,html.lg-mine:not(.dark) .empty-state p{color:#f4eef0!important;}
+  html.lg-mine:not(.dark) form label:not(.interest-toggle):not(.photo-add):not(.sole):not(.yesno-toggle):not(.id-btn),html.lg-mine:not(.dark) .form-section-title,html.lg-mine:not(.dark) .form-section-title *,html.lg-mine:not(.dark) .empty-state,html.lg-mine:not(.dark) .empty-state h3,html.lg-mine:not(.dark) .empty-state p{color:#f4eef0!important;}
   html.lg-mine:not(.dark) .form-section-title{border-bottom-color:rgba(229,228,226,.35)!important;}
   html.lg-mine:not(.dark) body:has(#view-list.active)::before{background:url(/goldenbee-hc-logo-v4-clear.png) center 72%/min(82vw,460px) auto no-repeat,#6e1b2d!important;}
   html.lg-mine:not(.dark) #app:has(#view-list.active) header.topbar{background:rgba(229,228,226,.92)!important;}
   html.lg-mine:not(.dark) .st-h,html.lg-mine:not(.dark) .back-row{color:#f4eef0!important;}
+  html.lg-mine:not(.dark) .yesno-toggle.active,html.lg-mine:not(.dark) .interest-toggle.active{background:#3a0d18!important;border-color:#c9ccd2!important;color:#fff!important;}
   html.lg-mine:not(.dark) .tab.active{background:#3a0d18!important;border-color:#c9ccd2!important;color:#fff!important;}
   html.lg-mine:not(.dark) .fab{background:#e5e4e2;color:var(--brand);border:2px solid #f4f3f1;}
   html.lg-mine:not(.dark) details.script{background:#e5e4e2;}
@@ -1143,6 +1157,9 @@ html.dark #arToast{background:#a1cbe9;color:#171717}
 html.dark .lead-row:active{background:#202226}
 html.dark .fab{color:#171717}
 html.dark .interest-toggle.active{color:#171717}
+html.dark .solar-fit.yes{background:#3b3111;color:#ffc975;border:1.5px solid #f5d77a}
+html.dark .id-btn.main{background:#eeb1c0;border-color:#3b3f46;color:#171717}
+html.dark .id-ov button{background:#171717;color:#dfdfdf}
 html.dark .yesno-toggle.active{color:#171717}
 html.dark .btn-primary{color:#171717}
 html.dark .btn-secondary{background:#25272a}
@@ -1390,6 +1407,8 @@ html.dark.lg-mine #arToast{color:#210d12}
 html.dark.lg-mine .lead-row:active{background:#32141c}
 html.dark.lg-mine .fab{color:#210d12}
 html.dark.lg-mine .interest-toggle.active{color:#210d12}
+html.dark.lg-mine .id-btn.main{border-color:#5c2533;color:#210d12}
+html.dark.lg-mine .id-ov button{background:#210d12}
 html.dark.lg-mine .yesno-toggle.active{color:#210d12}
 html.dark.lg-mine .btn-primary{color:#210d12}
 html.dark.lg-mine .btn-secondary{background:#38171f}
@@ -1505,6 +1524,7 @@ html.lg-mine:not(.dark) .wl-f input[type=text],html.lg-mine:not(.dark) .wl-f inp
 html.lg-mine:not(.dark) .wl-row select{background:#e5e4e2}
 html.lg-mine:not(.dark) .wl-logo img{background:#e5e4e2}
 html.lg-mine:not(.dark) #arenaFrame{background:#e5e4e2}
+html.lg-mine:not(.dark) .id-ov button{background:#e5e4e2}
 html.lg-mine:not(.dark) .bo-plan{background:#e5e4e2}
 html.lg-mine:not(.dark) .bad-btn{background:#e5e4e2}
 html.lg-mine:not(.dark) .bad-dead{background:#e5e4e2}
@@ -1722,6 +1742,36 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
         <div>
         </div>
 
+
+        <div class="hc-only" id="solarConsult">
+          <div class="form-section-title">&#9728;&#65039; Solar consult <span class="opt">(can you consult on solar here?)</span></div>
+          <div class="row2">
+            <div class="field">
+              <label>Avg SDG&amp;E bill ($/mo)</label>
+              <input type="text" id="f_sdge_bill" inputmode="numeric" placeholder="e.g. 250">
+            </div>
+            <div class="field">
+              <label>Roof shade</label>
+              <div class="yesno-group" data-field="roof_shade">
+                <button type="button" class="yesno-toggle" data-value="None">None</button>
+                <button type="button" class="yesno-toggle" data-value="Some">Some</button>
+                <button type="button" class="yesno-toggle" data-value="Heavy">Heavy</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Who runs the solar consult?</label>
+            <div class="yesno-group" data-field="solar_consult">
+              <button type="button" class="yesno-toggle" data-value="Me">&#9728;&#65039; I will</button>
+              <button type="button" class="yesno-toggle" data-value="Partner">Send to partner</button>
+            </div>
+          </div>
+          <div class="solar-fit" id="solarFit"></div>
+          <div class="id-row">
+            <button type="button" class="id-btn main" id="idShow">&#129706; Show my Sunrun ID</button>
+            <label class="id-btn ghost"><input type="file" accept="image/*" id="idFile" hidden><span id="idFileLbl">Add ID photo</span></label>
+          </div>
+        </div>
 
         <details class="more" id="moreDetails" style="display:none">
           <summary>More details <span class="opt">(optional)</span></summary>
@@ -1954,6 +2004,8 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
   var COMPANY = "vp"; try { COMPANY = !REP_APP && localStorage.getItem("lg_company") === "socal" ? "socal" : "vp"; } catch(e){}
   var CO_NAME = WL ? (CFG.company || "our company") : COMPANY === "socal" ? "SoCal Contractor Exchange" : "Villa Pacifica Construction";
   var CO_PREFIX = WL ? WLP : REP_APP ? "rep_" : COMPANY === "socal" ? "socal_" : "vp_";
+  var SOLAR_ON = MINE;   // solar consult section + Sunrun ID: Home Connector only
+  if(SOLAR_ON) document.documentElement.classList.add("solar-on");
   // Rep copy: texts and scripts use the rep's own first name (from their Arena sign-in)
   function meFirst(){
     if(WL) return (CFG.rep || "").trim().split(/\s+/)[0] || "your rep";
@@ -2161,11 +2213,28 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     if(OUTCOME_TABS.indexOf(currentTab) === -1) return "";
     return '<div class="out-when">Outcome \u00b7 ' + esc(fmtDate(outcomeTs(l))) + '</div>';
   }
+  // ---- Solar consult (Home Connector): who's a good solar prospect ----
+  function solarFit(l){
+    var bill = parseFloat(String(l.sdge_bill || "").replace(/[^0-9.]/g, "")) || 0, why = [];
+    if(l.solar_panels === "Yes") why.push("already has panels");
+    if(!bill) why.push("need the SDG&E bill");
+    else if(bill < 150) why.push("bill under $150");
+    if(l.roof_shade === "Heavy") why.push("heavy shade");
+    return { fit: !why.length, why: why, bill: bill };
+  }
+  function updateSolarFit(){
+    var box = document.getElementById("solarFit"); if(!box) return;
+    var f = solarFit({ sdge_bill: document.getElementById("f_sdge_bill").value, solar_panels: getYesNo("solar_panels"), roof_shade: getYesNo("roof_shade") });
+    if(!document.getElementById("f_sdge_bill").value && !getYesNo("roof_shade")){ box.className = "solar-fit"; box.textContent = ""; return; }
+    box.className = "solar-fit " + (f.fit ? "yes" : "no");
+    box.textContent = f.fit ? "\u2600\ufe0f Solar fit: $" + Math.round(f.bill) + "/mo bill, no panels" + (getYesNo("solar_consult") === "Me" ? " \u00b7 you run the consult" : "") : "Not a solar fit yet: " + f.why.join(", ");
+  }
   var TABS = [
     ["due","Due", function(l){ return isDue(l); }],
     ["today","\ud83d\udcc5 Today", function(l){ return isTodayLead(l); }],
     ["tomorrow","\ud83c\udf05 Tomorrow", function(l){ return l.appt_date === nextWorkISO() && isConfirmedSt(statusOf(l)); }],
     ["new","New", function(l){ return statusOf(l)==="New"; }],
+    ["solar","\u2600\ufe0f Solar", function(l){ return SOLAR_ON && (l.solar_consult === "Me" || solarFit(l).fit); }],
     ["booked","Booked", function(l){ var s=statusOf(l); return s==="Appt Set"||s==="Sent to Monday"||s==="Confirmed"||s==="Reset"||s==="Rolled"||s==="Rep Reset"||s==="Confirm NA"; }],
     ["reset","🔁 Reset (No Demo)", function(l){ var s=statusOf(l); return s==="No Show"||s==="Call to Cancel"||s==="No Mr./Mrs."||s==="Blow Out"||s==="Bad Number"; }],
     ["miss","♻️ Rehash (Demo, No Sale)", function(l){ return statusOf(l)==="Pitch & Miss"; }],
@@ -2178,6 +2247,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     ["windows","🪟 Windows", function(l){ return hasProduct(l, /window/i); }],
     ["all","All", function(){ return true; }]
   ];
+  if(!SOLAR_ON){ TABS = TABS.filter(function(t){ return t[0] !== "solar"; }); }
   if(WL){   // white-label: product tabs come from the company's own product list
     var allT = TABS.pop();
     TABS = TABS.filter(function(t){ return ["roof","paint","fascia","windows"].indexOf(t[0]) === -1; });
@@ -2349,6 +2419,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
             '<div class="addr">' + esc(l.address || "No address") + '</div>' +
             (l.arena_id ? '<div class="addr" style="color:#7c3aed;font-weight:700;">\ud83d\udccd Arena \u00b7 ' + esc(l.arena_rep || "rep") + '</div>' : '') +
             (tagLine ? '<div class="addr" style="color:var(--brand-dark);font-weight:600;">' + tagLine + '</div>' : '') +
+            (SOLAR_ON && l.solar_consult === "Me" ? '<div class="addr" style="color:#b7791f;font-weight:800;">\u2600\ufe0f My solar consult</div>' : SOLAR_ON && solarFit(l).fit ? '<div class="addr" style="color:#b7791f;font-weight:700;">\u2600\ufe0f Solar fit</div>' : '') +
           '</div>' +
           '<div class="meta">' +
             ((currentTab === "today" || currentTab === "tomorrow") && l.appt_time ? '<div class="date" style="font-weight:800;color:var(--brand);font-size:15px;">' + esc(l.appt_time) + '</div>' : '<div class="date">' + fmtDate(l.created_at) + '</div>') +
@@ -2422,6 +2493,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
   }
 
   function updateConditionalFields(){
+    if(typeof updateSolarFit === "function") setTimeout(updateSolarFit, 0);
     document.getElementById("solarCountField").style.display =
       getYesNo("solar_panels") === "Yes" ? "" : "none";
     document.getElementById("leakLocationField").style.display =
@@ -2467,6 +2539,8 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     document.getElementById("f_roof_layers").value = l.roof_layers || "";
     setYesNo("solar_panels", l.solar_panels || "");
     document.getElementById("f_solar_panel_count").value = l.solar_panel_count || "";
+    document.getElementById("f_sdge_bill").value = l.sdge_bill || "";
+    setYesNo("roof_shade", l.roof_shade || ""); setYesNo("solar_consult", l.solar_consult || "");
     setYesNo("roof_leaks", l.roof_leaks || "");
     document.getElementById("f_leak_location").value = l.leak_location || "";
     document.getElementById("f_last_painted").value = l.last_painted || "";
@@ -2602,6 +2676,9 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
       roof_layers: document.getElementById("f_roof_layers").value.trim(),
       solar_panels: getYesNo("solar_panels"),
       solar_panel_count: document.getElementById("f_solar_panel_count").value.trim(),
+      sdge_bill: document.getElementById("f_sdge_bill").value.trim(),
+      roof_shade: getYesNo("roof_shade"),
+      solar_consult: getYesNo("solar_consult"),
       roof_leaks: getYesNo("roof_leaks"),
       leak_location: document.getElementById("f_leak_location").value.trim(),
       last_painted: document.getElementById("f_last_painted").value.trim(),
@@ -2852,6 +2929,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
       }
     }
   });
+  document.getElementById("f_sdge_bill").addEventListener("input", updateSolarFit);
   document.getElementById("leadForm").addEventListener("click", function(e){
     var btn = e.target.closest(".yesno-toggle");
     if(!btn) return;
@@ -5008,6 +5086,28 @@ function wlOwners(){
     var root = document.documentElement, meta = document.querySelector('meta[name="theme-color"]');
     function paint(){ var d = root.classList.contains("dark"); box.checked = d; if(meta) meta.content = d ? (window.LG_MINE ? "#1a0b0f" : "#121316") : (window.LG_MINE ? "#6e1b2d" : "#ffffff"); }
     box.addEventListener("change", function(){ root.classList.toggle("dark", box.checked); try{ localStorage.setItem(window.LG_WLP + "theme", box.checked ? "dark" : "light"); }catch(e){} paint(); });
+    paint();
+  })();
+</script>
+<div class="id-ov" id="idOverlay" hidden><img id="idImg" alt="My consultant ID"><button type="button" id="idClose">Close</button></div>
+<script>
+  // Solar consult: show my consultant ID at the door. The photo stays on this phone only (never uploaded).
+  (function(){
+    var KEY = "lg_consult_id", show = document.getElementById("idShow"), file = document.getElementById("idFile"), lbl = document.getElementById("idFileLbl"), ov = document.getElementById("idOverlay"), img = document.getElementById("idImg");
+    if(!show) return;
+    function get(){ try { return localStorage.getItem(KEY) || ""; } catch(e){ return ""; } }
+    function paint(){ var has = !!get(); show.style.display = has ? "" : "none"; lbl.textContent = has ? "Replace" : "\ud83e\udeaa Add my ID photo"; }
+    show.addEventListener("click", function(){ var d = get(); if(!d) return; img.src = d; ov.hidden = false; });
+    function close(){ ov.hidden = true; img.removeAttribute("src"); }
+    ov.addEventListener("click", close);
+    file.addEventListener("change", function(){
+      var f = file.files && file.files[0]; if(!f) return;
+      var r = new FileReader(); r.onload = function(){ var im = new Image(); im.onload = function(){
+        var k = Math.min(1, 1000 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        try { localStorage.setItem(KEY, c.toDataURL("image/jpeg", 0.85)); } catch(e){ alert("Couldn't save the photo on this phone."); }
+        file.value = ""; paint(); }; im.src = r.result; }; r.readAsDataURL(f);
+    });
     paint();
   })();
 </script>
