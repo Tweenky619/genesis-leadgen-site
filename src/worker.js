@@ -73,7 +73,19 @@ export default {
       const rest = repM[2] || "/";
       const target = new URL(rest === "/" ? "/" : rest, url);
       target.search = url.search;
-      return env.ASSETS.fetch(new Request(target.toString(), request));
+      const res = await env.ASSETS.fetch(new Request(target.toString(), request));
+      // home-screen apps: give /app and /custom their own name, icon and start page so "Add to Home Screen" doesn't open the SoCal app
+      const kind = repM[1];
+      if ((kind === "app" || kind === "custom") && (res.headers.get("content-type") || "").includes("text/html")) {
+        let html = await res.text();
+        const mine = kind === "app";
+        html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-' + kind + '.webmanifest">')
+          .replace('<meta name="apple-mobile-web-app-title" content="SoCal Leads">', '<meta name="apple-mobile-web-app-title" content="' + (mine ? "Goldenbee" : "Lead Gen") + '">')
+          .replace(/<link rel="apple-touch-icon" href="[^"]*">/, '<link rel="apple-touch-icon" href="' + (mine ? "/goldenbee-hc-icon-v3.png" : "/app-icon-180.png") + '">');
+        const h = new Headers(res.headers); h.set("Cache-Control", "no-cache"); h.delete("content-length");
+        return new Response(html, { status: res.status, headers: h });
+      }
+      return res;
     }
     return env.ASSETS.fetch(request);
   },
