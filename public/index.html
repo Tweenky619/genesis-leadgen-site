@@ -1052,7 +1052,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795565799";
+  window.LG_BUILD = "1795566394";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -2435,8 +2435,7 @@
       var app = getMapApp();
       b.push('<div class="map-split"><button type="button" class="map-go" data-map="go">' + (app ? esc(MAP_APPS[app].short) : 'Map') + '</button><button type="button" class="map-pick" data-map="pick" aria-label="Choose map app">&#9662;</button></div>');
     }
-    b.push('<a class="alt" href="#" data-lead-share="1">\ud83d\udce4 Forward</a>');
-    return '<div class="quick">' + b.join("") + '</div>';
+    return b.length ? '<div class="quick">' + b.join("") + '</div>' : '';
   }
   function buildFollowUp(l){
     var st = statusOf(l);
@@ -2890,11 +2889,18 @@
     var base = ((l && (l.homeowner_name || l.address)) || "lead").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "lead";
     return list.map(function(p, i){ return new File([p.blob], base + "-" + (i + 1) + ".jpg", { type: "image/jpeg" }); });
   }
-  function sharePhotoList(list){
+  function sharePhotoList(list, withInfo){
     var l = leads.filter(function(x){ return x.id === viewingId; })[0];
-    if(!list || !list.length) return;
+    var info = (withInfo && l) ? waText(l).replace(/\*/g, "") : "";
+    if(!list || !list.length){
+      if(!info) return;
+      addLog(l, "Shared lead info"); save();
+      if(navigator.share){ navigator.share({ text: info }).catch(function(){}); }
+      else { window.location.href = "sms:&body=" + encodeURIComponent(info); }
+      return;
+    }
     var files = photoFiles(list, l);
-    var text = l ? [l.homeowner_name, l.address].filter(Boolean).join(" \u2014 ") : "";
+    var text = info || (l ? [l.homeowner_name, l.address].filter(Boolean).join(" \u2014 ") : "");
     if(navigator.canShare && navigator.canShare({ files: files })){
       navigator.share({ files: files, title: "Photos of concern areas", text: text }).catch(function(){});
       return;
@@ -2918,7 +2924,11 @@
         var u = URL.createObjectURL(p.blob); shownUrls[gridId].push(u);
         return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo" onerror="this.outerHTML=\'<div class=&quot;photo-lost&quot;>Photo didn\\u2019t save \\u2014 please retake</div>\'">';
       }).join("");
-      if(wrapId){ document.getElementById(wrapId).style.display = list.length ? "" : "none"; }
+      if(wrapId){ var wEl = document.getElementById(wrapId);
+        if(wrapId === "detailPhotosWrap"){   // share button always there: with photos it sends photos + info, without it sends the info
+          wEl.style.display = ""; var tEl = wEl.querySelector(".form-section-title"); if(tEl) tEl.style.display = list.length ? "" : "none";
+          var sb = document.getElementById("sharePhotosBtn"); if(sb) sb.innerHTML = list.length ? "\ud83d\udce4 Share photos &amp; info" : "\ud83d\udce4 Share lead info";
+        } else { wEl.style.display = list.length ? "" : "none"; } }
     });
   }
   function onPhotoPick(e){
@@ -2962,7 +2972,7 @@
     sharePhotoList(one);
   });
   document.addEventListener("click", function(e){
-    if(e.target.closest && e.target.closest("#sharePhotosBtn")){ sharePhotoList(shownBlobs.detailPhotos); }
+    if(e.target.closest && e.target.closest("#sharePhotosBtn")){ sharePhotoList(shownBlobs.detailPhotos || [], true); }
   });
   document.getElementById("viewerDelete").addEventListener("click", function(){
     if(!viewing) return;
