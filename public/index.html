@@ -453,6 +453,8 @@
   .id-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;font-weight:800;font-size:15px;border:2px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;}
   .id-btn.main{background:#3a0d18;border-color:#c9ccd2;color:#fff;}
   .id-btn.ghost{flex:0 0 auto;font-size:13px;font-weight:700;}
+  .id-fab{display:none;}
+  html.solar-on .id-fab{display:flex;position:fixed;left:14px;bottom:88px;z-index:60;width:52px;height:52px;border-radius:50%;align-items:center;justify-content:center;font-size:24px;border:2px solid #c9ccd2;background:#3a0d18;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;}
   .id-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;}
   .id-ov[hidden]{display:none;}
   .id-ov img{max-width:100%;max-height:78vh;border-radius:14px;}
@@ -1159,6 +1161,7 @@ html.dark .fab{color:#171717}
 html.dark .interest-toggle.active{color:#171717}
 html.dark .solar-fit.yes{background:#3b3111;color:#ffc975;border:1.5px solid #f5d77a}
 html.dark .id-btn.main{background:#eeb1c0;border-color:#3b3f46;color:#171717}
+html.dark.solar-on .id-fab{border:2px solid #3b3f46;background:#eeb1c0;color:#171717}
 html.dark .id-ov button{background:#171717;color:#dfdfdf}
 html.dark .yesno-toggle.active{color:#171717}
 html.dark .btn-primary{color:#171717}
@@ -1408,6 +1411,7 @@ html.dark.lg-mine .lead-row:active{background:#32141c}
 html.dark.lg-mine .fab{color:#210d12}
 html.dark.lg-mine .interest-toggle.active{color:#210d12}
 html.dark.lg-mine .id-btn.main{border-color:#5c2533;color:#210d12}
+html.dark.lg-mine.solar-on .id-fab{border:2px solid #5c2533;color:#210d12}
 html.dark.lg-mine .id-ov button{background:#210d12}
 html.dark.lg-mine .yesno-toggle.active{color:#210d12}
 html.dark.lg-mine .btn-primary{color:#210d12}
@@ -5089,6 +5093,7 @@ function wlOwners(){
     paint();
   })();
 </script>
+<button type="button" class="id-fab" id="idFab" aria-label="Show my Sunrun ID" title="Show my Sunrun ID">&#129706;</button>
 <div class="id-ov" id="idOverlay" hidden><img id="idImg" alt="My consultant ID"><button type="button" id="idClose">Close</button></div>
 <script>
   // Solar consult: show my consultant ID at the door. The photo stays on this phone only (never uploaded).
@@ -5098,6 +5103,7 @@ function wlOwners(){
     function get(){ try { return localStorage.getItem(KEY) || ""; } catch(e){ return ""; } }
     function paint(){ var has = !!get(); show.style.display = has ? "" : "none"; lbl.textContent = has ? "Replace" : "\ud83e\udeaa Add my ID photo"; }
     show.addEventListener("click", function(){ var d = get(); if(!d) return; img.src = d; ov.hidden = false; });
+    document.getElementById("idFab").addEventListener("click", function(){ var d = get(); if(!d){ file.click(); return; } img.src = d; ov.hidden = false; });
     function close(){ ov.hidden = true; img.removeAttribute("src"); }
     ov.addEventListener("click", close);
     file.addEventListener("change", function(){
