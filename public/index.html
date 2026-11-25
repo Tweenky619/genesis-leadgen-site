@@ -1052,7 +1052,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795546989";
+  window.LG_BUILD = "1795565799";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -1532,7 +1532,10 @@
   document.addEventListener("click", function(e){
     var b = e.target.closest && e.target.closest("[data-lead-share]"); if(!b) return;
     var l = leads.filter(function(x){ return x.id === viewingId; })[0]; if(!l) return;
-    var txt = waText(l), pics = (typeof shownBlobs !== "undefined" && shownBlobs.detailPhotos) || [];
+    e.preventDefault();
+    var txt = waText(l).replace(/\*/g, ""), pics = (typeof shownBlobs !== "undefined" && shownBlobs.detailPhotos) || [];
+    // no photos: straight into iMessage with the lead info written (pick who to send it to)
+    if(!pics.length){ addLog(l, "Forwarded lead info"); save(); window.location.href = "sms:&body=" + encodeURIComponent(txt); return; }
     var data = { title: fullName(l.first_name, l.last_name) || "Lead", text: txt };
     if(pics.length && navigator.canShare){ var files = photoFiles(pics, l); if(navigator.canShare({ files: files, text: txt })){ data.files = files; } }
     if(navigator.share){
@@ -2432,7 +2435,8 @@
       var app = getMapApp();
       b.push('<div class="map-split"><button type="button" class="map-go" data-map="go">' + (app ? esc(MAP_APPS[app].short) : 'Map') + '</button><button type="button" class="map-pick" data-map="pick" aria-label="Choose map app">&#9662;</button></div>');
     }
-    return b.length ? '<div class="quick">' + b.join("") + '</div>' : '';
+    b.push('<a class="alt" href="#" data-lead-share="1">\ud83d\udce4 Forward</a>');
+    return '<div class="quick">' + b.join("") + '</div>';
   }
   function buildFollowUp(l){
     var st = statusOf(l);
