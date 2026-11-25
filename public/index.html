@@ -1052,7 +1052,7 @@
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795566394";
+  window.LG_BUILD = "1795566566";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -2013,7 +2013,7 @@
     }
 
     var html =
-      '<button type="button" class="lead-share" data-wa="send" aria-label="Send lead to WhatsApp"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>' +
+      '<button type="button" class="lead-share" data-lead-share="1" aria-label="Send lead to iMessage"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>' +
       '<h2>' + esc(fullName(l.first_name, l.last_name) || "Unnamed") + '</h2>' +
       '<div class="addr">' + esc(l.address || "No address") + (l.zip ? ", " + esc(l.zip) : "") + '</div>' +
       (interestsHtml ? '<div style="margin-bottom:14px;">' + interestsHtml + '</div>' : '') +
@@ -2924,11 +2924,7 @@
         var u = URL.createObjectURL(p.blob); shownUrls[gridId].push(u);
         return '<img src="' + u + '" data-photo="' + p.id + '" alt="Lead photo" onerror="this.outerHTML=\'<div class=&quot;photo-lost&quot;>Photo didn\\u2019t save \\u2014 please retake</div>\'">';
       }).join("");
-      if(wrapId){ var wEl = document.getElementById(wrapId);
-        if(wrapId === "detailPhotosWrap"){   // share button always there: with photos it sends photos + info, without it sends the info
-          wEl.style.display = ""; var tEl = wEl.querySelector(".form-section-title"); if(tEl) tEl.style.display = list.length ? "" : "none";
-          var sb = document.getElementById("sharePhotosBtn"); if(sb) sb.innerHTML = list.length ? "\ud83d\udce4 Share photos &amp; info" : "\ud83d\udce4 Share lead info";
-        } else { wEl.style.display = list.length ? "" : "none"; } }
+      if(wrapId){ document.getElementById(wrapId).style.display = list.length ? "" : "none"; }
     });
   }
   function onPhotoPick(e){
@@ -2972,7 +2968,7 @@
     sharePhotoList(one);
   });
   document.addEventListener("click", function(e){
-    if(e.target.closest && e.target.closest("#sharePhotosBtn")){ sharePhotoList(shownBlobs.detailPhotos || [], true); }
+    if(e.target.closest && e.target.closest("#sharePhotosBtn")){ sharePhotoList(shownBlobs.detailPhotos); }
   });
   document.getElementById("viewerDelete").addEventListener("click", function(){
     if(!viewing) return;
