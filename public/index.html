@@ -1359,7 +1359,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795637109";
+  window.LG_BUILD = "1795637285";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -4323,6 +4323,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
         try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
+      if(GB){ $w("wlHdrImg").src = "/goldenbee-gb-icon.png"; $w("wlHdrName").textContent = "GOLDENBEE MALAJ JEWELRY"; $w("wlHdrName").style.color = "#8a6a14"; }
       if(FIXED){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = GB ? "Goldenbee MALAJ Jewelry \u2014 Goldbacks." : "Goldenbee MALAJ Home Connector \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
@@ -4346,7 +4347,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
 <script src="slicks.js?v=17"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTOR</div></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><img id="wlHdrImg" src="/goldenbee-hc-icon-v3.png" alt="" style="width:40px;height:40px;border-radius:50%"><div id="wlHdrName" style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#7d838c">GOLDENBEE MALAJ HOME CONNECTOR</div></div>
     <h2 id="wlTitle">Set up your lead gen app</h2>
     <div class="sub">Make it yours — you can change any of this later with &#9881;&#65039;.</div>
     <div class="wl-card"><h3>Company</h3>
