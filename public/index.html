@@ -221,6 +221,7 @@
   html.lg-gb body:has(#view-list.active),html.lg-gb #app:has(#view-list.active){background:transparent;}
   html.lg-gb #app:has(#view-list.active) header.topbar{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
   html.lg-gb.dark #app:has(#view-list.active) header.topbar{background:rgba(16,16,18,.55);}
+  html.lg-gb #tabs{display:none!important;}   /* Goldback mode: no filter tabs */
   /* Home Connector: logo as the front-screen background */
   html.lg-mine body:has(#view-list.active)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     background:linear-gradient(rgba(245,244,249,.86),rgba(245,244,249,.86)),url(/goldenbee-hc-logo-v4.png) center 72%/min(82vw,460px) auto no-repeat,rgb(11,11,12);}
@@ -1358,7 +1359,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795637060";
+  window.LG_BUILD = "1795637109";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
