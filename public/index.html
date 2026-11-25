@@ -44,7 +44,7 @@
       cfg.isNew = false;
     }
     if (window.LG_GB){   // Goldenbee MALAJ Jewelry (Goldbacks): name, logo and colors are fixed; own products/leads
-      cfg.company = "Goldenbee MALAJ Jewelry"; cfg.tag = "GOLDBACKS"; cfg.logo = ""; cfg.icon = "/goldenbee-gb-icon.png";
+      cfg.company = "Goldenbee MALAJ Jewelry"; cfg.tag = ""; cfg.logo = "/goldenbee-gb-logo.png"; cfg.icon = "/goldenbee-gb-icon.png";
       cfg.brand = "#6b5210"; cfg.accent = "#b8902a";
       if (!cfg.rep || /^Arturo\b/.test(cfg.rep)) cfg.rep = "Art Mora";
       if (!cfg.phone) cfg.phone = "(619) 504-8977";
@@ -214,6 +214,13 @@
   .wl-app .icon-btn{background:#eef1f5;}
   html:not(.wl-app) #wlGear{display:none!important;} html.wl-app #hdrLogo:not([data-wl]){visibility:hidden;}
   .wl-app #hdrLogo:not([data-wl]){display:none!important;}
+  /* Goldback mode: gold bee logo as the front-screen background */
+  html.lg-gb body:has(#view-list.active)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:linear-gradient(rgba(245,244,249,.72),rgba(245,244,249,.72)),url(/goldenbee-gb-logo.png) center 72%/min(82vw,460px) auto no-repeat,rgb(245,244,249);}
+  html.lg-gb.dark body:has(#view-list.active)::before{background:linear-gradient(rgba(10,10,12,.35),rgba(10,10,12,.35)),url(/goldenbee-gb-logo.png) center 72%/min(82vw,460px) auto no-repeat,rgb(11,11,12);}
+  html.lg-gb body:has(#view-list.active),html.lg-gb #app:has(#view-list.active){background:transparent;}
+  html.lg-gb #app:has(#view-list.active) header.topbar{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  html.lg-gb.dark #app:has(#view-list.active) header.topbar{background:rgba(16,16,18,.55);}
   /* Home Connector: logo as the front-screen background */
   html.lg-mine body:has(#view-list.active)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
     background:linear-gradient(rgba(245,244,249,.86),rgba(245,244,249,.86)),url(/goldenbee-hc-logo-v4.png) center 72%/min(82vw,460px) auto no-repeat,rgb(11,11,12);}
