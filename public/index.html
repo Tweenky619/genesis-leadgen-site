@@ -4315,7 +4315,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
         try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
-      if(FIXED){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = GB ? "Goldenbee MALAJ Jewelry \u2014 Goldback leads (separate from Home Connector)." : "Goldenbee MALAJ Home Connector \u2014 your program."; }
+      if(FIXED){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = GB ? "Goldenbee MALAJ Jewelry \u2014 Goldbacks." : "Goldenbee MALAJ Home Connector \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
   }
