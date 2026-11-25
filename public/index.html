@@ -6,10 +6,13 @@
 <title>SoCal Contractor Exchange</title>
 <script>
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
-  window.LG_WL = /^\/(app|custom)(\/|$)/.test(location.pathname);
+  window.LG_WL = /^\/(app|custom|goldback)(\/|$)/.test(location.pathname);
+  // /goldback is Goldenbee MALAJ Jewelry's Goldback lead program: its own leads, storage and branding, fully separate from Home Connector (/app)
+  window.LG_GB = /^\/goldback(\/|$)/.test(location.pathname);
   // /app is Art's own program (always Goldenbee MALAJ Home Connector); /custom is the customizable copy for future companies
   window.LG_MINE = /^\/app(\/|$)/.test(location.pathname);
-  window.LG_WLP = window.LG_MINE ? "wl_" : "wc_";
+  window.LG_WLP = window.LG_MINE ? "wl_" : window.LG_GB ? "gb_" : "wc_";
+  if (window.LG_GB) document.documentElement.className += " lg-gb";
   if (window.LG_MINE) document.documentElement.className += " wl-mine";
   // Main address = SoCal Contractor Exchange Lead Gen again (Art is back with SoCal, Nov 20, 2026); Goldenbee MALAJ Home Connector stays at /app
   window.LG_SOCAL = !window.LG_WL && !/^\/(rep|ruben)(\/|$)/.test(location.pathname) && location.hostname !== "villapacifica-leadgen.pages.dev";
@@ -40,8 +43,17 @@
       if (!localStorage.getItem("wl_practice_on")){ cfg.features.practice = true; try{ var c1 = JSON.parse(localStorage.getItem("wl_config") || "null") || {}; c1.features = c1.features || {}; c1.features.practice = true; localStorage.setItem("wl_config", JSON.stringify(c1)); localStorage.setItem("wl_practice_on", "1"); }catch(e){} }
       cfg.isNew = false;
     }
+    if (window.LG_GB){   // Goldenbee MALAJ Jewelry (Goldbacks): name, logo and colors are fixed; own products/leads
+      cfg.company = "Goldenbee MALAJ Jewelry"; cfg.tag = "GOLDBACKS"; cfg.logo = ""; cfg.icon = "/goldenbee-gb-icon.png";
+      cfg.brand = "#6b5210"; cfg.accent = "#b8902a";
+      if (!cfg.rep || /^Arturo\b/.test(cfg.rep)) cfg.rep = "Art Mora";
+      if (!cfg.phone) cfg.phone = "(619) 504-8977";
+      cfg.products = ["Buy Goldbacks", "Exchange Goldbacks", "Accept Goldbacks (merchant)", "Collector / State sets", "Jewelry"];
+      cfg.features.clock = false; cfg.features.gas = false; cfg.features.practice = false; cfg.features.map = false;
+      cfg.isNew = false;
+    }
     // Goldenbee MALAJ Home Connector: platinum logo + platinum scheme unless the company picked its own
-    if (/goldenbee\s*malaj/i.test(cfg.company)){
+    if (!window.LG_GB && /goldenbee\s*malaj/i.test(cfg.company)){
       if (!cfg.logo || /^\/goldenbee-(malaj-platinum|hc-platinum|hc-logo|hc-logo-v2|hc-logo-v3)\.png$/.test(cfg.logo)) cfg.logo = "/goldenbee-hc-logo-v4.png";
       cfg.icon = "/goldenbee-hc-icon-v3.png";
       if (cfg.brand === WL_DEF.brand && cfg.accent === WL_DEF.accent){ cfg.brand = "#1d1f23"; cfg.accent = "#7d838c"; }
@@ -51,10 +63,10 @@
     try{ if (localStorage.getItem(window.LG_WLP + "theme") === "dark") cls += " dark"; }catch(e){}
     if (window.LG_MINE) cls += " lg-mine";
     document.documentElement.className += cls;
-    document.title = window.LG_MINE ? "Goldenbee MALAJ Home Connector" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
+    document.title = window.LG_GB ? "Goldenbee MALAJ Jewelry \u2014 Goldbacks" : window.LG_MINE ? "Goldenbee MALAJ Home Connector" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
     document.addEventListener("DOMContentLoaded", function(){
-      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_MINE ? "/manifest-app.webmanifest" : "/manifest-custom.webmanifest";
-      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_MINE ? "Goldenbee" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
+      var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_GB ? "/manifest-goldback.webmanifest" : window.LG_MINE ? "/manifest-app.webmanifest" : "/manifest-custom.webmanifest";
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_GB ? "Goldbacks" : window.LG_MINE ? "Goldenbee" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
       document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.icon || cfg.logo || "/app-icon-180.png"; });
     });
   }
@@ -1726,7 +1738,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
 
   // ---- Company workspaces: Villa Pacifica (current) and SoCal Contractor Exchange (saved, untouched) ----
   var REP_APP = !!window.LG_REP;
-  var WL = !!window.LG_WL, CFG = window.LG_CFG || {}, MINE = !!window.LG_MINE, WLP = window.LG_WLP || "wl_";
+  var WL = !!window.LG_WL, CFG = window.LG_CFG || {}, MINE = !!window.LG_MINE, GB = !!window.LG_GB, FIXED = MINE || GB, WLP = window.LG_WLP || "wl_";
   if(WL && MINE){
     try{
       if(!localStorage.getItem("wl_migrated") && localStorage.getItem("vp_leads_v1") && !localStorage.getItem("wl_leads_v1")){
@@ -4271,7 +4283,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
       function syncRows(){ $w("wlSatRow").style.display = $w("wlSat").checked ? "" : "none"; $w("wlSunRow").style.display = $w("wlSun").checked ? "" : "none"; }
       function openSetup(){
         var H = CFG.hours || {};
-        $w("wlTitle").textContent = MINE ? "Settings" : CFG.isNew ? "Set up your lead gen app" : "Company settings";
+        $w("wlTitle").textContent = FIXED ? "Settings" : CFG.isNew ? "Set up your lead gen app" : "Company settings";
         var pre = {}; try{ if(MINE) pre = JSON.parse(localStorage.getItem("wl_prefill") || "{}"); }catch(e){}
         $w("wlCompany").value = CFG.company || pre.company || ""; $w("wlTag").value = CFG.tag || ""; $w("wlBrand").value = CFG.isNew && pre.brand ? pre.brand : CFG.brand; $w("wlAccent").value = CFG.isNew && pre.accent ? pre.accent : CFG.accent;
         $w("wlRep").value = CFG.rep || pre.rep || ""; $w("wlPhone").value = CFG.phone || ""; $w("wlProducts").value = (CFG.products || []).join("\n");
@@ -4292,7 +4304,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
       $w("wlCancel").onclick = function(){ $w("wlSetup").classList.remove("open"); };
       gear.onclick = openSetup;
       $w("wlSave").onclick = function(){
-        var name = MINE ? CFG.company : $w("wlCompany").value.trim(); if(!name){ alert("Enter your company name"); return; }
+        var name = FIXED ? CFG.company : $w("wlCompany").value.trim(); if(!name){ alert("Enter your company name"); return; }
         var prods = $w("wlProducts").value.split(/\n/).map(function(x){ return x.trim(); }).filter(function(x){ return x && !/^other$/i.test(x); });
         if(!prods.length){ alert("Add at least one product or service"); return; }
         var feats = {}; document.querySelectorAll("[data-wlf]").forEach(function(c){ feats[c.getAttribute("data-wlf")] = c.checked; });
@@ -4303,7 +4315,7 @@ html.dark.socal-main .pg-say{background:#2a150c}
         try{ localStorage.setItem(WLP + "config", JSON.stringify(out)); }catch(err){ alert("Couldn't save \u2014 try a smaller logo"); return; }
         location.reload();
       };
-      if(MINE){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = "Goldenbee MALAJ Home Connector \u2014 your program."; }
+      if(FIXED){ var cc = $w("wlCompany").closest(".wl-card"); if(cc) cc.style.display = "none"; var ck = document.querySelector('[data-wlf="clock"]'); if(ck) ck.closest("label").style.display = "none"; $w("wlSetup").querySelector(".sub").textContent = GB ? "Goldenbee MALAJ Jewelry \u2014 Goldback leads (separate from Home Connector)." : "Goldenbee MALAJ Home Connector \u2014 your program."; }
       if(CFG.isNew) openSetup();
     });
   }

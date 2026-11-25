@@ -1,0 +1,23 @@
+{
+  "name": "Goldenbee MALAJ Jewelry \u2014 Goldbacks",
+  "short_name": "Goldbacks",
+  "start_url": "/goldback/",
+  "scope": "/goldback/",
+  "display": "standalone",
+  "background_color": "#f5f4f9",
+  "theme_color": "#6b5210",
+  "icons": [
+    {
+      "src": "/goldenbee-gb-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/goldenbee-gb-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "id": "/goldback/"
+}

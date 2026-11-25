@@ -6,5 +6,9 @@
   Cache-Control: no-cache
 /app/*
   Cache-Control: no-cache
+/goldback
+  Cache-Control: no-cache
+/goldback/*
+  Cache-Control: no-cache
 /*.js
   Cache-Control: no-cache
