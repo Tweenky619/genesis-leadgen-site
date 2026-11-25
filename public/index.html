@@ -49,6 +49,7 @@
     window.LG_CFG = cfg;
     var cls = " wl-app"; for (var f2 in cfg.features) if (!cfg.features[f2]) cls += " wl-no-" + f2;
     try{ if (localStorage.getItem(window.LG_WLP + "theme") === "dark") cls += " dark"; }catch(e){}
+    if (window.LG_MINE) cls += " lg-mine";
     document.documentElement.className += cls;
     document.title = window.LG_MINE ? "Goldenbee MALAJ Home Connector" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
     document.addEventListener("DOMContentLoaded", function(){
@@ -201,6 +202,15 @@
   .wl-app .icon-btn{background:#eef1f5;}
   html:not(.wl-app) #wlGear{display:none!important;} html.wl-app #hdrLogo:not([data-wl]){visibility:hidden;}
   .wl-app #hdrLogo:not([data-wl]){display:none!important;}
+  /* Home Connector: logo as the front-screen background */
+  html.lg-mine body:has(#view-list.active)::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background:linear-gradient(rgba(245,244,249,.86),rgba(245,244,249,.86)),url(/goldenbee-hc-logo-v4.png) center 72%/min(82vw,460px) auto no-repeat,rgb(11,11,12);}
+  html.lg-mine.dark body:has(#view-list.active)::before{background:linear-gradient(rgba(10,10,12,.35),rgba(10,10,12,.35)),url(/goldenbee-hc-logo-v4.png) center 72%/min(82vw,460px) auto no-repeat,rgb(11,11,12);}
+  html.lg-mine body:has(#view-list.active),html.lg-mine #app:has(#view-list.active){background:transparent;}
+  html.lg-mine #app:has(#view-list.active) header.topbar{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  html.lg-mine.dark #app:has(#view-list.active) header.topbar{background:rgba(16,16,18,.55);}
+  html.lg-mine.dark #view-list .empty-state, html.lg-mine.dark #view-list .empty-state p, html.lg-mine.dark #view-list .empty-state h3{text-shadow:0 1px 3px rgba(0,0,0,.9);}
+  html.lg-mine #hdrLogo{display:none!important;}
   .wl-colors{display:flex;gap:14px;}
   .wl-colors input{width:56px;height:40px;border:none;background:none;padding:0;}
   .wl-logo{display:flex;align-items:center;gap:12px;}
