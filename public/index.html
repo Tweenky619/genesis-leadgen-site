@@ -2975,8 +2975,8 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     if (!l.appt_date) return '<div class="slx-row"><button type="button" class="slx-go" style="opacity:.5" disabled>\ud83d\udcc4 Reminder flyer \u2014 set a date &amp; time first</button></div>';
     var r = remindInfo(l), nm = (l.first_name || "").trim();
     var body = HC
-      ? "Hi" + (nm ? " " + nm : "") + ", it's Art from Goldenbee MALAJ Home Connector. Great meeting you today! Your free " + r.proj + " estimate is set for " + r.date + (r.time ? " at " + r.time : "") +
-        ". I'll be there to introduce you to your contractor. Questions? Text or call me here at (619) 504-8977. Here's your appointment card. See you then!"
+      ? "Hi" + (nm ? " " + nm : "") + ", it's Art from Goldenbee MALAJ Home Connector. Great meeting you today! Here's your appointment card. See you " +
+        new Date(l.appt_date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long" }) + "!"
       : "Hi" + (nm ? " " + nm : "") + ", it's Art from SoCal Contractor Exchange. Great meeting you today! Your free " + r.proj + " inspection is set for " + r.date + (r.time ? " at " + r.time : "") +
         ". Jorge from our office will call you to confirm from (619) 393-5297, so please pick up. Here's our flyer with your appointment details. See you then!";
     return '<div class="slx-row" style="flex-direction:column">' +
