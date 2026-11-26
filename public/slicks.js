@@ -9,7 +9,7 @@
     cards:   { name: "Slick cards", n: 18, ic: "\ud83d\uddc2\ufe0f", sub: "All 18 cards", bg: "#C3CDD3" },
     flyer:   { name: "Flyer", n: 2, ic: "\ud83d\udcc4", sub: "Front \u00b7 back \u00b7 QR code", bg: "#9FB3C2" }
   };
-  var ORDER = ["roof", "stucco", "windows", "flyer"];
+  var ORDER = document.documentElement.classList.contains("wl-mine") ? ["roof", "stucco", "windows"] : ["roof", "stucco", "windows", "flyer"];   // the flyer is SoCal's: not in Home Connector
   // preview of the new roof pitch slides + tap-a-photo: open the app once with ?slxpreview=1 (or =0 to turn off)
   var PV = false; try { var q = (location.search.match(/slxpreview=(\d)/) || [])[1]; if (q) localStorage.setItem("slx_preview", q); PV = localStorage.getItem("slx_preview") === "1"; } catch(e){}
   var CPV = PV;   // preview flag still controls new squares (slick cards)
