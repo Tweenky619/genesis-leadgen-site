@@ -1,6 +1,15 @@
 {
   "name": "genesis-leadgen",
   "main": "src/worker.js",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "hc.goldenbeemalaj.com", "custom_domain": true },
+    { "pattern": "goldback.goldenbeemalaj.com", "custom_domain": true },
+    { "pattern": "goldenbeemalaj.com/hc", "zone_name": "goldenbeemalaj.com" },
+    { "pattern": "goldenbeemalaj.com/hc/*", "zone_name": "goldenbeemalaj.com" },
+    { "pattern": "goldenbeemalaj.com/goldback", "zone_name": "goldenbeemalaj.com" },
+    { "pattern": "goldenbeemalaj.com/goldback/*", "zone_name": "goldenbeemalaj.com" }
+  ],
   "compatibility_date": "2025-01-01",
   "assets": {
     "directory": "./public",

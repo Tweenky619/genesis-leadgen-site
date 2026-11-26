@@ -1,6 +1,6 @@
 // Serves the app's static files, plus a tiny anonymous usage counter for the shared copies.
 // POST /api/ping  {app, device, event}  -> one row in D1 (no homeowner or lead details)
-const ALLOWED = ["https://socal-contractor-exchange.pages.dev", "https://genesis-leadgen.goldenbeemalajjewelry.workers.dev"];
+const ALLOWED = ["https://socal-contractor-exchange.pages.dev", "https://genesis-leadgen.goldenbeemalajjewelry.workers.dev", "https://hc.goldenbeemalaj.com", "https://goldback.goldenbeemalaj.com"];
 const EVENTS = ["open", "lead_saved"];
 
 function cors(origin) {
@@ -84,7 +84,16 @@ export default {
       const target = new URL("/owners" + (rest === "/" ? "/" : rest), url);
       return env.ASSETS.fetch(new Request(target.toString(), request));
     }
-    const repM = url.pathname.match(/^\/(rep|ruben|app|custom|goldback)(\/.*)?$/);
+    // goldenbeemalaj.com/hc and /goldback send people to the apps' own addresses (the rest of goldenbeemalaj.com is the website)
+    if (url.hostname === "goldenbeemalaj.com" || url.hostname === "www.goldenbeemalaj.com") {
+      const gm = url.pathname.match(/^\/(hc|goldback)(\/|$)/);
+      if (gm) return Response.redirect("https://" + gm[1] + ".goldenbeemalaj.com/" + url.search, 301);
+      return fetch(request);
+    }
+    // hc.goldenbeemalaj.com = Home Connector, goldback.goldenbeemalaj.com = Goldback app
+    const hostKind = /^hc\./.test(url.hostname) ? "app" : /^goldback\./.test(url.hostname) ? "goldback" : "";
+    let repM = url.pathname.match(/^\/(rep|ruben|app|custom|goldback)(\/.*)?$/);
+    if (hostKind && (url.pathname === "/" || url.pathname === "/index.html")) repM = [url.pathname, hostKind, "/"];
     if (repM) {
       const rest = repM[2] || "/";
       const target = new URL(rest === "/" ? "/" : rest, url);
@@ -95,7 +104,7 @@ export default {
       if ((kind === "app" || kind === "custom" || kind === "goldback") && (res.headers.get("content-type") || "").includes("text/html")) {
         let html = await res.text();
         const mine = kind === "app";
-        html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-' + kind + '.webmanifest">')
+        html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-' + kind + (hostKind ? "-host" : "") + '.webmanifest">')
           .replace('<meta name="apple-mobile-web-app-title" content="SoCal Leads">', '<meta name="apple-mobile-web-app-title" content="' + (kind === "goldback" ? "Goldbacks" : mine ? "Goldenbee" : "Lead Gen") + '">')
           .replace(/<link rel="apple-touch-icon" href="[^"]*">/, '<link rel="apple-touch-icon" href="' + (kind === "goldback" ? "/goldenbee-gb-icon.png" : mine ? "/goldenbee-hc-icon-v3.png" : "/app-icon-180.png") + '">');
         const h = new Headers(res.headers); h.set("Cache-Control", "no-cache"); h.delete("content-length");

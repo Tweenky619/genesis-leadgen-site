@@ -1,0 +1,23 @@
+{
+  "name": "Goldenbee MALAJ Home Connector",
+  "short_name": "Goldenbee",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f4f9",
+  "theme_color": "#1d1f23",
+  "icons": [
+    {
+      "src": "/goldenbee-hc-emblem-v3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/goldenbee-hc-icon-v3.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "id": "/"
+}

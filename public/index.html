@@ -6,11 +6,13 @@
 <title>SoCal Contractor Exchange</title>
 <script>
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
-  window.LG_WL = /^\/(app|custom|goldback)(\/|$)/.test(location.pathname);
+  // own addresses: hc.goldenbeemalaj.com = Home Connector, goldback.goldenbeemalaj.com = Goldback app (same as /app and /goldback)
+  window.LG_HOST = /^hc\./.test(location.hostname) ? "app" : /^goldback\./.test(location.hostname) ? "goldback" : "";
+  window.LG_WL = !!window.LG_HOST || /^\/(app|custom|goldback)(\/|$)/.test(location.pathname);
   // /goldback is Goldenbee MALAJ Jewelry's Goldback lead program: its own leads, storage and branding, fully separate from Home Connector (/app)
-  window.LG_GB = /^\/goldback(\/|$)/.test(location.pathname);
+  window.LG_GB = window.LG_HOST === "goldback" || /^\/goldback(\/|$)/.test(location.pathname);
   // /app is Art's own program (always Goldenbee MALAJ Home Connector); /custom is the customizable copy for future companies
-  window.LG_MINE = /^\/app(\/|$)/.test(location.pathname);
+  window.LG_MINE = window.LG_HOST === "app" || /^\/app(\/|$)/.test(location.pathname);
   window.LG_WLP = window.LG_MINE ? "wl_" : window.LG_GB ? "gb_" : "wc_";
   if (window.LG_GB) document.documentElement.className += " lg-gb";
   if (window.LG_MINE) document.documentElement.className += " wl-mine";
