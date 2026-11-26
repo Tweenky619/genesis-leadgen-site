@@ -8,6 +8,8 @@
   // ===== White-label mode: /app — any lead gen company sets its own name, logo, colors, products, hours =====
   // own addresses: hc.goldenbeemalaj.com = Home Connector, goldback.goldenbeemalaj.com = Goldback app (same as /app and /goldback)
   window.LG_HOST = /^hc\./.test(location.hostname) ? "app" : /^goldback\./.test(location.hostname) ? "goldback" : "";
+  // the Goldback community app lives in gb-app.html; if the old page loads on the Goldback address, go there (keeps #move= hand-offs)
+  if (window.LG_HOST === "goldback") location.replace("/gb-app" + location.search + location.hash);
   window.LG_WL = !!window.LG_HOST || /^\/(app|custom|goldback)(\/|$)/.test(location.pathname);
   // /goldback is Goldenbee MALAJ Jewelry's Goldback lead program: its own leads, storage and branding, fully separate from Home Connector (/app)
   window.LG_GB = window.LG_HOST === "goldback" || /^\/goldback(\/|$)/.test(location.pathname);
