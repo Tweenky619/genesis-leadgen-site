@@ -123,19 +123,27 @@ export default {
       const SKIP_VID = /collapse|currency|shopify|call to action/i;
       videos = videos.filter((v) => !SKIP_VID.test(v.title || ""));
       // Goldback Inc.'s official daily rate (used as the app's price floor), cached 30 min
-      let daily = null;
+      let daily = null, lockUntil = 0;
       try {
-        const dr = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = 'daily'").first();
-        if (dr && Date.now() - dr.updated < 1800000) daily = JSON.parse(dr.v);
+        // Holds for the day on Goldback's schedule: 9 AM Pacific to 9 AM Pacific
+        const pp = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date()).map((x) => [x.type, x.value]));
+        const off = Date.now() - Date.UTC(+pp.year, +pp.month - 1, +pp.day, +pp.hour, +pp.minute, new Date().getUTCSeconds());
+        let pStart = Date.UTC(+pp.year, +pp.month - 1, +pp.day, 9, 0) + off;
+        if (+pp.hour * 60 + +pp.minute < 540) pStart -= 864e5;
+        lockUntil = pStart + 864e5;
+        const dkey = "daily:" + new Date(pStart - off).toISOString().slice(0, 10);
+        const dr = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = ?1").bind(dkey).first();
+        if (dr) daily = JSON.parse(dr.v);
         else {
           const rr = await fetch("https://www.goldback.com/gb-proxy.php", { headers: { "User-Agent": "Mozilla/5.0 (goldenbee-malaj)" } });
           const dj = rr.ok ? await rr.json() : null;
-          const usd = Number(dj && dj.quotes && dj.quotes.USDUSD);
-          if (usd > 0) { daily = Math.round(usd * 100) / 100; await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES ('daily', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(JSON.stringify(daily), Date.now()).run(); }
-          else if (dr) daily = JSON.parse(dr.v);
+          const usd = Number(dj && dj.quotes && dj.quotes.USDUSD), dts = Number(dj && dj.timestamp) || 0;
+          const freshD = dts ? dts * 1000 >= pStart - 120000 : Date.now() >= pStart + 15 * 60000;
+          if (usd > 0 && !freshD) daily = Math.round(usd * 100) / 100;
+          else if (usd > 0) { daily = Math.round(usd * 100) / 100; await env.LEADS_DB.prepare("INSERT OR IGNORE INTO gb_public (k, v, updated) VALUES (?1, ?2, ?3)").bind(dkey, JSON.stringify(daily), Date.now()).run(); }
         }
       } catch (e) {}
-      return J({ rate: site.rate, daily, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
+      return J({ rate: site.rate, daily, lockUntil, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
     }
     if (url.pathname === "/api/ping") {
       const h = cors(request.headers.get("Origin") || "");

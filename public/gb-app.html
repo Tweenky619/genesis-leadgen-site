@@ -333,6 +333,7 @@ var OBJECTIONS = [
   ["Timing and stalls", [
     ["I need to talk to my spouse", "Of course, that's how it should be. Let's meet when you're both there. Is {day} evening or Saturday better?"],
     ["Just send me info", "Happy to. I'll text you the link now. Most people still want to hold one first. {day} at 12 or 4 for 10 minutes?"],
+    ["I'll wait and see", "Totally fair. Just so you know, today's price is good until {until}. After that it updates with gold, and it can go up or down. If you want to lock in today's price, we can do it now. Starter set or the bigger order?"],
     ["I'll think about it", "Totally fair. What part would you want to think over, the price or how you'd use them? ... (answer that one) ... Would {day} at 12 or 4 work better?"],
     ["Call me later", "No problem. Is tomorrow at 12 or 4 better for a quick call?"],
     ["I'm busy right now", "I'll be quick. Thirty seconds now, or should I call you back at 5?"],
@@ -376,7 +377,7 @@ function fillScript(t, m){
   interest = interest ? interest.trim().replace(/^General question$/i, "Goldbacks") : "Goldbacks";
   if (/^(Starter set|Full state set)$/i.test(interest)) interest = "a Goldback " + interest.toLowerCase();
   var day = new Date(); day.setDate(day.getDate() + 1); if (day.getDay() === 0) day.setDate(day.getDate() + 1);
-  return t.replace(/\{first\}/g, first(m.name)).replace(/\{interest\}/g, interest).replace(/\{day\}/g, day.toLocaleDateString("en-US", { weekday: "long" })).replace(/\{holiday\}/g, holidayToday());
+  return t.replace(/\{until\}/g, untilText()).replace(/\{first\}/g, first(m.name)).replace(/\{interest\}/g, interest).replace(/\{day\}/g, day.toLocaleDateString("en-US", { weekday: "long" })).replace(/\{holiday\}/g, holidayToday());
 }
 function scriptHtml(m, i){
   var sc = SCRIPTS[i]; if (!sc) return "";
@@ -533,6 +534,7 @@ function editMerchant(id){
 // ================= EXCHANGES =================
 // Owner's rule: never exchange out below Goldback's daily rate; retail steps up $5 when the daily rate passes $10, $15, $20...; $2,000+ always at the daily rate
 function stepPrice(){ var d = PUB.daily || 0; return d ? Math.max(10, Math.ceil(d / 5 - 1e-9) * 5) : 0; }
+function untilText(){ var t = PUB.lockUntil || 0; var same = t && new Date(t).toLocaleDateString("en-US", { timeZone: "America/Los_Angeles" }) === new Date().toLocaleDateString("en-US", { timeZone: "America/Los_Angeles" }); return "9 AM Pacific Time" + (same ? " today" : " tomorrow"); }
 function exemptLine(){ return Number(D.settings.exempt) || 2000; }
 function unlockQty(){ var d = PUB.daily || 0; return d ? Math.ceil(2000 / d - 1e-9) : 0; }
 // Tier ladder: each tier closes part of the gap between the $5 step price and the daily rate
@@ -582,8 +584,8 @@ function rExchanges(){
   var el = document.getElementById("v-exchanges"), s = D.settings, f = filt.exchanges, now = new Date();
   var ym = now.toISOString().slice(0,7), pm = new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0,7), y = String(now.getFullYear());
   var list = D.exchanges.filter(function(x){ var d = String(x.date); return f === "month" ? d.slice(0,7) === ym : f === "prev" ? d.slice(0,7) === pm : d.slice(0,4) === y; }).sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : (b.created||0) - (a.created||0); });
-  var stale = s.rate_date !== todayISO(), yt = yearTotals();
-  el.innerHTML = '<div class="rate' + (stale ? " stale" : "") + '" id="rateBox"><div><span>Today\'s rate</span><b>' + money(retailRate()) + '</b><small>per Goldback · ' + (PUB.daily ? 'Goldback daily ' + money(PUB.daily) : 'floor ' + money(s.floor)) + '</small></div><div style="text-align:right"><span>' + (stale ? "Not updated today" : "Updated today") + '</span><b style="font-size:15px">' + (stale ? "Tap to set" : "10am MST") + '</b><small>' + (s.show.rate ? "shows on website" : "website off") + '</small></div></div>' +
+  var stale = !PUB.daily && s.rate_date !== todayISO(), yt = yearTotals();
+  el.innerHTML = '<div class="rate' + (stale ? " stale" : "") + '" id="rateBox"><div><span>Today\'s rate</span><b>' + money(retailRate()) + '</b><small>per Goldback · ' + (PUB.daily ? 'Goldback daily ' + money(PUB.daily) + ' · good until ' + untilText() : 'floor ' + money(s.floor)) + '</small></div><div style="text-align:right"><span>' + (stale ? "Not updated today" : "Updated today") + '</span><b style="font-size:15px">' + (stale ? "Tap to set" : (PUB.daily ? "Automatic" : "9 AM PT")) + '</b><small>' + (s.show.rate ? "shows on website" : "website off") + '</small></div></div>' +
     seg("fX", [["month", now.toLocaleDateString(undefined, { month: "long" })], ["prev", new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString(undefined, { month: "long" })], ["year", "Year"]], f) +
     (list.length ? list.map(exCard).join("") : '<div class="empty">No exchanges ' + (f === "year" ? "this year" : "this month") + '. Tap + to log one.</div>') +
     (list.length ? '<div class="btns"><button class="btn ghost" id="xCsv">Download for bookkeeper (CSV)</button></div>' : "") +
@@ -670,7 +672,7 @@ function editExchange(id, whoId){
       var capped = sub >= 1999.99 - g * 0.01;
       html += '<div class="note" style="margin-top:8px"><b>Unlock the daily rate:</b> ' + (capped ? "they're at the $2,000 line. Add " + gbFmt(need) + ' more GB (' + gbFmt(U) + ' for ' + money(nt) + ') and the whole order drops to ' + money(PUB.daily) + ' each.' : 'add ' + gbFmt(need) + ' more GB and the whole order drops to ' + money(PUB.daily) + ' each.') +
         '<br>Now: ' + gbFmt(g) + ' GB = ' + money(nowAll) + (t.taxed ? ' with tax' : '') + '. At ' + gbFmt(U) + ': ' + money(nt) + ' before tax' + (t.taxed ? ' (' + money(nt + ntTax) + ' with tax, less if the $2,000 exemption applies)' : '') + '.' +
-        '<br><i>Say: "You\'re at ' + money(nowAll) + (t.taxed ? ' with tax' : '') + ' for ' + gbFmt(g) + ' Goldbacks. If you go to ' + gbFmt(U) + ', your whole order drops to ' + money(PUB.daily) + ' each: ' + money(nt) + ' before tax. Want me to do ' + gbFmt(U) + '?"</i></div>';
+        '<br><i>Say: "You\'re at ' + money(nowAll) + (t.taxed ? ' with tax' : '') + ' for ' + gbFmt(g) + ' Goldbacks. If you go to ' + gbFmt(U) + ', your whole order drops to ' + money(PUB.daily) + ' each: ' + money(nt) + ' before tax. Today\'s price is good until ' + untilText() + '. Want me to do ' + gbFmt(U) + '?"</i></div>';
     }
     var D2 = D.exchanges.filter(function(e){ return e.id !== id; }); D2.push(t); var keep = D.exchanges; D.exchanges = D2; var fl = exFlags(t); D.exchanges = keep;
     document.getElementById("xSum").innerHTML = html + warn.concat(fl).map(function(w){ return '<div class="flag">' + esc(w) + '</div>'; }).join("");
@@ -907,7 +909,7 @@ function publishNow(loud){
 }
 function loadPublic(){
   fetch("/api/gb-public?yt=" + encodeURIComponent(D.settings.youtube || ""), { cache: "no-store" }).then(function(r){ return r.ok ? r.json() : Promise.reject(); })
-    .then(function(j){ PUB.videos = j.videos || []; PUB.daily = Number(j.daily) || 0; PUB.err = false; if (view === "community" || view === "connections") render(); })
+    .then(function(j){ PUB.videos = j.videos || []; PUB.daily = Number(j.daily) || 0; PUB.lockUntil = Number(j.lockUntil) || 0; PUB.err = false; if (view === "community" || view === "connections") render(); })
     .catch(function(){ PUB.err = true; if (view === "community") render(); });
 }
 function inqSync(loud){
