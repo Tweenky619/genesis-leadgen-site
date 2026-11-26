@@ -4,17 +4,17 @@
   "start_url": "/app/",
   "scope": "/app/",
   "display": "standalone",
-  "background_color": "#6e1b2d",
-  "theme_color": "#6e1b2d",
+  "background_color": "#3a0d18",
+  "theme_color": "#3a0d18",
   "icons": [
     {
-      "src": "/goldenbee-hc-icon-burg-512.png",
+      "src": "/goldenbee-hc-icon-burg2-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/goldenbee-hc-icon-burg.png",
+      "src": "/goldenbee-hc-icon-burg2.png",
       "sizes": "180x180",
       "type": "image/png"
     }
