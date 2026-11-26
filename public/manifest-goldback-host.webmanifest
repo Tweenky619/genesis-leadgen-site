@@ -4,8 +4,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f4f9",
-  "theme_color": "#6b5210",
+  "background_color": "#15110a",
+  "theme_color": "#15110a",
   "icons": [
     {
       "src": "/goldenbee-gb-icon-512.png",

@@ -31,6 +31,68 @@ export default {
       try { orders = (await env.LEADS_DB.prepare("SELECT id, customer_name, customer_email, series, denomination, quantity, amount_cents, shipping_address, created_at FROM orders WHERE id > ?1 ORDER BY id LIMIT 100").bind(osince).all()).results || []; } catch (e) {}
       return new Response(JSON.stringify({ leads: r.results || [], orders }), { headers: nh });
     }
+    // Goldback app -> website: the app sends what the website may show (rate, listed merchants, events). Needs GB_INQ_KEY.
+    // The website reads it back from /api/gb-public (plus the newest YouTube videos, cached for an hour).
+    if (url.pathname === "/api/gb-publish" || url.pathname === "/api/gb-public") {
+      const ch = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
+      const J = (o, st, extra) => new Response(JSON.stringify(o), { status: st || 200, headers: Object.assign({ "Content-Type": "application/json" }, extra || {}) });
+      if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: ch });
+      if (!env.LEADS_DB) return J({ error: "not_configured" }, 503, ch);
+      await env.LEADS_DB.prepare("CREATE TABLE IF NOT EXISTS gb_public (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL)").run();
+      if (url.pathname === "/api/gb-publish") {
+        if (request.method !== "POST") return J({ error: "method" }, 405);
+        const given = request.headers.get("x-gb-key") || "";
+        if (!env.GB_INQ_KEY) return J({ error: "not_configured" }, 503);
+        let diff = given.length ^ env.GB_INQ_KEY.length;
+        for (let i = 0; i < given.length && i < env.GB_INQ_KEY.length; i++) diff |= given.charCodeAt(i) ^ env.GB_INQ_KEY.charCodeAt(i);
+        if (diff !== 0) return J({ error: "unauthorized" }, 401);
+        let b = {};
+        try { b = await request.json(); } catch (e) { return J({ error: "json" }, 400); }
+        const str = (x, n) => String(x == null ? "" : x).slice(0, n);
+        const out = {
+          rate: b.rate && Number(b.rate.price) > 0 ? { price: Math.round(Number(b.rate.price) * 100) / 100, date: str(b.rate.date, 10) } : null,
+          merchants: (Array.isArray(b.merchants) ? b.merchants : []).slice(0, 100).map((m) => ({ name: str(m.name, 80), kind: str(m.kind, 60), area: str(m.area, 60), address: str(m.address, 140), option: str(m.option, 40) })).filter((m) => m.name),
+          events: (Array.isArray(b.events) ? b.events : []).slice(0, 30).map((e) => ({ id: str(e.id, 40), title: str(e.title, 100), date: str(e.date, 10), time: str(e.time, 30), place: str(e.place, 120), desc: str(e.desc, 300) })).filter((e) => e.title && /^\d{4}-\d\d-\d\d$/.test(e.date)),
+          videos: !!b.videos, youtube: str(b.youtube, 60), review: /^https:\/\//.test(b.review || "") ? str(b.review, 200) : "",
+        };
+        await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES ('site', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(JSON.stringify(out), Date.now()).run();
+        return J({ ok: true });
+      }
+      if (request.method !== "GET") return J({ error: "method" }, 405, ch);
+      const row = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = 'site'").first();
+      const site = row ? JSON.parse(row.v) : { rate: null, merchants: [], events: [], videos: true, youtube: "@goldenbeemalajjewelry", review: "" };
+      const handle = (url.searchParams.get("yt") || site.youtube || "@goldenbeemalajjewelry").trim();
+      let videos = [];
+      if (site.videos !== false || url.searchParams.get("yt")) {
+        const vk = "yt:" + handle.toLowerCase();
+        const vr = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = ?1").bind(vk).first();
+        if (vr && Date.now() - vr.updated < 3600000) videos = JSON.parse(vr.v);
+        else {
+          try {
+            let cid = /^UC[\w-]{22}$/.test(handle) ? handle : "";
+            if (!cid) {
+              const pg = await fetch("https://www.youtube.com/" + (handle.startsWith("@") ? handle : "@" + handle), { headers: { "User-Agent": "Mozilla/5.0", "Accept-Language": "en-US" } });
+              const t = await pg.text();
+              const m = t.match(/"externalId":"(UC[\w-]{22})"/) || t.match(/channel_id=(UC[\w-]{22})/) || t.match(/"channelId":"(UC[\w-]{22})"/);
+              cid = m ? m[1] : "";
+            }
+            if (cid) {
+              const feed = await (await fetch("https://www.youtube.com/feeds/videos.xml?channel_id=" + cid)).text();
+              const ents = feed.split("<entry>").slice(1, 9);
+              const dec = (x) => x.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+              videos = ents.map((e) => {
+                const id = (e.match(/<yt:videoId>([\w-]{11})<\/yt:videoId>/) || [])[1];
+                return id ? { id, title: dec((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || ""), published: (e.match(/<published>([^<]+)<\/published>/) || [])[1] || "", link: "https://youtu.be/" + id, thumb: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" } : null;
+              }).filter(Boolean);
+            }
+          } catch (e) {}
+          if (videos.length || !vr) await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES (?1, ?2, ?3) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(vk, JSON.stringify(videos), Date.now()).run();
+          else videos = JSON.parse(vr.v);
+        }
+      }
+      const today = new Date(Date.now() - 8 * 3600000).toISOString().slice(0, 10);
+      return J({ rate: site.rate, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
+    }
     if (url.pathname === "/api/ping") {
       const h = cors(request.headers.get("Origin") || "");
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
@@ -92,6 +154,12 @@ export default {
     }
     // hc.goldenbeemalaj.com = Home Connector, goldback.goldenbeemalaj.com = Goldback app
     const hostKind = /^hc\./.test(url.hostname) ? "app" : /^goldback\./.test(url.hostname) ? "goldback" : "";
+    // Goldback community app (Members, Merchants, Exchanges, Inventory, Community) has its own page
+    if ((hostKind === "goldback" && (url.pathname === "/" || url.pathname === "/index.html")) || /^\/goldback\/?$/.test(url.pathname)) {
+      const res = await env.ASSETS.fetch(new Request(new URL("/gb-app", url).toString(), request));
+      const h = new Headers(res.headers); h.set("Cache-Control", "no-cache");
+      return new Response(res.body, { status: res.status, headers: h });
+    }
     let repM = url.pathname.match(/^\/(rep|ruben|app|custom|goldback)(\/.*)?$/);
     if (hostKind && (url.pathname === "/" || url.pathname === "/index.html")) repM = [url.pathname, hostKind, "/"];
     if (repM) {
