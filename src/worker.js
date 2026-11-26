@@ -105,7 +105,7 @@ export default {
         let html = await res.text();
         const mine = kind === "app";
         html = html.replace('<link rel="manifest" href="/manifest.webmanifest">', '<link rel="manifest" href="/manifest-' + kind + (hostKind ? "-host" : "") + '.webmanifest">')
-          .replace('<meta name="apple-mobile-web-app-title" content="SoCal Leads">', '<meta name="apple-mobile-web-app-title" content="' + (kind === "goldback" ? "Goldbacks" : mine ? "Goldenbee" : "Lead Gen") + '">')
+          .replace('<meta name="apple-mobile-web-app-title" content="SoCal Leads">', '<meta name="apple-mobile-web-app-title" content="' + (kind === "goldback" ? "Goldbacks" : mine ? "Home Connector" : "Lead Gen") + '">')
           .replace(/<link rel="apple-touch-icon" href="[^"]*">/, '<link rel="apple-touch-icon" href="' + (kind === "goldback" ? "/goldenbee-gb-icon.png" : mine ? "/goldenbee-hc-icon-v3.png" : "/app-icon-180.png") + '">');
         const h = new Headers(res.headers); h.set("Cache-Control", "no-cache"); h.delete("content-length");
         return new Response(html, { status: res.status, headers: h });

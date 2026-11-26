@@ -68,7 +68,7 @@
     document.title = window.LG_GB ? "Goldenbee MALAJ Jewelry \u2014 Goldbacks" : window.LG_MINE ? "Goldenbee MALAJ Home Connector" : cfg.company ? cfg.company + " Lead Gen" : "Lead Gen";
     document.addEventListener("DOMContentLoaded", function(){
       var m = document.querySelector('link[rel="manifest"]'); if (m) m.href = window.LG_GB ? "/manifest-goldback.webmanifest" : window.LG_MINE ? "/manifest-app.webmanifest" : "/manifest-custom.webmanifest";
-      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_GB ? "Goldbacks" : window.LG_MINE ? "Goldenbee" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
+      var t = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (t) t.content = window.LG_GB ? "Goldbacks" : window.LG_MINE ? "Home Connector" : cfg.company ? cfg.company.split(" ")[0] + " Leads" : "Lead Gen";
       document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(function(l){ l.href = cfg.icon || cfg.logo || "/app-icon-180.png"; });
     });
   }

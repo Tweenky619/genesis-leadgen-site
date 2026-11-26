@@ -1,6 +1,6 @@
 {
   "name": "Goldenbee MALAJ Home Connector",
-  "short_name": "Goldenbee",
+  "short_name": "Home Connector",
   "start_url": "/app/",
   "scope": "/app/",
   "display": "standalone",
