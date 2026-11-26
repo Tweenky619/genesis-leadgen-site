@@ -91,6 +91,9 @@ export default {
         }
       }
       const today = new Date(Date.now() - 8 * 3600000).toISOString().slice(0, 10);
+      // keep off-message videos out (Playbook: no collapse talk, never "currency", old Shopify store is closed)
+      const SKIP_VID = /collapse|currency|shopify|call to action/i;
+      videos = videos.filter((v) => !SKIP_VID.test(v.title || ""));
       return J({ rate: site.rate, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
     }
     if (url.pathname === "/api/ping") {
