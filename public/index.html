@@ -621,6 +621,15 @@
   .st-sold{background:#0b6b3a;color:#fff;}
   .bo-plan{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:10px;}
   .bo-plan .lbl{margin-bottom:6px;}
+  .gb-inq{margin:0 0 10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card,#fff);font-size:13.5px;}
+  .gb-inq b{display:block;margin-bottom:4px;}
+  .gb-inq input{width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:15px;margin:6px 0;}
+  .gb-inq button{padding:9px 12px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-weight:800;font-size:14px;}
+  .gb-inq .nw{display:flex;gap:8px;align-items:center;padding:9px;margin:6px 0;border-radius:10px;background:#fff4e0;border:1px solid #e8c47a;}
+  .gb-inq .nw .x{flex:1;}
+  .gb-inq .nw small{display:block;color:var(--text-muted);}
+  .gb-inq .nw button{padding:8px 10px;}
+  .gb-inq .m{color:var(--text-muted);font-size:12.5px;margin-top:4px;}
   .bo-step{display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);}
   .bo-step:last-of-type{border-bottom:none;}
   .bo-step .t b{display:block;font-size:14.5px;}
@@ -1574,7 +1583,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
 </script>
 <script>
   // self-update: if a newer version is deployed, reload once to get it (fixes home-screen apps stuck on an old copy)
-  window.LG_BUILD = "1795637285";
+  window.LG_BUILD = "1795658456";
   (function(){ function chk(){ try { fetch("/version.json?t=" + Date.now(), { cache: "no-store" }).then(function(r){ return r.json(); }).then(function(j){ if (j && j.v && j.v !== window.LG_BUILD){ var k = "lg_reloaded_" + j.v; if (!sessionStorage.getItem(k)){ sessionStorage.setItem(k, "1"); location.reload(); } } }).catch(function(){}); } catch(e){} }
     chk(); document.addEventListener("visibilitychange", function(){ if (!document.hidden) chk(); }); })();
 </script>
@@ -1612,6 +1621,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
         <input type="text" id="searchInput" placeholder="Search name, address or phone">
       </div>
       <div class="co-banner" id="coBanner" hidden></div>
+      <div class="gb-inq" id="gbInq" hidden></div>
       <div class="restore" id="restoreBox" hidden></div>
       <div class="tabs" id="tabs"></div>
       <div id="listContainer"></div>
@@ -2152,7 +2162,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
 
   var STATUSES = [
     ["New","st-new"],["No Answer","st-noanswer"],["Contacted","st-contacted"],
-    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Bad Number","st-badnum"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"]
+    ["Appt Set","st-appt"],["Sent to Monday","st-sent"],["Confirmed","st-confirmed"],["Reset","st-reset"],["Rolled","st-rolled"],["Rep Reset","st-represet"],["Confirm NA","st-noreach"],["Bad Number","st-badnum"],["Blow Out","st-blow"],["No Show","st-noshow"],["Call to Cancel","st-ctc"],["No Mr./Mrs.","st-nomr"],["Pitch & Miss","st-miss"],["Sold","st-sold"],["Cancelled","st-cancel"],["Not Interested","st-dead"],["Cold","st-dead"]
   ];
   var CLOSED = ["Sold","Cancelled"];
   // Not Interested = dead, but it comes back for a re-knock 6 months later
@@ -2563,6 +2573,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
   }
 
   function openDetail(id){
+    try { var wl = leads.filter(function(x){ return x.id === id; })[0]; if(wl && wl.web_new){ wl.web_new = false; save(); if(GB){ gbInqPaint(""); } } } catch(e){}
     var l = leads.find(function(x){ return x.id === id; });
     if(!l) return;
     viewingId = id;
@@ -3017,9 +3028,55 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     }
     return b.length ? '<div class="quick">' + b.join("") + '</div>' : '';
   }
+
+  // Goldback ONLINE INQUIRY cadence (website form leads): day offsets from first contact
+  var GB_PLAN = [
+    [0, "📞 Call + voicemail", "Day 0 — leave one short voicemail"],
+    [0, "💬 Text the inquiry", "Right after the voicemail — reference their request"],
+    [0, "📞 Call again (no voicemail)", "Day 0, 5–7 pm"],
+    [1, "💬 Friendly text, no ask", "Day 1 — holiday or soft check-in, no pitch"],
+    [2, "📞 Call (no voicemail)", "Day 2, 11 am–1 pm"],
+    [3, "💬 Text with two times", "Day 3 — “Sat 2 pm or Sun 4 pm, which works?”"],
+    [7, "💬 Last text", "Day 7 — close it out, leave your number"]
+  ];
+  var GB_COLD_DAYS = [30, 90];
+  function gbStart(l){ if(l.gb_date) return l.gb_date; var d = new Date(l.created_at || Date.now()); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); }
+  function gbDue(l, i){ var p = gbStart(l).split("-"), d = new Date(+p[0], +p[1]-1, +p[2] + GB_PLAN[i][0]); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); var iso = d.toISOString().slice(0,10); return iso < todayISO() ? todayISO() : iso; }
+  function gbAdvance(l){
+    var i = l.gb_stage || 0; if(i >= GB_PLAN.length) return;
+    addLog(l, "Online inquiry cadence step " + (i + 1) + " of " + GB_PLAN.length + " done (" + GB_PLAN[i][1].replace(/^\S+\s/, "") + ")");
+    l.gb_stage = i + 1;
+    if(!l.gb_date) l.gb_date = gbStart(l);
+    l.next_followup = l.gb_stage < GB_PLAN.length ? gbDue(l, l.gb_stage) : "";
+    if(statusOf(l) === "New") l.status = "No Answer";
+  }
+  function gbColdHtml(l){
+    var n = l.gb_cold_n || 0;
+    var nextTxt = n === 0 ? "30-day check-in" : n === 1 ? "90-day check-in" : "quarterly update";
+    return '<div class="bo-plan"><div class="lbl">❄️ Cold — stop active outreach</div>' +
+      '<div class="bad-help">Next: <b>' + nextTxt + '</b> on ' + esc(fmtIsoDate(l.next_followup || todayISO())) + '. One short text, no ask. If they reply, tap Reached.</div>' +
+      '<button type="button" class="bo-next" data-fu="gbcheckin">✅ Check-in sent — schedule the next one</button>' +
+      '<button type="button" class="bad-dead" data-fu="gbreached" style="background:#1d6b3a;color:#fff;">💬 They replied — move to Contacted</button></div>';
+  }
+  function gbPlanHtml(l){
+    var st = statusOf(l);
+    if(st === "Cold") return gbColdHtml(l);
+    if(["New", "No Answer", "Contacted"].indexOf(st) === -1) return "";
+    var cur = l.gb_stage || 0, total = GB_PLAN.length;
+    var rows = GB_PLAN.map(function(st2, i){
+      var done = i < cur, now = i === cur;
+      return '<div class="bo-step' + (done ? " done" : now ? " now" : "") + '"><span class="ic">' + (done ? "✅" : now ? "➡️" : "○") + '</span><span class="t"><b>' + st2[1] + '</b><small>' + st2[2] + '</small></span><span class="d">' + (done ? "" : esc(fmtIsoDate(gbDue(l, i)))) + '</span></div>';
+    }).join("");
+    var action = cur >= total
+      ? '<div class="bad-help">All ' + total + ' steps done with no reply. Mark them cold — you’ll check in at 30 and 90 days.</div><button type="button" class="bo-next" data-fu="gbcold">❄️ Mark cold</button>'
+      : '<button type="button" class="bo-next" data-fu="gbnext">✅ Done — ' + esc(GB_PLAN[cur][1].replace(/^\S+\s/, "")) + '</button>' +
+        '<div class="bad-help">Next after that: ' + (cur + 1 < total ? esc(GB_PLAN[cur + 1][1]) : "mark cold") + '</div>';
+    return '<div class="bo-plan"><div class="lbl">Online inquiry cadence — ' + cur + ' of ' + total + ' done</div>' + rows + action +
+      '<button type="button" class="bad-dead" data-fu="gbreached" style="background:#1d6b3a;color:#fff;margin-top:8px;">💬 Reached them — stop the plan</button></div>';
+  }
   function buildFollowUp(l){
     var st = statusOf(l);
-    var opts = STATUSES.map(function(x){ return '<option' + (x[0]===st?' selected':'') + '>' + x[0] + '</option>'; }).join("");
+    var opts = STATUSES.filter(function(x){ return GB || x[0] !== "Cold"; }).map(function(x){ return '<option' + (x[0]===st?' selected':'') + '>' + x[0] + '</option>'; }).join("");
     var log = (l.log || []).map(function(e, i){
       return '<div class="log-row"><span><b>' + esc(fmtDate(e.ts)) + '</b>' + esc(e.text) + '</span><button type="button" class="log-del" data-fu="logdel" data-i="' + i + '" aria-label="Delete entry">\u2715</button></div>';
     }).join("");
@@ -3028,7 +3085,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
         '<div><label>Status</label><select id="fuStatus">' + opts + '</select></div>' +
         '<div><label>Next follow-up</label><input type="date" id="fuNext" value="' + esc(l.next_followup || "") + '"></div>' +
       '</div>' +
-      buildDispatch(l) + soldTextBox(l) +
+      (GB ? gbPlanHtml(l) : '') + buildDispatch(l) + soldTextBox(l) +
       buildOutcome(l) +
       '<div class="fu-note"><input type="text" id="fuNote" placeholder="Add a note\u2026"><button type="button" data-fu="note">Add</button></div>' +
       (log ? '<div class="fu-log">' + log + '</div>' : '') +
@@ -3301,6 +3358,10 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     }
     else if(a === "blowout"){ l.status = "Blow Out"; l.bo_date = todayISO(); l.bo_stage = 0; l.next_followup = todayISO(); l.bo_text_sent = false; addLog(l, "Blow out"); }
     else if(a === "bonext"){ boAdvance(l, "done"); }
+    else if(a === "gbnext"){ gbAdvance(l); }
+    else if(a === "gbreached"){ l.status = "Contacted"; l.next_followup = ""; l.gb_cold_n = 0; addLog(l, "Reached \u2014 cadence stopped"); }
+    else if(a === "gbcold"){ l.status = "Cold"; l.gb_cold_n = 0; l.next_followup = addDaysISO(GB_COLD_DAYS[0]); addLog(l, "Marked cold \u2014 30-day check-in " + fmtIsoDate(l.next_followup)); }
+    else if(a === "gbcheckin"){ var cn = (l.gb_cold_n || 0) + 1; l.gb_cold_n = cn; l.next_followup = addDaysISO(cn === 1 ? GB_COLD_DAYS[1] - GB_COLD_DAYS[0] : 90); addLog(l, "Cold check-in " + cn + " sent \u2014 next " + fmtIsoDate(l.next_followup)); }
     else if(a === "confirmed"){ l.na_count = 0; l.status = "Confirmed"; l.next_followup = ""; addLog(l, "Dispatch confirmed appointment"); }
     else if(a === "badnum"){ l.status = "Bad Number"; l.next_followup = addDaysISO(1); l.bad_phone = l.phone || ""; addLog(l, "Bad number" + (l.phone ? " (" + l.phone + ")" : "") + " \u2014 knock again"); }
     else if(a === "baddead"){ l.status = "Not Interested"; l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Bad number, couldn\u2019t reach after knocking \u2014 dead"); }
@@ -3313,6 +3374,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     if(e.target.id === "fuStatus"){
       l.status = e.target.value; addLog(l, "Status \u2192 " + l.status);
       if(!isOpen(l)) l.next_followup = "";
+      if(l.status === "Cold"){ l.gb_cold_n = 0; l.next_followup = addDaysISO(GB_COLD_DAYS[0]); }
       if(l.status === "Not Interested"){ l.next_followup = addMonthsISO(todayISO(), 6); addLog(l, "Revisit " + fmtIsoDate(l.next_followup) + " (6 months)"); }
       refreshDetail();
     } else if(e.target.id === "fuSoldDate"){
@@ -4537,8 +4599,84 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
   document.getElementById("practiceBtn").addEventListener("click", function(){ if(window.openPractice){ window.openPractice(); } });
   document.getElementById("backFromPracticeBtn").addEventListener("click", function(){ showView("view-list"); renderList(); });
 
+
+  // ---------- Goldback: pull website-form inquiries into the app ----------
+  function gbInqKey(){ try { return localStorage.getItem("gb_inq_key") || ""; } catch(e){ return ""; } }
+  function gbInqSince(){ try { return parseInt(localStorage.getItem("gb_inq_since") || "0", 10) || 0; } catch(e){ return 0; } }
+  function gbOSince(){ try { return parseInt(localStorage.getItem("gb_inq_osince") || "0", 10) || 0; } catch(e){ return 0; } }
+  function gbDigits(x){ return String(x || "").replace(/\D/g, "").slice(-10); }
+  function gbInqPaint(msg){
+    var el = document.getElementById("gbInq"); if(!el) return; el.hidden = false;
+    if(!gbInqKey()){
+      el.innerHTML = '<b>🌐 Website inquiries</b>Connect once to pull goldenbeemalaj.com form leads into this app.<input type="password" id="gbInqKeyIn" placeholder="Access key" autocomplete="off"><button type="button" id="gbInqSave">Connect</button>' + (msg ? '<div class="m">' + esc(msg) + '</div>' : '');
+      document.getElementById("gbInqSave").onclick = function(){ var v = document.getElementById("gbInqKeyIn").value.trim(); if(!v) return; try { localStorage.setItem("gb_inq_key", v); } catch(e){} gbInqSync(); };
+    } else {
+      var nw = leads.filter(function(l){ return l.web_new; });
+      var items = nw.map(function(l){
+        var ord = l.web_kind === "order";
+        return '<div class="nw"><div class="x"><b>' + (ord ? '🛒 NEW ORDER' : 'ℹ️ NEW INFO REQUEST') + ' — ' + esc(l.homeowner_name || "Customer") + '</b><small>' + esc(l.web_summary || "") + '</small></div><button type="button" data-gbopen="' + esc(l.id) + '">Open</button></div>';
+      }).join("");
+      el.innerHTML = (nw.length ? '<b>🔔 ' + nw.length + ' new from the website</b>' + items : '') + '<button type="button" id="gbInqSync">↻ Sync website inquiries</button>' + (msg ? '<div class="m">' + esc(msg) + '</div>' : '') + (window.Notification && Notification.permission === "default" ? '<div class="m"><a href="#" id="gbInqAlerts">Turn on alerts</a> (shows while the app is open)</div>' : '');
+      document.getElementById("gbInqSync").onclick = gbInqSync;
+      Array.prototype.forEach.call(el.querySelectorAll("[data-gbopen]"), function(b){ b.onclick = function(){ var id = b.getAttribute("data-gbopen"); openDetail(id); }; });
+      var al = document.getElementById("gbInqAlerts"); if(al){ al.onclick = function(e){ e.preventDefault(); try { Notification.requestPermission().then(function(){ gbInqPaint(""); }); } catch(x){} }; }
+      try { if(navigator.setAppBadge){ if(nw.length){ navigator.setAppBadge(nw.length); } else { navigator.clearAppBadge(); } } } catch(e){}
+    }
+  }
+  function gbInqSync(){
+    var key = gbInqKey(); if(!key){ gbInqPaint(""); return; }
+    gbInqPaint("Syncing…");
+    fetch("/api/gb-inquiries?since=" + gbInqSince() + "&osince=" + gbOSince(), { headers: { "x-gb-key": key }, cache: "no-store" }).then(function(r){
+      if(r.status === 401){ try { localStorage.removeItem("gb_inq_key"); } catch(e){} throw new Error("Wrong key — enter it again."); }
+      if(r.status === 503){ throw new Error("Not set up on the server yet."); }
+      if(!r.ok){ throw new Error("Couldn’t reach the server."); }
+      return r.json();
+    }).then(function(j){
+      var rows = (j && j.leads) || [], added = 0, maxId = gbInqSince();
+      rows.forEach(function(w){
+        if(w.id > maxId) maxId = w.id;
+        if(leads.some(function(l){ return l.web_id === w.id; })) return;
+        var contact = String(w.contact || ""), isEmail = contact.indexOf("@") !== -1;
+        var phone = isEmail ? "" : contact, email = isEmail ? contact : "";
+        var dup = phone ? leads.filter(function(l){ return gbDigits(l.phone) && gbDigits(l.phone) === gbDigits(phone); })[0] : null;
+        var note = "Website inquiry #" + w.id + " — " + (w.interest || "General inquiry") + (w.best_time ? " · best time: " + w.best_time : "") + (contact ? " · " + contact : "");
+        if(dup){ dup.web_id = w.id; dup.web_new = true; dup.web_kind = dup.web_kind || "info"; dup.web_summary = note; addLog(dup, note); added++; return; }
+        var nm = String(w.name || "").trim().replace(/\s+/g, " "), sp = nm.indexOf(" ");
+        var first = sp === -1 ? nm : nm.slice(0, sp), last = sp === -1 ? "" : nm.slice(sp + 1);
+        var cap = function(t){ return t.replace(/(^|[\s-])([a-z])/g, function(m, a, b){ return a + b.toUpperCase(); }); };
+        first = cap(first); last = cap(last);
+        var ts = Date.parse(String(w.created_at || "").replace(" ", "T")) || Date.now();
+        var iso = new Date(ts); iso.setMinutes(iso.getMinutes() - iso.getTimezoneOffset());
+        var l = { id: uid(), web_id: w.id, web_new: true, web_kind: "info", web_summary: (w.interest || "General inquiry") + (w.best_time ? " \u00b7 " + w.best_time : "") + (contact ? " \u00b7 " + contact : ""), source: "Website inquiry", first_name: first, last_name: last, homeowner_name: fullName(first, last), phone: phone, email: email, interests: [], status: "New", next_followup: todayISO(), gb_date: iso.toISOString().slice(0,10), created_at: ts, updated_at: Date.now(), log: [] };
+        addLog(l, note);
+        leads.push(l); added++;
+      });
+      var omax = gbOSince();
+      ((j && j.orders) || []).forEach(function(o){
+        if(o.id > omax) omax = o.id;
+        if(leads.some(function(l){ return l.web_order_id === o.id; })) return;
+        var sum = (o.quantity || 1) + " × " + (o.denomination || "") + " " + (o.series || "") + " · $" + ((o.amount_cents || 0) / 100).toFixed(2) + " paid";
+        var em = String(o.customer_email || "");
+        var dupE = em ? leads.filter(function(l){ return l.email && l.email.toLowerCase() === em.toLowerCase(); })[0] : null;
+        var note = "WEBSITE ORDER #" + o.id + " — " + sum + (o.shipping_address ? " · ship to: " + o.shipping_address : "");
+        if(dupE){ dupE.web_order_id = o.id; dupE.web_new = true; dupE.web_kind = "order"; dupE.web_summary = sum; addLog(dupE, note); added++; return; }
+        var nm = String(o.customer_name || "").trim().replace(/\s+/g, " "), sp = nm.indexOf(" ");
+        var first = sp === -1 ? nm : nm.slice(0, sp), last = sp === -1 ? "" : nm.slice(sp + 1);
+        var cs = String(o.created_at || ""), ts = Date.parse(cs.replace(" ", "T") + (/Z|[+-]\d\d:?\d\d$/.test(cs) ? "" : "Z")) || Date.now();
+        var iso = new Date(ts); iso.setMinutes(iso.getMinutes() - iso.getTimezoneOffset());
+        var l = { id: uid(), web_order_id: o.id, web_new: true, web_kind: "order", web_summary: sum, source: "Website order", first_name: first, last_name: last, homeowner_name: fullName(first, last), phone: "", email: em, address: o.shipping_address || "", interests: [], status: "New", next_followup: todayISO(), gb_date: iso.toISOString().slice(0,10), created_at: ts, updated_at: Date.now(), log: [] };
+        addLog(l, note); leads.push(l); added++;
+      });
+      try { localStorage.setItem("gb_inq_osince", String(omax)); } catch(e){}
+      try { localStorage.setItem("gb_inq_since", String(maxId)); } catch(e){}
+      if(added || rows.length || omax !== gbOSince()){ save(); } renderList();
+      if(added && window.Notification && Notification.permission === "granted"){ try { new Notification("Goldenbee \u2014 " + added + " new from the website"); } catch(e){} }
+      gbInqPaint(added ? added + " new website lead" + (added > 1 ? "s" : "") + " added." : "No new inquiries.");
+    }).catch(function(e){ gbInqPaint(e && e.message ? e.message : "Sync failed."); });
+  }
   load();
   renderList();
+  if(GB){ gbInqPaint(""); if(gbInqKey()){ gbInqSync(); setInterval(function(){ if(!document.hidden){ gbInqSync(); } }, 60000); document.addEventListener("visibilitychange", function(){ if(!document.hidden){ gbInqSync(); } }); } }
   // ---------- white-label setup ----------
   if(WL){
     document.addEventListener("DOMContentLoaded", function(){   // the setup screen sits at the end of the page

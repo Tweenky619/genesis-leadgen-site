@@ -15,6 +15,22 @@ function cors(origin) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Goldback app: pull website-form inquiries (read-only). Needs the GB_INQ_KEY secret in the x-gb-key header.
+    if (url.pathname === "/api/gb-inquiries") {
+      const nh = { "Content-Type": "application/json", "Cache-Control": "no-store" };
+      if (request.method !== "GET") return new Response("Method not allowed", { status: 405 });
+      if (!env.GB_INQ_KEY || !env.LEADS_DB) return new Response(JSON.stringify({ error: "not_configured" }), { status: 503, headers: nh });
+      const given = request.headers.get("x-gb-key") || "";
+      let diff = given.length ^ env.GB_INQ_KEY.length;
+      for (let i = 0; i < given.length && i < env.GB_INQ_KEY.length; i++) diff |= given.charCodeAt(i) ^ env.GB_INQ_KEY.charCodeAt(i);
+      if (diff !== 0) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: nh });
+      const since = parseInt(url.searchParams.get("since") || "0", 10) || 0;
+      const r = await env.LEADS_DB.prepare("SELECT id, name, contact, interest, best_time, source_page, created_at FROM leads WHERE id > ?1 AND COALESCE(source_page,'') NOT LIKE 'canvassing%' ORDER BY id LIMIT 100").bind(since).all();
+      const osince = parseInt(url.searchParams.get("osince") || "0", 10) || 0;
+      let orders = [];
+      try { orders = (await env.LEADS_DB.prepare("SELECT id, customer_name, customer_email, series, denomination, quantity, amount_cents, shipping_address, created_at FROM orders WHERE id > ?1 ORDER BY id LIMIT 100").bind(osince).all()).results || []; } catch (e) {}
+      return new Response(JSON.stringify({ leads: r.results || [], orders }), { headers: nh });
+    }
     if (url.pathname === "/api/ping") {
       const h = cors(request.headers.get("Origin") || "");
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: h });
