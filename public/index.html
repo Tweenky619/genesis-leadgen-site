@@ -2970,31 +2970,35 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
       date: dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }), time: l.appt_time || "" };
   }
   function reminderHtml(l){
-    if (!window.LG_SOCAL) return "";   // SoCal flyer + SoCal text: SoCal app only (not Home Connector)
+    var HC = !!window.LG_MINE; if (!window.LG_SOCAL && !HC) return "";   // SoCal app: SoCal flyer; Home Connector: its own appointment card
     if (!l.phone) return "";
     if (!l.appt_date) return '<div class="slx-row"><button type="button" class="slx-go" style="opacity:.5" disabled>\ud83d\udcc4 Reminder flyer \u2014 set a date &amp; time first</button></div>';
     var r = remindInfo(l), nm = (l.first_name || "").trim();
-    var body = "Hi" + (nm ? " " + nm : "") + ", it's Art from SoCal Contractor Exchange. Great meeting you today! Your free " + r.proj + " inspection is set for " + r.date + (r.time ? " at " + r.time : "") +
-      ". Jorge from our office will call you to confirm from (619) 393-5297, so please pick up. Here's our flyer with your appointment details. See you then!";
+    var body = HC
+      ? "Hi" + (nm ? " " + nm : "") + ", it's Art from Goldenbee MALAJ Home Connector. Great meeting you today! Your free " + r.proj + " estimate is set for " + r.date + (r.time ? " at " + r.time : "") +
+        ". I'll be there to introduce you to your contractor. Questions? Text or call me here at (619) 504-8977. Here's your appointment card. See you then!"
+      : "Hi" + (nm ? " " + nm : "") + ", it's Art from SoCal Contractor Exchange. Great meeting you today! Your free " + r.proj + " inspection is set for " + r.date + (r.time ? " at " + r.time : "") +
+        ". Jorge from our office will call you to confirm from (619) 393-5297, so please pick up. Here's our flyer with your appointment details. See you then!";
     return '<div class="slx-row" style="flex-direction:column">' +
-      '<button type="button" class="slx-go" style="background:#D9542C" data-remind-copy="' + esc(l.id) + '">\ud83d\udcc4 Step 1 \u2014 Copy flyer</button>' +
+      '<button type="button" class="slx-go" style="background:' + (HC ? '#3a0d18' : '#D9542C') + '" data-remind-copy="' + esc(l.id) + '">\ud83d\udcc4 Step 1 \u2014 Copy ' + (HC ? 'appointment card' : 'flyer') + '</button>' +
       '<a class="slx-go" style="text-align:center;text-decoration:none" data-remind="' + esc(l.id) + '" href="sms:' + esc(usDial(l.phone)) + '&body=' + encodeURIComponent(body) + '">\ud83d\udcac Step 2 \u2014 Open text to ' + esc(nm || "homeowner") + '</a>' +
       '<div style="font-size:12px;color:#64748b;text-align:center">In Messages, tap the text box \u2192 <b>Paste</b> to add the flyer, then send.</div></div>';
   }
   var REM_BOX = {"fa": [979, 848, 69], "fd": [979, 917, 69], "ft": [979, 985, 69], "fp": [979, 1054, 69], "sp": 191};
+  var REM_BOX_HC = {"fa": [946, 828, 100], "fd": [946, 928, 100], "ft": [946, 1028, 100], "fp": [946, 1128, 100], "sp": 300};   // Home Connector appointment card
   function remindBlob(l){
     var r = remindInfo(l);
     return new Promise(function(res, rej){
       var img = new Image(); img.onload = function(){
         var c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight; var x = c.getContext("2d"); x.drawImage(img, 0, 0);
         x.fillStyle = "#1B2731"; x.textAlign = "right"; x.textBaseline = "middle";
-        [["fa", "Art"], ["fd", r.date], ["ft", r.time || "\u2014"], ["fp", r.box]].forEach(function(f){
-          var b = REM_BOX[f[0]], size = 38, maxW = b[0] - REM_BOX.sp - 24;
+        [["fa", window.LG_MINE ? "Arturo Delgado Mora" : "Art"], ["fd", r.date], ["ft", r.time || "\u2014"], ["fp", r.box]].forEach(function(f){   // printed name on Home Connector literature
+          var BX = window.LG_MINE ? REM_BOX_HC : REM_BOX, b = BX[f[0]], size = window.LG_MINE ? 44 : 38, maxW = b[0] - BX.sp - 24;
           do { x.font = "800 " + size + "px -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif"; size -= 2; } while (x.measureText(f[1]).width > maxW && size > 18);
           x.fillText(f[1], b[0], b[1] + b[2] / 2);
         });
         c.toBlob(function(bl){ bl ? res(bl) : rej(new Error("no image")); }, "image/png");
-      }; img.onerror = rej; img.src = "/flyer/mini-blank.jpg?v=1";
+      }; img.onerror = rej; img.src = window.LG_MINE ? "/flyer/hc-mini-blank.jpg?v=1" : "/flyer/mini-blank.jpg?v=1";
     });
   }
   function toast(msg){ var t = document.createElement("div"); t.textContent = msg; t.style.cssText = "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#14212B;color:#fff;padding:12px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:99999;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.3)"; document.body.appendChild(t); setTimeout(function(){ t.remove(); }, 3500); }
@@ -3012,7 +3016,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     shareFallback(p, l);
   });
   function shareFallback(p, l){
-    p.then(function(bl){ var f = new File([bl], "SoCal-flyer.png", { type: "image/png" });
+    p.then(function(bl){ var f = new File([bl], window.LG_MINE ? "Home-Connector-appointment.png" : "SoCal-flyer.png", { type: "image/png" });
       if (navigator.canShare && navigator.canShare({ files: [f] })) return navigator.share({ files: [f] });
       var u = URL.createObjectURL(bl); window.open(u, "_blank"); toast("Press and hold the flyer \u2192 Copy, then tap Step 2.");
     }).catch(function(){ toast("Couldn't make the flyer \u2014 try again."); });
