@@ -301,6 +301,47 @@ function bindSeg(id, fn){ document.querySelectorAll("#" + id + " button").forEac
 function byId(arr, id){ for (var i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i]; return null; }
 
 var PLAN = [[0,"Call and leave one short voicemail"],[0,"Text about their request"],[0,"Call again, 5–7 pm, no voicemail"],[1,"Friendly text, no ask"],[2,"Call, 11 am–1 pm, no voicemail"],[3,"Text with two times to meet"],[7,"Last text, leave your number"]];
+// Word-for-word scripts for each follow-up step ({first}, {interest}, {day} are filled in)
+var SCRIPTS = [
+  { kind: "call", say: "Hi {first}, it's Art with Goldenbee MALAJ, the local Goldback distributor. You reached out on our website about {interest}. Do you have two minutes?", close: "I can show you a starter set or a full state set in person. Would {day} at 12 or 4 work better?", vm: "Hi {first}, it's Art with Goldenbee MALAJ, the local Goldback distributor. You reached out on our website about {interest}, and I'd love to answer your questions. Call or text me at (619) 504-8977. Talk soon." },
+  { kind: "text", text: "Hi {first}, it's Art with Goldenbee MALAJ. Thanks for reaching out about {interest}! I just left you a voicemail. I can show you the Goldbacks in person {day} at 12 or 4. Which works better?" },
+  { kind: "call", say: "Hi {first}, it's Art with Goldenbee MALAJ. You asked about {interest} on our website. Do you have two minutes?", close: "Most people start one of two ways: a starter set to get familiar, or a full state set to save and collect. I can meet {day} at 12 or 4. Which works better?", novm: true },
+  { kind: "text", text: "Hi {first}, it's Art with Goldenbee MALAJ. Hope your week is going well! Here's a quick look at how Goldbacks work: goldenbeemalaj.com/#learn", holiday: "Hi {first}, it's Art with Goldenbee MALAJ. {holiday} to you and your family!" },
+  { kind: "call", say: "Hi {first}, it's Art with Goldenbee MALAJ. I wanted to follow up on your Goldback questions. Do you have a minute?", close: "I can bring a few state series so you can see them under the UV light. Would {day} at 12 or 4 work better?", novm: true },
+  { kind: "text", text: "Hi {first}, still happy to show you the Goldbacks in person. Does {day} at 12 or 4 work better?" },
+  { kind: "text", text: "Hi {first}, I don't want to bug you. Whenever you'd like to see Goldbacks in person or have a question, I'm here: (619) 504-8977. - Art, Goldenbee MALAJ" }
+];
+function holidayToday(){
+  var d = new Date(), y = d.getFullYear(), m = d.getMonth(), dd = d.getDate();
+  var nth = function(mon, wd, n){ var x = new Date(y, mon, 1); var off = (wd - x.getDay() + 7) % 7; return 1 + off + (n - 1) * 7; };
+  if (m === 10 && dd === nth(10, 4, 4)) return "Happy Thanksgiving";
+  if (m === 11 && (dd === 24 || dd === 25)) return "Merry Christmas";
+  if ((m === 11 && dd === 31) || (m === 0 && dd === 1)) return "Happy New Year";
+  if (m === 6 && dd === 4) return "Happy 4th of July";
+  return "";
+}
+function fillScript(t, m){
+  var interest = ((m.notes || "").match(/Website request: ([^·\n]+)/) || [])[1];
+  interest = interest ? interest.trim().replace(/^General question$/i, "Goldbacks") : "Goldbacks";
+  if (/^(Starter set|Full state set)$/i.test(interest)) interest = "a Goldback " + interest.toLowerCase();
+  var day = new Date(); day.setDate(day.getDate() + 1); if (day.getDay() === 0) day.setDate(day.getDate() + 1);
+  return t.replace(/\{first\}/g, first(m.name)).replace(/\{interest\}/g, interest).replace(/\{day\}/g, day.toLocaleDateString("en-US", { weekday: "long" })).replace(/\{holiday\}/g, holidayToday());
+}
+function scriptHtml(m, i){
+  var sc = SCRIPTS[i]; if (!sc) return "";
+  var h = '<div class="sum" style="margin-top:8px"><div class="nm" style="color:var(--gold2)">Script for step ' + (i + 1) + '</div>';
+  if (sc.kind === "text"){
+    var t = fillScript(sc.holiday && holidayToday() ? sc.holiday : sc.text, m);
+    h += '<div class="wrap" style="margin-top:6px;font-size:14px">' + esc(t) + '</div><div class="btns">' + (m.phone ? '<a class="btn solid" href="' + esc(smsLink(m.phone, t)) + '">Text this</a>' : "") + '<button class="btn ghost" data-copy="' + esc(t) + '">Copy</button></div>';
+  } else {
+    h += '<div class="sub wrap" style="margin-top:6px">When they answer:</div><div class="wrap" style="font-size:14px">' + esc(fillScript(sc.say, m)) + '</div>' +
+      '<div class="sub wrap" style="margin-top:6px">Close with two times:</div><div class="wrap" style="font-size:14px">' + esc(fillScript(sc.close, m)) + '</div>' +
+      (sc.vm ? '<div class="sub wrap" style="margin-top:6px">Voicemail:</div><div class="wrap" style="font-size:14px">' + esc(fillScript(sc.vm, m)) + '</div>' : '<div class="sub wrap" style="margin-top:6px">No answer: hang up, no voicemail.</div>') +
+      '<div class="sub wrap" style="margin-top:6px">After the yes: double-check their info, ask who else decides, check for conflicts, and confirm the time.</div>' +
+      '<div class="btns">' + (m.phone ? '<a class="btn solid" href="tel:' + esc(digits(m.phone)) + '">Call</a>' : "") + '</div>';
+  }
+  return h + '</div>';
+}
 function viewMember(id){
   var m = byId(D.members, id); if (!m) return;
   var st = memberStats(m), ex = D.exchanges.filter(function(x){ return x.who === m.id; }).sort(function(a,b){ return b.date < a.date ? -1 : 1; });
@@ -308,7 +349,7 @@ function viewMember(id){
   if (m.web_new || (m.plan > 0 && m.plan < PLAN.length && m.status === "Following up")){
     var cur = m.plan || 0;
     planHtml = '<h2>Follow-up plan · ' + cur + ' of ' + PLAN.length + ' done</h2>' + PLAN.map(function(p, i){ return '<div class="step ' + (i < cur ? "done" : i === cur ? "now" : "") + '"><span>' + (i + 1) + '.</span><span>' + esc(p[1]) + (p[0] ? ' (day ' + p[0] + ')' : '') + '</span></div>'; }).join("") +
-      '<div class="btns">' + (cur < PLAN.length ? '<button class="btn solid" id="planNext">Done: ' + esc(PLAN[cur][1]) + '</button>' : '<button class="btn" id="planCold">Mark cold (check in at 30 and 90 days)</button>') + '<button class="btn ghost" id="planReached">Reached them</button></div>';
+      (cur < PLAN.length ? scriptHtml(m, cur) : "") + '<div class="btns">' + (cur < PLAN.length ? '<button class="btn" id="planNext">Done: ' + esc(PLAN[cur][1]) + '</button>' : '<button class="btn" id="planCold">Mark cold (check in at 30 and 90 days)</button>') + '<button class="btn ghost" id="planReached">Reached them</button></div>';
   }
   openSheet(head(m.name) +
     '<div class="sub wrap">' + esc([m.kind, m.status, m.phone, m.email].filter(Boolean).join(" · ")) + '</div>' +
@@ -336,6 +377,7 @@ function viewMember(id){
   if ((b = document.getElementById("planCold"))) b.onclick = function(){ m.status = "Cold"; m.web_new = false; m.next = addDays(todayISO(), 30); addLog(m, "Marked cold. Check in on " + fmtDate(m.next)); m.updated = Date.now(); save("members"); viewMember(m.id); render(); };
   if ((b = document.getElementById("planReached"))) b.onclick = function(){ m.web_new = false; m.plan = PLAN.length; m.status = "Customer"; m.next = ""; addLog(m, "Reached them"); m.updated = Date.now(); save("members"); viewMember(m.id); render(); };
   sh.querySelectorAll("[data-x]").forEach(function(c){ c.onclick = function(){ editExchange(c.dataset.x); }; });
+  sh.querySelectorAll("[data-copy]").forEach(function(c){ c.onclick = function(){ copy(c.dataset.copy, "Script copied"); }; });
 }
 function textReview(m){
   if (!m || !m.phone){ toast("Add a phone number first."); return; }
