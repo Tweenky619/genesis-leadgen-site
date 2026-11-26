@@ -285,8 +285,38 @@
   function mount(){ var sh = document.querySelector("#backupSheet .sheet"); if (!sh || document.getElementById("syncBox")) return; var first = sh.querySelector(".full-bk"); sh.insertBefore(box, first || null); if (AUTO){ var h = document.getElementById("backupTitle"); if (h) h.textContent = "\u2601\ufe0f Cloud backup & sync"; box.querySelector && (box.style.borderTop = "0"); } paint(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
 
+  // ---- one link per app: the old workers.dev address hands its data to the new address, then forwards there ----
+  var OLD_HOST = AUTO && /\.workers\.dev$/.test(location.hostname);
+  var NEW_URL = window.LG_MINE ? "https://hc.goldenbeemalaj.com/" : "https://goldback.goldenbeemalaj.com/";
+  var moveIn = (location.hash.match(/^#move=([^&]+)/) || [])[1];
+  function cover(msg){ var d = document.getElementById("moveCover") || document.createElement("div"); d.id = "moveCover"; d.style.cssText = "position:fixed;inset:0;z-index:99999;background:rgb(42,10,18);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:30px;text-align:center;font:700 18px -apple-system,Inter,Arial,sans-serif"; d.innerHTML = msg; if (!d.parentNode) document.body.appendChild(d); }
+  function moveOut(){
+    cover("Moving you to your new link\u2026<span style='font-weight:500;font-size:14px;opacity:.8'>Bringing your data along. One moment.</span>");
+    if (!code()){ var c0 = newCode(); try{ ls.setItem(CODE_K, c0); }catch(e){} meta.k = meta.k || {}; for (var i = 0; i < ls.length; i++){ var k = ls.key(i); if (synced(k) && !meta.k[k]) meta.k[k] = Date.now(); } saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); }
+    var tries = 0;
+    (function go(){
+      tries++;
+      Promise.resolve(running ? null : run()).then(function(){
+        var pushed = jget(PRE + "sync_pushed", {}), left = Object.keys(meta.k || {}).filter(function(k){ return synced(k) && (meta.k[k] || 0) > (pushed[k] || 0); }).length;
+        if (!running && !lastErr && left === 0 && phLeft <= 0){ location.replace(NEW_URL + "#move=" + encodeURIComponent(code())); return; }
+        if (tries < 20) setTimeout(go, 1500);
+        else cover("Couldn't move your data yet.<span style='font-weight:500;font-size:14px;opacity:.8'>Check your connection and open this link again. Nothing was lost.</span>");
+      });
+    })();
+  }
+  if (moveIn){
+    var mc = decodeURIComponent(moveIn); try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+    if (mc && mc !== code()){
+      try{ ls.setItem(CODE_K, mc); rawRemove.call(ls, PRE + "sync_optout"); }catch(e){}
+      meta.k = meta.k || {}; for (var j = 0; j < ls.length; j++){ var k2 = ls.key(j); if (synced(k2) && !meta.k[k2]) meta.k[k2] = Date.now(); }
+      ihash = {}; phMeta = {}; savePh(); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint();
+    }
+    setTimeout(function(){ run().then(function(){ toast("\u2705 You're on your new link. Your data came with you. Add this one to your home screen."); }); }, 300);
+  }
+
   // ---- when to sync ----
-  setTimeout(function(){ if (!code() && AUTO && !get(PRE + "sync_optout")){ startNew(); toast("\u2601\ufe0f Cloud backup is on. Save your recovery code: \u21c5 \u2192 Cloud backup."); } else if (code()) run(); }, 1500);
+  if (OLD_HOST && !moveIn) setTimeout(moveOut, 300);
+  else setTimeout(function(){ if (moveIn) return; if (!code() && AUTO && !get(PRE + "sync_optout")){ startNew(); toast("\u2601\ufe0f Cloud backup is on. Save your recovery code: \u21c5 \u2192 Cloud backup."); } else if (code()) run(); }, 1500);
   setInterval(function(){ if (code() && document.visibilityState === "visible") run(); }, 45000);
   document.addEventListener("visibilitychange", function(){ if (code()) run(); });
   window.addEventListener("online", function(){ if (code()) run(); });
