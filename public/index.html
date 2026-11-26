@@ -14,6 +14,45 @@
   // /app is Art's own program (always Goldenbee MALAJ Home Connector); /custom is the customizable copy for future companies
   window.LG_MINE = window.LG_HOST === "app" || /^\/app(\/|$)/.test(location.pathname);
   window.LG_WLP = window.LG_MINE ? "wl_" : window.LG_GB ? "gb_" : "wc_";
+  // Home Connector icon style (Settings > Look): c = glass (default), a = lines, b = solid, d = platinum coins
+  window.HC_STYLE = "c"; try { var _st = localStorage.getItem(window.LG_WLP + "icons"); if (/^[abcd]$/.test(_st || "")) window.HC_STYLE = _st; } catch(e){}
+  if (window.LG_MINE) document.documentElement.className += " ic-" + window.HC_STYLE;
+  // Home Connector: simple line icons instead of emoji (drawn in-house, 24px grid, currentColor)
+  window.HC_ICON = {
+    stats:   '<path d="M4 20h16"/><path d="M7 16v-4"/><path d="M12 16V8"/><path d="M17 16V5"/>',
+    target:  '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="0.6" fill="currentColor"/>',
+    phone:   '<path d="M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z"/>',
+    book:    '<path d="M12 6.5C10 5 7 4.5 4 5v13c3-.5 6 0 8 1.5"/><path d="M12 6.5C14 5 17 4.5 20 5v13c-3-.5-6 0-8 1.5"/><path d="M12 6.5v13"/>',
+    map:     '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4z"/><path d="M9 4v14"/><path d="M15 6v14"/>',
+    cloud:   '<path d="M7 18h10.5a3.5 3.5 0 0 0 .5-7A5.5 5.5 0 0 0 7.3 9.5 4.3 4.3 0 0 0 7 18z"/><path d="M12 15v-4.5"/><path d="m9.8 12.5 2.2-2.2 2.2 2.2"/>',
+    gear:    '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+    plus:    '<path d="M12 5v14M5 12h14"/>',
+    today:   '<rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/>',
+    list:    '<path d="M9 7h11M9 12h11M9 17h11"/><circle cx="5" cy="7" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="17" r="1" fill="currentColor"/>',
+    pin:     '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+    sun:     '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/>',
+    id:      '<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><circle cx="8.5" cy="11" r="2"/><path d="M5.8 15.5c.6-1.4 1.6-2 2.7-2s2.1.6 2.7 2"/><path d="M14 10h4M14 13.5h3"/>',
+    card:    '<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+    chat:    '<path d="M5 18.5 4 21l3.5-1.5A8.5 8.5 0 1 0 5 18.5z"/>'
+  };
+  window.HC_ICON_SOLID = {
+    stats:  '<rect x="4" y="12" width="4" height="8" rx="1.2"/><rect x="10" y="8" width="4" height="12" rx="1.2"/><rect x="16" y="4" width="4" height="16" rx="1.2"/>',
+    target: '<path fill-rule="evenodd" d="M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zm0 3.2a5.8 5.8 0 1 0 0 11.6 5.8 5.8 0 0 0 0-11.6zM12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>',
+    phone:  '<path d="M6.6 3h3.1l1.6 4.2-2.1 1.6a11.5 11.5 0 0 0 6 6l1.6-2.1 4.2 1.6v3.1A2.6 2.6 0 0 1 18.4 20 15.4 15.4 0 0 1 4 5.6 2.6 2.6 0 0 1 6.6 3z"/>',
+    book:   '<path d="M3 5.2c3-.7 6-.3 8.3 1.3v13.3C9 18.3 6 17.9 3 18.6zM21 5.2c-3-.7-6-.3-8.3 1.3v13.3c2.3-1.5 5.3-1.9 8.3-1.2z"/>',
+    map:    '<path d="M3 6.3 8.3 4.2v14.6L3 20.9zM9.7 4.2l4.6 1.9v14.6l-4.6-1.9zM15.7 6.1 21 4v14.7l-5.3 2.1z"/>',
+    cloud:  '<path fill-rule="evenodd" d="M7 19h10.6a4 4 0 0 0 .8-7.9A6 6 0 0 0 6.9 9.8 4.6 4.6 0 0 0 7 19zm5.6-9.4 3 3-1.2 1.2-1-1V16h-1.7v-3.2l-1 1-1.2-1.2z"/>',
+    gear:   '<path d="M4 6h8v2H4zM16 6h4v2h-4zM4 16h3v2H4zM11 16h9v2h-9z"/><circle cx="14" cy="7" r="2.6"/><circle cx="9" cy="17" r="2.6"/>',
+    plus:   '<path d="M10.6 4h2.8v6.6H20v2.8h-6.6V20h-2.8v-6.6H4v-2.8h6.6z"/>',
+    today:  '<path fill-rule="evenodd" d="M7 2.5h2V4h6V2.5h2V4h1.5A2.5 2.5 0 0 1 21 6.5v12a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 18.5v-12A2.5 2.5 0 0 1 5.5 4H7zM5 9v9.5c0 .3.2.5.5.5h13c.3 0 .5-.2.5-.5V9zm7 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>',
+    list:   '<rect x="3" y="5" width="3.2" height="3.2" rx="1"/><rect x="8.5" y="5.4" width="12.5" height="2.4" rx="1.2"/><rect x="3" y="10.4" width="3.2" height="3.2" rx="1"/><rect x="8.5" y="10.8" width="12.5" height="2.4" rx="1.2"/><rect x="3" y="15.8" width="3.2" height="3.2" rx="1"/><rect x="8.5" y="16.2" width="12.5" height="2.4" rx="1.2"/>',
+    pin:    '<path fill-rule="evenodd" d="M12 2a7 7 0 0 1 7 7c0 5.3-7 12.5-7 12.5S5 14.3 5 9a7 7 0 0 1 7-7zm0 4.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2z"/>',
+    sun:    '<circle cx="12" cy="12" r="4.6"/><path d="M11 1.5h2v3.2h-2zM11 19.3h2v3.2h-2zM1.5 11h3.2v2H1.5zM19.3 11h3.2v2h-3.2zM4.2 5.6l1.4-1.4 2.3 2.3-1.4 1.4zM16.1 17.5l1.4-1.4 2.3 2.3-1.4 1.4zM4.2 18.4l2.3-2.3 1.4 1.4-2.3 2.3zM16.1 6.5l2.3-2.3 1.4 1.4-2.3 2.3z"/>'
+  };
+  window.hcIcon = function(n, size){
+    var z = size || 22, solid = window.HC_STYLE === "b" && HC_ICON_SOLID[n];
+    return solid ? '<svg viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="currentColor" aria-hidden="true">' + HC_ICON_SOLID[n] + '</svg>'
+      : '<svg viewBox="0 0 24 24" width="' + z + '" height="' + z + '" fill="none" stroke="currentColor" stroke-width="' + (window.HC_STYLE === "d" ? 2.1 : 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (HC_ICON[n] || "") + '</svg>'; };
   if (window.LG_GB) document.documentElement.className += " lg-gb";
   if (window.LG_MINE) document.documentElement.className += " wl-mine";
   // Main address = SoCal Contractor Exchange Lead Gen again (Art is back with SoCal, Nov 20, 2026); Goldenbee MALAJ Home Connector stays at /app
@@ -448,6 +487,42 @@
 
   .yesno-group{display:flex;gap:8px;}
   .hc-only{display:none;}
+  /* Home Connector: bottom tabs instead of the filter row */
+  .hc-nav,.hc-view{display:none;}
+  html.wl-mine #tabs{display:none!important;}
+  html.wl-mine .hc-nav button i{display:flex;border-radius:999px;padding:4px 14px;border:1px solid transparent;}
+  /* B: solid tiles */
+  html.wl-mine.ic-b .header-actions .icon-btn{background:rgb(58,13,24)!important;color:rgb(230,229,227)!important;}
+  html.wl-mine.ic-b .hc-nav button.on i{background:rgb(230,229,227);color:rgb(58,13,24);}
+  /* C: glass (default) */
+  html.wl-mine.lg-mine.ic-c #app:has(#view-list) header.topbar.topbar{background:rgba(255,255,255,.12)!important;border-bottom:1px solid rgba(255,255,255,.3)!important;-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);box-shadow:inset 0 -1px 0 rgba(255,255,255,.15);}
+  html.wl-mine.ic-c header.topbar .subtitle{color:rgba(255,255,255,.85)!important;}
+  html.wl-mine.lg-mine.ic-c:not(.dark) #app:has(#view-list) header.topbar.topbar{background:rgba(58,13,24,.45)!important;}
+  html.wl-mine.ic-c .header-actions .icon-btn{background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.32)!important;color:rgb(255,255,255)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+  html.wl-mine.ic-c .hc-nav{left:12px!important;right:12px!important;bottom:calc(10px + var(--safe-bottom))!important;padding:6px!important;border-radius:24px;background:rgba(255,255,255,.14)!important;border:1px solid rgba(255,255,255,.35)!important;-webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);box-shadow:0 10px 30px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.45);}
+  html.wl-mine.ic-c .hc-nav button{color:rgba(255,255,255,.72)!important;}
+  html.wl-mine.ic-c .hc-nav button.on{color:rgb(255,255,255)!important;}
+  html.wl-mine.ic-c .hc-nav button.on i{background:rgba(255,255,255,.25);border-color:rgba(255,255,255,.5);}
+  html.wl-mine.ic-c .id-fab{background:rgba(255,255,255,.16)!important;border:1px solid rgba(255,255,255,.45)!important;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  /* D: platinum coins */
+  html.wl-mine.ic-d .header-actions .icon-btn{border-radius:50%!important;color:rgb(90,21,39)!important;background:linear-gradient(145deg,rgb(255,255,255) 0%,rgb(217,216,213) 45%,rgb(185,187,191) 55%,rgb(242,241,239) 100%)!important;box-shadow:0 2px 4px rgba(0,0,0,.25),inset 0 1px 1px rgb(255,255,255),inset 0 -1px 2px rgba(0,0,0,.2);border:1px solid rgb(154,158,166)!important;}
+  html.wl-mine.ic-d .hc-nav{border-top:2px solid rgb(185,187,191)!important;}
+  html.wl-mine.ic-d .hc-nav button i{width:38px;height:38px;padding:0;align-items:center;justify-content:center;border-radius:50%;color:rgb(90,21,39);background:linear-gradient(145deg,rgb(255,255,255) 0%,rgb(217,216,213) 45%,rgb(185,187,191) 55%,rgb(242,241,239) 100%);border:1px solid rgb(154,158,166);opacity:.5;}
+  html.wl-mine.ic-d .hc-nav button.on i{opacity:1;box-shadow:0 2px 6px rgba(0,0,0,.35);}
+  html.wl-mine .header-actions .icon-btn{color:var(--brand);display:inline-flex;align-items:center;justify-content:center;}
+  html.wl-mine .id-fab svg,html.wl-mine #idShow svg,html.wl-mine .form-section-title svg,html.wl-mine .yesno-toggle svg,html.wl-mine .slx-go svg,html.wl-mine .addr svg{vertical-align:-3px;}
+  html.wl-mine .hc-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgb(42,10,18)!important;border-top:1px solid rgb(201,204,210);padding:6px 6px calc(6px + var(--safe-bottom));}
+  html.wl-mine .hc-nav button{background:none!important;border:0;color:rgb(201,169,177)!important;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;cursor:pointer;}
+  html.wl-mine .hc-nav button i{font-style:normal;line-height:0;}
+  html.wl-mine .hc-nav button.on{color:rgb(255,255,255)!important;}
+  html.wl-mine .hc-nav button .n{font-size:10px;background:rgb(201,204,210)!important;color:rgb(42,10,18)!important;border-radius:999px;padding:0 6px;margin-left:2px;}
+  html.wl-mine body:not(.hc-on-list) .hc-nav{display:none;}
+  html.wl-mine.hc-leads .hc-view{display:block;margin:0 0 12px;}
+  html.wl-mine .hc-view select{width:100%;padding:12px;border-radius:12px;font-size:16px;font-weight:700;border:2px solid rgb(201,204,210)!important;background:rgb(58,13,24)!important;color:rgb(255,255,255)!important;}
+  html.wl-mine body.hc-on-list .fab{bottom:calc(78px + var(--safe-bottom));}
+  html.wl-mine body.hc-on-list .id-fab{bottom:calc(150px + var(--safe-bottom));}
+  html.wl-mine body.hc-on-list #listContainer{padding-bottom:150px;}
+  .hc-sec{font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#f4eef0;margin:14px 2px 6px;}
   /* Home Connector + Goldback: the Backup sheet is just cloud backup & sync */
   html.wl-mine #backupIntro,html.wl-mine #exportBtn,html.wl-mine #importBtn,html.wl-mine #fullBk,html.lg-gb #backupIntro,html.lg-gb #exportBtn,html.lg-gb #importBtn,html.lg-gb #fullBk{display:none!important;}
   html.solar-on .hc-only{display:block;}
@@ -458,7 +533,7 @@
   .id-btn.main{background:#3a0d18;border-color:#c9ccd2;color:#fff;}
   .id-btn.ghost{flex:0 0 auto;font-size:13px;font-weight:700;}
   .id-fab{display:none;}
-  html.solar-on .id-fab{display:flex;position:fixed;left:14px;bottom:88px;z-index:60;width:52px;height:52px;border-radius:50%;align-items:center;justify-content:center;font-size:24px;border:2px solid #c9ccd2;background:#3a0d18;color:#fff;box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;}
+  html.solar-on .id-fab{display:flex;position:fixed;left:14px;bottom:88px;z-index:60;width:52px;height:52px;border-radius:50%;align-items:center;justify-content:center;font-size:24px;border:2px solid rgb(201,204,210);background:rgb(58,13,24);color:rgb(255,255,255);box-shadow:0 4px 12px rgba(0,0,0,.3);cursor:pointer;}
   .id-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px;}
   .id-ov[hidden]{display:none;}
   .id-ov img{max-width:100%;max-height:78vh;border-radius:14px;}
@@ -1172,9 +1247,9 @@ html.dark #arToast{background:#a1cbe9;color:#171717}
 html.dark .lead-row:active{background:#202226}
 html.dark .fab{color:#171717}
 html.dark .interest-toggle.active{color:#171717}
+html.dark .hc-sec{color:#271f21}
 html.dark .solar-fit.yes{background:#3b3111;color:#ffc975;border:1.5px solid #f5d77a}
 html.dark .id-btn.main{background:#eeb1c0;border-color:#3b3f46;color:#171717}
-html.dark.solar-on .id-fab{border:2px solid #3b3f46;background:#eeb1c0;color:#171717}
 html.dark .id-ov button{background:#171717;color:#dfdfdf}
 html.dark .yesno-toggle.active{color:#171717}
 html.dark .btn-primary{color:#171717}
@@ -1199,6 +1274,9 @@ html.dark .st-represet{background:#1a1031}
 html.dark .st-miss{background:#1e1232;color:#7839db}
 html.dark .st-sold{background:#85f2ba;color:#171717}
 html.dark .bo-plan{background:#171717}
+html.dark .gb-inq{background:var(--card,#171717)}
+html.dark .gb-inq button{color:#171717}
+html.dark .gb-inq .nw{background:#382a10;border:1px solid #976e1a}
 html.dark .bo-step.now{background:#382a10}
 html.dark .bo-next{color:#171717}
 html.dark .st-badnum{background:#231533;color:#894dcf}
@@ -1423,8 +1501,8 @@ html.dark.lg-mine #arToast{color:#210d12}
 html.dark.lg-mine .lead-row:active{background:#32141c}
 html.dark.lg-mine .fab{color:#210d12}
 html.dark.lg-mine .interest-toggle.active{color:#210d12}
+html.dark.lg-mine .hc-sec{color:#31141b}
 html.dark.lg-mine .id-btn.main{border-color:#5c2533;color:#210d12}
-html.dark.lg-mine.solar-on .id-fab{border:2px solid #5c2533;color:#210d12}
 html.dark.lg-mine .id-ov button{background:#210d12}
 html.dark.lg-mine .yesno-toggle.active{color:#210d12}
 html.dark.lg-mine .btn-primary{color:#210d12}
@@ -1435,6 +1513,8 @@ html.dark.lg-mine .st-new{background:#32141c}
 html.dark.lg-mine .st-blow{color:#210d12}
 html.dark.lg-mine .st-sold{color:#210d12}
 html.dark.lg-mine .bo-plan{background:#210d12}
+html.dark.lg-mine .gb-inq{background:var(--card,#210d12)}
+html.dark.lg-mine .gb-inq button{color:#210d12}
 html.dark.lg-mine .bo-next{color:#210d12}
 html.dark.lg-mine .bad-btn{background:#210d12}
 html.dark.lg-mine .bad-dead{background:#210d12}
@@ -1628,8 +1708,15 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
       <div class="gb-inq" id="gbInq" hidden></div>
       <div class="restore" id="restoreBox" hidden></div>
       <div class="tabs" id="tabs"></div>
+      <div class="hc-view"><select id="hcView" aria-label="Which leads to show"></select></div>
       <div id="listContainer"></div>
     </section>
+    <nav class="hc-nav" id="hcNav" aria-label="Browse">
+      <button type="button" data-nav="today" class="on"><i data-ic="today"></i><span>Today <span class="n" id="hcNToday">0</span></span></button>
+      <button type="button" data-nav="leads"><i data-ic="list"></i><span>Leads</span></button>
+      <button type="button" data-nav="map"><i data-ic="pin"></i><span>Map</span></button>
+      <button type="button" data-nav="solar"><i data-ic="sun"></i><span>Solar <span class="n" id="hcNSolar">0</span></span></button>
+    </nav>
 
     <!-- FORM VIEW (add/edit) -->
     <section class="view" id="view-form">
@@ -2266,6 +2353,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     ["all","All", function(){ return true; }]
   ];
   if(!SOLAR_ON){ TABS = TABS.filter(function(t){ return t[0] !== "solar"; }); }
+  if(MINE){ TABS.unshift(["hctoday","\ud83c\udfe0 Today", function(l){ return isDue(l) || l.appt_date === todayISO() || (l.appt_date === nextWorkISO() && BOOKED_ST.indexOf(statusOf(l)) !== -1); }]); }
   if(WL){   // white-label: product tabs come from the company's own product list
     var allT = TABS.pop();
     TABS = TABS.filter(function(t){ return ["roof","paint","fascia","windows"].indexOf(t[0]) === -1; });
@@ -2329,6 +2417,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
     document.getElementById(id).classList.add("active");
     var fb = document.getElementById("newBtnFab"); fb.style.display = (id === "view-form") ? "none" : ""; fb.classList.toggle("mini", id !== "view-list");
+    document.body.classList.toggle("hc-on-list", id === "view-list");
     window.scrollTo(0,0);
   }
 
@@ -2340,11 +2429,34 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     var tl = []; try { tl = JSON.parse(localStorage.getItem(CO_PREFIX + "tele_v1") || "[]") || []; } catch(e){}
     return tl.filter(function(c){ return !c.src && phoneDigits(c.phone).indexOf(d) !== -1; });
   }
+  // ---- Home Connector bottom tabs: Today · Leads (View drop-down) · Map · Solar ----
+  var hcNavTab = "today", hcLeadsView = "all";
+  function hcPaint(){
+    var navTab = currentTab === "hctoday" ? "today" : currentTab === "solar" ? "solar" : "leads";
+    hcNavTab = navTab;
+    Array.prototype.forEach.call(document.querySelectorAll("#hcNav [data-nav]"), function(b){ b.classList.toggle("on", b.getAttribute("data-nav") === navTab); });
+    document.documentElement.classList.toggle("hc-leads", navTab === "leads");
+    var tToday = TABS.filter(function(t){ return t[0] === "hctoday"; })[0], tSolar = TABS.filter(function(t){ return t[0] === "solar"; })[0];
+    document.getElementById("hcNToday").textContent = tToday ? leads.filter(tToday[2]).length : 0;
+    document.getElementById("hcNSolar").textContent = tSolar ? leads.filter(tSolar[2]).length : 0;
+    var sel = document.getElementById("hcView");
+    sel.innerHTML = TABS.filter(function(t){ return t[0] !== "hctoday" && t[0] !== "solar"; }).map(function(t){ return '<option value="' + t[0] + '"' + (t[0] === currentTab ? " selected" : "") + '>' + esc(String(t[1]).replace(/<[^>]*>/g, "").replace(/[\u2190-\u2BFF\u2600-\u27BF\uFE0F]|[\uD83C-\uDBFF][\uDC00-\uDFFF]/g, "").trim()) + " (" + leads.filter(t[2]).length + ")</option>"; }).join("");
+  }
+  if(MINE){
+    document.getElementById("hcNav").addEventListener("click", function(e){
+      var b = e.target.closest("[data-nav]"); if(!b) return; var n = b.getAttribute("data-nav");
+      if(n === "map"){ document.getElementById("leadMapBtn").click(); return; }
+      currentTab = n === "today" ? "hctoday" : n === "solar" ? "solar" : hcLeadsView; renderList(); window.scrollTo(0, 0);
+    });
+    document.getElementById("hcView").addEventListener("change", function(){ hcLeadsView = currentTab = this.value; renderList(); });
+    document.body.classList.add("hc-on-list");
+  }
   function renderList(){
     if(typeof renderRestore === "function"){ try { renderRestore(); } catch(e){} }
     var q = (document.getElementById("searchInput").value || "").trim().toLowerCase();
     var container = document.getElementById("listContainer");
-    if(!currentTab){ currentTab = leads.some(isDue) ? "due" : "all"; }
+    if(!currentTab){ currentTab = MINE ? "hctoday" : leads.some(isDue) ? "due" : "all"; }
+    if(MINE){ hcPaint(); }
     var tabFn = TABS.filter(function(t){ return t[0]===currentTab; })[0][2];
     document.getElementById("tabs").innerHTML = TABS.map(function(t){
       return '<button type="button" class="tab' + (t[0]===currentTab?' active':'') + '" data-tab="' + t[0] + '">' + t[1] + '<span class="n">' + leads.filter(t[2]).length + '</span></button>';
@@ -2352,6 +2464,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     var sorted = leads.slice().sort(function(a,b){
       if(currentTab === "due"){ return (a.next_followup||"").localeCompare(b.next_followup||""); }
       if(currentTab === "today" || currentTab === "tomorrow"){ return timeMins(a.appt_time) - timeMins(b.appt_time); }
+      if(currentTab === "hctoday"){ var ka = isDue(a) ? "0" : (a.appt_date || "9") + String(1e4 + timeMins(a.appt_time)), kb = isDue(b) ? "0" : (b.appt_date || "9") + String(1e4 + timeMins(b.appt_time)); return ka.localeCompare(kb); }
       if(OUTCOME_TABS.indexOf(currentTab) !== -1){ return outcomeTs(b) - outcomeTs(a); }
       return b.created_at - a.created_at;
     });
@@ -2437,7 +2550,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
             '<div class="addr">' + esc(l.address || "No address") + '</div>' +
             (l.arena_id ? '<div class="addr" style="color:#7c3aed;font-weight:700;">\ud83d\udccd Arena \u00b7 ' + esc(l.arena_rep || "rep") + '</div>' : '') +
             (tagLine ? '<div class="addr" style="color:var(--brand-dark);font-weight:600;">' + tagLine + '</div>' : '') +
-            (SOLAR_ON && l.solar_consult === "Me" ? '<div class="addr" style="color:#b7791f;font-weight:800;">\u2600\ufe0f My solar consult</div>' : SOLAR_ON && solarFit(l).fit ? '<div class="addr" style="color:#b7791f;font-weight:700;">\u2600\ufe0f Solar fit</div>' : '') +
+            (SOLAR_ON && l.solar_consult === "Me" ? '<div class="addr" style="color:#b7791f;font-weight:800;">' + hcIcon("sun", 15) + ' My solar consult</div>' : SOLAR_ON && solarFit(l).fit ? '<div class="addr" style="color:#b7791f;font-weight:700;">' + hcIcon("sun", 15) + ' Solar fit</div>' : '') +
           '</div>' +
           '<div class="meta">' +
             ((currentTab === "today" || currentTab === "tomorrow") && l.appt_time ? '<div class="date" style="font-weight:800;color:var(--brand);font-size:15px;">' + esc(l.appt_time) + '</div>' : '<div class="date">' + fmtDate(l.created_at) + '</div>') +
@@ -2982,8 +3095,8 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
       : "Hi" + (nm ? " " + nm : "") + ", it's Art from SoCal Contractor Exchange. Great meeting you today! Your free " + r.proj + " inspection is set for " + r.date + (r.time ? " at " + r.time : "") +
         ". Jorge from our office will call you to confirm from (619) 393-5297, so please pick up. Here's our flyer with your appointment details. See you then!";
     return '<div class="slx-row" style="flex-direction:column">' +
-      '<button type="button" class="slx-go" style="background:' + (HC ? '#3a0d18' : '#D9542C') + '" data-remind-copy="' + esc(l.id) + '">\ud83d\udcc4 Step 1 \u2014 Copy ' + (HC ? 'appointment card' : 'flyer') + '</button>' +
-      '<a class="slx-go" style="text-align:center;text-decoration:none" data-remind="' + esc(l.id) + '" href="sms:' + esc(usDial(l.phone)) + '&body=' + encodeURIComponent(body) + '">\ud83d\udcac Step 2 \u2014 Open text to ' + esc(nm || "homeowner") + '</a>' +
+      '<button type="button" class="slx-go" style="background:' + (HC ? '#3a0d18' : '#D9542C') + '" data-remind-copy="' + esc(l.id) + '">' + (HC ? hcIcon("card", 18) + ' Step 1 \u2014 Copy appointment card' : '\ud83d\udcc4 Step 1 \u2014 Copy flyer') + '</button>' +
+      '<a class="slx-go" style="text-align:center;text-decoration:none" data-remind="' + esc(l.id) + '" href="sms:' + esc(usDial(l.phone)) + '&body=' + encodeURIComponent(body) + '">' + (HC ? hcIcon("chat", 18) : '\ud83d\udcac') + ' Step 2 \u2014 Open text to ' + esc(nm || "homeowner") + '</a>' +
       '<div style="font-size:12px;color:#64748b;text-align:center">In Messages, tap the text box \u2192 <b>Paste</b> to add the flyer, then send.</div></div>';
   }
   var REM_BOX = {"fa": [979, 848, 69], "fd": [979, 917, 69], "ft": [979, 985, 69], "fp": [979, 1054, 69], "sp": 191};
@@ -4791,6 +4904,13 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
     </div>
     <div class="wl-card"><h3>Look</h3>
       <label class="wl-chk"><input type="checkbox" id="wlDark"> &#127769; Dark mode</label>
+      <label class="wl-lbl hc-only" for="wlIcons" style="display:block;margin-top:10px;font-weight:700">Button style</label>
+      <select id="wlIcons" class="hc-only" style="width:100%;padding:10px;border-radius:10px;font-size:15px">
+        <option value="c">Glass (default)</option>
+        <option value="a">Lines</option>
+        <option value="b">Solid</option>
+        <option value="d">Platinum coins</option>
+      </select>
     </div>
     <div class="wl-card"><h3>Features</h3>
       <label class="wl-chk"><input type="checkbox" data-wlf="stats"> &#128202; Stats</label>
@@ -5230,6 +5350,17 @@ function wlOwners(){
 })();
 </script>
 <script>
+  // button style switch in Company settings (Home Connector)
+  (function(){
+    var sel = document.getElementById("wlIcons"); if(!sel || !window.LG_MINE) return;
+    sel.value = window.HC_STYLE;
+    sel.addEventListener("change", function(){
+      var v = sel.value, h = document.documentElement; window.HC_STYLE = v;
+      ["a","b","c","d"].forEach(function(k){ h.classList.toggle("ic-" + k, k === v); });
+      try{ localStorage.setItem(window.LG_WLP + "icons", v); }catch(e){}
+      if (window.hcApplyIcons) hcApplyIcons(); if (window.LG && LG.reload) LG.reload();
+    });
+  })();
   // dark mode switch in Company settings (white-label apps only); remembered per app, applies right away
   (function(){
     var box = document.getElementById("wlDark"); if(!box || !window.LG_WL) return;
@@ -5262,6 +5393,18 @@ function wlOwners(){
     });
     paint();
   })();
+</script>
+
+<script>
+  window.hcApplyIcons = function(){
+    var map = { statsBtn: "stats", practiceBtn: "target", teleBtn: "phone", slicksBtn: "book", leadMapBtn: "map", backupBtn: "cloud", wlGear: "gear", newBtnTop: "plus", idFab: "id" };
+    Object.keys(map).forEach(function(id){ var b = document.getElementById(id); if (b) b.innerHTML = hcIcon(map[id], id === "idFab" ? 24 : 21); });
+    Array.prototype.forEach.call(document.querySelectorAll("#hcNav [data-nav] i"), function(i){ i.innerHTML = hcIcon(i.getAttribute("data-ic"), 22); });
+    var t = document.querySelector("#solarConsult .form-section-title"); if (t) t.innerHTML = hcIcon("sun", 16) + ' Solar consult <span class="opt">(can you consult on solar here?)</span>';
+    var me = document.querySelector('.yesno-group[data-field="solar_consult"] [data-value="Me"]'); if (me) me.innerHTML = hcIcon("sun", 16) + " I will";
+    var sh = document.getElementById("idShow"); if (sh) sh.innerHTML = hcIcon("id", 18) + " Show my Sunrun ID";
+  };
+  if (window.LG_MINE) document.addEventListener("DOMContentLoaded", hcApplyIcons);
 </script>
 </body>
 </html>
