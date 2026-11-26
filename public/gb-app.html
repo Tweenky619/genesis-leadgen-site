@@ -110,6 +110,10 @@ textarea.in{min-height:70px;resize:vertical}
 .log{font-size:12px;color:var(--mute);border-left:2px solid var(--line);padding-left:8px;margin-top:6px}
 .toast{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));background:#2c2310;border:1px solid var(--gold);color:var(--gold2);padding:11px 14px;border-radius:12px;font-weight:600;z-index:40;text-align:center}
 .step{display:flex;gap:8px;font-size:12.5px;padding:4px 0;color:var(--mute)}.step.now{color:var(--gold2)}.step.done{text-decoration:line-through;opacity:.6}
+details.ob{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:6px;padding:10px 12px}
+details.ob summary{font-weight:650;cursor:pointer;color:var(--text)}
+details.ob[open] summary{color:var(--gold2);margin-bottom:6px}
+details.ob div{font-size:14px}
 /* cloud backup box from sync.js */
 #syncBox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;font-size:13px;color:var(--mute)}
 #syncBox b{color:var(--gold2)}
@@ -288,6 +292,7 @@ function rMembers(){
 }
 function memberCard(m){
   var st = memberStats(m), chips = (m.states||[]).slice(0,3).map(function(s){ return '<span class="chip">' + esc(s) + '</span>'; }).join("") + ((m.states||[]).length > 3 ? '<span class="chip">+' + (m.states.length - 3) + '</span>' : "");
+  if (m.dnc) chips += '<span class="chip warn">Do not contact</span>';
   if (m.web_new) chips += '<span class="chip ok">Website</span>';
   if (m.review === "left") chips += '<span class="chip ok">Review left</span>';
   if (m.credit > 0) chips += '<span class="chip warn">Credit ' + money0(m.credit) + ' open</span>';
@@ -311,6 +316,50 @@ var SCRIPTS = [
   { kind: "text", text: "Hi {first}, still happy to show you the Goldbacks in person. Does {day} at 12 or 4 work better?" },
   { kind: "text", text: "Hi {first}, I don't want to bug you. Whenever you'd like to see Goldbacks in person or have a question, I'm here: (619) 504-8977. - Art, Goldenbee MALAJ" }
 ];
+// Objection handling for follow-up calls: agree, ask, one fact, back to two times
+var OBJECTIONS = [
+  ["Price and value", [
+    ["Too expensive / why more than the gold?", "Fair question. The premium covers minting, the polymer and the artwork. It's what lets you own gold in small amounts, same reason a coin costs more than melt. A starter set is a small way to begin. Would {day} at 12 or 4 work better?"],
+    ["What if gold drops?", "It can, and I'll never tell you otherwise. Goldbacks move with gold. People use them to save long-term, not for quick profit. Want to see them in person {day} at 12 or 4?"],
+    ["I'd rather get coins", "Coins are great. An ounce is a big step, though. Goldbacks let you start small and actually spend it. I can bring both sizes {day} at 12 or 4."]
+  ]],
+  ["Trust", [
+    ["Is this a scam? / Is it legal?", "Smart to ask. We're an official Goldback distributor, operating as a gold dealer. You can check them yourself under a UV light when we meet. {day} at 12 or 4?"],
+    ["How do I know it's real?", "That's the best part. I'll bring a UV light and you'll see the hidden artwork. {day} at 12 or 4?"],
+    ["Where can I even use it?", "Good question. More local shops take them, and the list is on our website. Many people just save them. What matters more to you, saving or spending locally? ... I can show you both {day} at 12 or 4."]
+  ]],
+  ["Timing and stalls", [
+    ["I need to talk to my spouse", "Of course, that's how it should be. Let's meet when you're both there. Is {day} evening or Saturday better?"],
+    ["Just send me info", "Happy to. I'll text you the link now. Most people still want to hold one first. {day} at 12 or 4 for 10 minutes?"],
+    ["I'll think about it", "Totally fair. What part would you want to think over, the price or how you'd use them? ... (answer that one) ... Would {day} at 12 or 4 work better?"],
+    ["Call me later", "No problem. Is tomorrow at 12 or 4 better for a quick call?"],
+    ["I'm busy right now", "I'll be quick. Thirty seconds now, or should I call you back at 5?"],
+    ["Tax questions", "I can't advise on taxes. Please check with your tax professional."]
+  ]]
+];
+function objectionsSheet(id){
+  var m = byId(D.members, id); if (!m) return;
+  openSheet(head("Objections · " + first(m.name)) +
+    '<div class="note">Agree first, ask a question, give one fact, then offer two times. Then stop talking.</div>' +
+    OBJECTIONS.map(function(g){ return '<h2>' + esc(g[0]) + '</h2>' + g[1].map(function(o){ return '<details class="ob"><summary>' + esc(o[0]) + '</summary><div class="wrap">' + esc(fillScript(o[1], m)) + '</div></details>'; }).join(""); }).join("") +
+    '<h2>How it ended</h2>' +
+    '<div class="card" style="display:block"><div class="nm">Set the appointment</div><div class="sub wrap">Double-check their info, ask who else decides, check for conflicts, confirm the time.</div><div class="btns"><button class="btn solid" data-out="appt">Mark reached</button></div></div>' +
+    '<div class="card" style="display:block"><div class="nm">Call me later</div><div class="sub wrap">Sets the next follow-up for tomorrow.</div><div class="btns"><button class="btn" data-out="later">Follow up tomorrow</button></div></div>' +
+    '<div class="card" style="display:block"><div class="nm">Not interested</div><div class="sub wrap">"Understood, thanks for your time. If anything changes, I\'m at (619) 504-8977."</div><div class="btns"><button class="btn" data-out="cold">Mark cold (check in at 30 days)</button></div></div>' +
+    '<div class="card" style="display:block"><div class="nm">Already bought somewhere else</div><div class="sub wrap">"That\'s great, welcome to the club! If you start collecting other states or want to spend them locally, I\'m here."</div><div class="btns"><button class="btn" data-out="elsewhere">Mark cold with note</button></div></div>' +
+    '<div class="card" style="display:block"><div class="nm">Wrong number / don\'t contact me</div><div class="sub wrap">Apologize and stop. Never contact them again.</div><div class="btns"><button class="btn danger" data-out="stop">Do not contact</button></div></div>' +
+    '<div class="btns"><button class="btn ghost" id="obBack">Back to ' + esc(first(m.name)) + '</button></div>');
+  document.getElementById("obBack").onclick = function(){ viewMember(id); };
+  sh.querySelectorAll("[data-out]").forEach(function(b){ b.onclick = function(){
+    var o = b.dataset.out, t = todayISO();
+    if (o === "appt"){ m.web_new = false; m.plan = PLAN.length; m.status = "Customer"; m.next = ""; addLog(m, "Reached them, appointment set"); }
+    if (o === "later"){ m.web_new = false; m.next = addDays(t, 1); addLog(m, "Asked to call later. Follow up " + fmtDate(m.next)); }
+    if (o === "cold"){ m.web_new = false; m.status = "Cold"; m.next = addDays(t, 30); addLog(m, "Not interested. Check in " + fmtDate(m.next)); }
+    if (o === "elsewhere"){ m.web_new = false; m.status = "Cold"; m.next = addDays(t, 90); addLog(m, "Already has Goldbacks from somewhere else"); }
+    if (o === "stop"){ if (!confirm("Mark " + m.name + " as do not contact?")) return; m.web_new = false; m.status = "Cold"; m.next = ""; m.dnc = true; addLog(m, "Do not contact"); }
+    m.updated = Date.now(); save("members"); render(); viewMember(id); toast("Saved");
+  }; });
+}
 function holidayToday(){
   var d = new Date(), y = d.getFullYear(), m = d.getMonth(), dd = d.getDate();
   var nth = function(mon, wd, n){ var x = new Date(y, mon, 1); var off = (wd - x.getDay() + 7) % 7; return 1 + off + (n - 1) * 7; };
@@ -338,7 +387,7 @@ function scriptHtml(m, i){
       '<div class="sub wrap" style="margin-top:6px">Close with two times:</div><div class="wrap" style="font-size:14px">' + esc(fillScript(sc.close, m)) + '</div>' +
       (sc.vm ? '<div class="sub wrap" style="margin-top:6px">Voicemail:</div><div class="wrap" style="font-size:14px">' + esc(fillScript(sc.vm, m)) + '</div>' : '<div class="sub wrap" style="margin-top:6px">No answer: hang up, no voicemail.</div>') +
       '<div class="sub wrap" style="margin-top:6px">After the yes: double-check their info, ask who else decides, check for conflicts, and confirm the time.</div>' +
-      '<div class="btns">' + (m.phone ? '<a class="btn solid" href="tel:' + esc(digits(m.phone)) + '">Call</a>' : "") + '</div>';
+      '<div class="btns">' + (m.phone ? '<a class="btn solid" href="tel:' + esc(digits(m.phone)) + '">Call</a>' : "") + '<button class="btn" data-obj="' + m.id + '">Objections</button></div>';
   }
   return h + '</div>';
 }
@@ -355,7 +404,7 @@ function viewMember(id){
     '<div class="sub wrap">' + esc([m.kind, m.status, m.phone, m.email].filter(Boolean).join(" · ")) + '</div>' +
     ((m.states||[]).length ? '<div class="chips">' + m.states.map(function(s){ return '<span class="chip">' + esc(s) + '</span>'; }).join("") + '</div>' : "") +
     '<div class="btns">' + (m.phone ? '<a class="btn" href="tel:' + esc(digits(m.phone)) + '">Call</a><a class="btn" href="' + esc(smsLink(m.phone, "Hi " + first(m.name) + ", it's Art from Goldenbee MALAJ. ")) + '">Text</a>' : "") +
-    '<button class="btn" id="mEx">Log exchange</button>' + (m.phone ? '<button class="btn" id="mRev">' + (m.review === "asked" ? "Text review link again" : "Text review link") + '</button>' : "") +
+    '<button class="btn" data-obj="' + m.id + '">Objections</button><button class="btn" id="mEx">Log exchange</button>' + (m.phone ? '<button class="btn" id="mRev">' + (m.review === "asked" ? "Text review link again" : "Text review link") + '</button>' : "") +
     (m.review === "asked" ? '<button class="btn ghost" id="mRevDone">Mark review left</button>' : "") + '<button class="btn ghost" id="mEdit">Edit</button></div>' +
     '<div class="sum"><div class="row2"><span>Holding (from your exchanges)</span><b>' + gbFmt(st.gb) + ' GB</b></div>' + (m.credit > 0 ? '<div class="row2"><span>Open exchange credit</span><b>' + money(m.credit) + '</b></div>' : "") + (m.prefers ? '<div class="row2"><span>Prefers</span><b>' + esc(m.prefers) + '</b></div>' : "") + (m.referred ? '<div class="row2"><span>Referred by</span><b>' + esc(m.referred) + '</b></div>' : "") + (m.next ? '<div class="row2"><span>Next follow-up</span><b>' + fmtDate(m.next) + '</b></div>' : "") + '</div>' +
     (m.notes ? '<div class="note wrap">' + esc(m.notes).replace(/\n/g, "<br>") + '</div>' : "") +
@@ -378,6 +427,7 @@ function viewMember(id){
   if ((b = document.getElementById("planReached"))) b.onclick = function(){ m.web_new = false; m.plan = PLAN.length; m.status = "Customer"; m.next = ""; addLog(m, "Reached them"); m.updated = Date.now(); save("members"); viewMember(m.id); render(); };
   sh.querySelectorAll("[data-x]").forEach(function(c){ c.onclick = function(){ editExchange(c.dataset.x); }; });
   sh.querySelectorAll("[data-copy]").forEach(function(c){ c.onclick = function(){ copy(c.dataset.copy, "Script copied"); }; });
+  sh.querySelectorAll("[data-obj]").forEach(function(c){ c.onclick = function(){ objectionsSheet(c.dataset.obj); }; });
 }
 function textReview(m){
   if (!m || !m.phone){ toast("Add a phone number first."); return; }
@@ -391,6 +441,7 @@ function editMember(id){
     fld("Name", "mN", m.name) + '<div class="two"><div>' + fld("Phone", "mP", m.phone, "tel") + '</div><div>' + fld("Email", "mE", m.email, "email") + '</div></div>' +
     opts("Type", "mK", ["Saver","Starter","Collector"], m.kind) + opts("Status", "mS", ["Customer","Following up","Cold"], m.status) +
     opts("States they collect", "mSt", STATES, m.states, true) + fld("Prefers", "mPr", m.prefers, "text", "e.g. 5s and 10s, Alpha printings") +
+    fld("Street address", "mAd", m.address) + '<div class="two"><div>' + fld("City", "mCi", m.city) + '</div><div>' + fld("ZIP", "mZ", m.zip, "text") + '</div></div>' +
     opts("Best way to reach", "mC", ["Text","Call","Email"], m.contact) + fld("Referred by", "mR", m.referred, "text", "Name of the member who sent them") +
     '<div class="two"><div>' + fld("Open exchange credit ($)", "mCr", m.credit || "", "number") + '</div><div>' + fld("Next follow-up", "mNx", m.next, "date") + '</div></div>' +
     area("Notes (no serial numbers)", "mNo", m.notes) +
@@ -401,7 +452,7 @@ function editMember(id){
     var rec = id ? m : { id: uid("m_"), created: Date.now(), log: [], review: "" };
     var oldCredit = rec.credit || 0;
     rec.name = name; rec.phone = val("mP"); rec.email = val("mE"); rec.kind = optVal("mK") || "Saver"; rec.status = optVal("mS") || "Customer"; rec.states = optVal("mSt");
-    rec.prefers = val("mPr"); rec.contact = optVal("mC"); rec.referred = val("mR"); rec.credit = num("mCr"); rec.next = val("mNx"); rec.notes = val("mNo"); rec.updated = Date.now();
+    rec.prefers = val("mPr"); rec.address = val("mAd"); rec.city = val("mCi"); rec.zip = val("mZ").replace(/[^0-9]/g, "").slice(0, 5); rec.contact = optVal("mC"); rec.referred = val("mR"); rec.credit = num("mCr"); rec.next = val("mNx"); rec.notes = val("mNo"); rec.updated = Date.now();
     if (rec.credit !== oldCredit && id) addLog(rec, "Exchange credit set to " + money(rec.credit));
     if (!id){ addLog(rec, "Added"); D.members.push(rec); }
     save("members"); closeSheet(); render(); if (id) viewMember(rec.id);
@@ -478,6 +529,28 @@ function editMerchant(id){
 }
 
 // ================= EXCHANGES =================
+// Owner's rule: never exchange out below Goldback's daily rate; retail steps up $5 when the daily rate passes $10, $15, $20...; $2,000+ always at the daily rate
+function stepPrice(){ var d = PUB.daily || 0; return d ? Math.max(10, Math.ceil(d / 5 - 1e-9) * 5) : 0; }
+function exemptLine(){ return Number(D.settings.exempt) || 2000; }
+function unlockQty(){ var d = PUB.daily || 0; return d ? Math.ceil(2000 / d - 1e-9) : 0; }
+// Tier ladder: each tier closes part of the gap between the $5 step price and the daily rate
+function ladderPrice(gb){
+  var d = PUB.daily || 0; if (!d) return retailRate();
+  var U = unlockQty(); if (gb >= U) return d;
+  var f = gb < 25 ? 1 : gb < 50 ? 0.85 : gb < 100 ? 0.70 : 0.55;
+  var p = Math.round((d + f * (stepPrice() - d)) * 100) / 100;
+  var cap = Math.min(U * d, 1999.99); // cap: no order reaches $2,000 without the daily rate
+  if (gb > 0 && gb * p > cap) p = Math.floor(cap / gb * 100) / 100;
+  return Math.max(p, d);
+}
+function floorPrice(price, gb){
+  var d = PUB.daily || 0; if (!d) return price;
+  var U = unlockQty(); if (gb >= U) return d;
+  var cap = Math.min(U * d, 1999.99);
+  if (gb > 0 && gb * price > cap) price = Math.floor(cap / gb * 100) / 100;
+  return Math.max(price, d);
+}
+function retailRate(){ return Math.max(D.settings.rate || 0, stepPrice()); }
 function exGB(x){ return (x.items || []).reduce(function(s, it){ return s + dval(it.d) * (it.q || 0); }, 0); }
 function exSub(x){ return x.dir === "barter" ? (Number(x.value) || exGB(x) * (x.price || 0)) : exGB(x) * (x.price || 0); }
 function exTax(x){ return x.dir === "out" && x.taxed ? Math.round(exSub(x) * (x.taxRate || 0)) / 100 : 0; }
@@ -508,7 +581,7 @@ function rExchanges(){
   var ym = now.toISOString().slice(0,7), pm = new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0,7), y = String(now.getFullYear());
   var list = D.exchanges.filter(function(x){ var d = String(x.date); return f === "month" ? d.slice(0,7) === ym : f === "prev" ? d.slice(0,7) === pm : d.slice(0,4) === y; }).sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : (b.created||0) - (a.created||0); });
   var stale = s.rate_date !== todayISO(), yt = yearTotals();
-  el.innerHTML = '<div class="rate' + (stale ? " stale" : "") + '" id="rateBox"><div><span>Today\'s rate</span><b>' + money(s.rate) + '</b><small>per Goldback · floor ' + money(s.floor) + '</small></div><div style="text-align:right"><span>' + (stale ? "Not updated today" : "Updated today") + '</span><b style="font-size:15px">' + (stale ? "Tap to set" : "10am MST") + '</b><small>' + (s.show.rate ? "shows on website" : "website off") + '</small></div></div>' +
+  el.innerHTML = '<div class="rate' + (stale ? " stale" : "") + '" id="rateBox"><div><span>Today\'s rate</span><b>' + money(retailRate()) + '</b><small>per Goldback · ' + (PUB.daily ? 'Goldback daily ' + money(PUB.daily) : 'floor ' + money(s.floor)) + '</small></div><div style="text-align:right"><span>' + (stale ? "Not updated today" : "Updated today") + '</span><b style="font-size:15px">' + (stale ? "Tap to set" : "10am MST") + '</b><small>' + (s.show.rate ? "shows on website" : "website off") + '</small></div></div>' +
     seg("fX", [["month", now.toLocaleDateString(undefined, { month: "long" })], ["prev", new Date(now.getFullYear(), now.getMonth() - 1, 15).toLocaleDateString(undefined, { month: "long" })], ["year", "Year"]], f) +
     (list.length ? list.map(exCard).join("") : '<div class="empty">No exchanges ' + (f === "year" ? "this year" : "this month") + '. Tap + to log one.</div>') +
     (list.length ? '<div class="btns"><button class="btn ghost" id="xCsv">Download for bookkeeper (CSV)</button></div>' : "") +
@@ -529,6 +602,7 @@ function setRate(){
   document.getElementById("rSave").onclick = function(){
     var r = num("rR"), fl = num("rF"); if (!r){ toast("Enter the rate."); return; }
     if (fl && r < fl && !confirm("That's below your floor of " + money(fl) + ". Save anyway?")) return;
+    if (PUB.daily && r < PUB.daily){ r = PUB.daily; toast("Raised to Goldback's daily rate, " + money(PUB.daily)); }
     s.rate = r; s.floor = fl || s.floor; s.tax = num("rT") || s.tax; s.rate_date = todayISO(); save("settings"); closeSheet(); render(); toast("Rate saved" + (s.show.rate ? " and sent to the website" : ""));
   };
 }
@@ -541,7 +615,7 @@ function exportCSV(list){
 function adjustInventory(items, sign){ (items || []).forEach(function(it){ var s = byId(D.inventory, it.s); if (!s) return; if (s.counts[it.d] == null) s.counts[it.d] = 0; s.counts[it.d] = Math.max(0, (s.counts[it.d] || 0) + sign * (it.q || 0)); }); }
 function invSign(dir){ return dir === "in" ? 1 : -1; }
 function editExchange(id, whoId){
-  var x = id ? byId(D.exchanges, id) : { dir: "out", date: todayISO(), items: [{ s: "", d: "", q: 1 }], price: D.settings.rate, taxed: true, taxRate: D.settings.tax, pay: "Cash", who: whoId || "" };
+  var x = id ? byId(D.exchanges, id) : { dir: "out", date: todayISO(), items: [{ s: "", d: "", q: 1 }], price: retailRate(), taxed: true, taxRate: D.settings.tax, pay: "Cash", who: whoId || "" };
   var people = D.members.map(function(m){ return [m.id, m.name]; }).concat(D.merchants.map(function(b){ return [b.id, b.name + " (business)"]; })).sort(function(a,b){ return a[1].localeCompare(b[1]); });
   var serOpts = function(sel){ return '<option value="">Series</option>' + D.inventory.map(function(s){ return '<option value="' + esc(s.id) + '"' + (s.id === sel ? " selected" : "") + '>' + esc(s.name) + (s.alpha ? " α" : "") + '</option>'; }).join(""); };
   var denOpts = function(sid, sel){ var s = byId(D.inventory, sid), L = s ? Object.keys(s.counts).sort(function(a,b){ return dval(a) - dval(b); }) : []; return '<option value="">GB</option>' + L.map(function(d){ return '<option' + (d === sel ? " selected" : "") + '>' + esc(d) + '</option>'; }).join(""); };
@@ -551,10 +625,11 @@ function editExchange(id, whoId){
     '<label class="f">Who</label><select class="in" id="xW"><option value="">Walk-in / not saved</option>' + people.map(function(p){ return '<option value="' + esc(p[0]) + '"' + (p[0] === x.who ? " selected" : "") + '>' + esc(p[1]) + '</option>'; }).join("") + '</select>' +
     '<div id="xWnWrap">' + fld("Name (walk-in)", "xWn", x.whoName) + '</div>' +
     fld("Date", "xDt", x.date, "date") +
+    '<div id="xAddrWrap"><label class="f">Customer address (for their local sales tax)</label><input class="in" id="xAd" placeholder="Street" value="' + esc(x.taxAddr || "") + '"><div class="two" style="margin-top:6px"><input class="in" id="xCi" placeholder="City" value="' + esc(x.taxCity || "") + '"><input class="in" id="xZ" placeholder="ZIP" inputmode="numeric" value="' + esc(x.taxZip || "") + '"></div><div class="btns" style="margin-top:6px"><button type="button" class="btn" id="xGps">Use my location</button></div><div class="sub wrap" id="xTaxMsg" style="margin-top:4px"></div></div>' +
     '<label class="f">Goldbacks (series, size, how many)</label><div class="items" id="xItems">' + itemsHtml() + '</div><button class="btn ghost" id="xAdd">+ Add another</button>' +
     '<div id="xPriceWrap"><div class="two"><div>' + fld("Price per Goldback ($)", "xPr", x.price, "number") + '</div><div id="xValWrap">' + fld("Fair value ($)", "xVal", x.value || "", "number") + '</div></div></div>' +
     '<div id="xForWrap">' + fld("Traded for", "xFor", x.forWhat, "text", "e.g. catering, detailing") + '</div>' +
-    '<div id="xTaxWrap">' + opts("Sales tax", "xT", ["Charge " + D.settings.tax + "%", "No tax"], x.taxed ? "Charge " + D.settings.tax + "%" : "No tax") + '</div>' +
+    '<div id="xTaxWrap">' + opts("Sales tax", "xT", ["Charge tax", "No tax"], x.taxed ? "Charge tax" : "No tax") + '</div>' +
     '<div id="xPWrap">' + opts("Payment", "xP", ["Cash","Zelle","Card","Check","Other"], x.pay) + '</div>' +
     '<div id="xCrWrap">' + fld("Exchange credit left open ($)", "xCr", x.credit || "", "number") + '</div>' +
     area("Notes (no serial numbers)", "xNo", x.notes) +
@@ -563,27 +638,38 @@ function editExchange(id, whoId){
   bindOpts();
   function dirNow(){ var v = optVal("xD"); return v === "Exchanged in" ? "in" : v === "Barter" ? "barter" : "out"; }
   function readItems(){ return [].map.call(sh.querySelectorAll("#xItems .it"), function(r){ return { s: r.querySelector('[data-k="s"]').value, d: r.querySelector('[data-k="d"]').value, q: parseInt(r.querySelector('[data-k="q"]').value, 10) || 0 }; }); }
-  function draft(){ return { id: x.id, created: x.created, dir: dirNow(), who: val("xW"), whoName: val("xWn"), date: val("xDt") || todayISO(), items: readItems().filter(function(it){ return it.s && it.d && it.q > 0; }), price: num("xPr"), value: num("xVal"), forWhat: val("xFor"), taxed: optVal("xT") ? optVal("xT").indexOf("Charge") === 0 : false, taxRate: D.settings.tax, pay: optVal("xP"), credit: num("xCr"), notes: val("xNo"), receipt: x.receipt }; }
+  function draft(){ return { id: x.id, created: x.created, dir: dirNow(), who: val("xW"), whoName: val("xWn"), date: val("xDt") || todayISO(), items: readItems().filter(function(it){ return it.s && it.d && it.q > 0; }), price: num("xPr"), value: num("xVal"), forWhat: val("xFor"), taxed: optVal("xT") ? optVal("xT").indexOf("Charge") === 0 : false, taxRate: taxInfo ? taxInfo.rate : D.settings.tax, taxPlace: taxInfo ? taxInfo.place : "", taxAddr: val("xAd"), taxCity: val("xCi"), taxZip: val("xZ"), pay: optVal("xP"), credit: num("xCr"), notes: val("xNo"), receipt: x.receipt }; }
   function refresh(){
     var d = dirNow();
     document.getElementById("xWnWrap").style.display = val("xW") ? "none" : "";
     document.getElementById("xTaxWrap").style.display = d === "out" ? "" : "none";
+    document.getElementById("xAddrWrap").style.display = d === "out" ? "" : "none";
     document.getElementById("xValWrap").style.display = d === "barter" ? "" : "none";
     document.getElementById("xForWrap").style.display = d === "barter" ? "" : "none";
     document.getElementById("xCrWrap").style.display = d === "barter" ? "none" : "";
     document.getElementById("xPWrap").style.display = d === "barter" ? "none" : "";
+    if (d === "out" && !priceTouched){ var g0 = readItems().reduce(function(a, it){ return a + (it.s && it.d ? dval(it.d) * (it.q || 0) : 0); }, 0); if (g0 > 0) document.getElementById("xPr").value = ladderPrice(g0).toFixed(2); }
     var t = draft(); if (id) t.id = id;
+    var askPrice = t.price; if (d === "out") t.price = floorPrice(t.price, exGB(t));
     var g = exGB(t), sub = exSub(t), html = '<div class="row2"><span>Goldbacks</span><b>' + gbFmt(g) + ' GB</b></div>';
     if (d === "barter") html += '<div class="row2"><span>Fair value</span><b>' + money(sub) + '</b></div>';
     else {
       html += '<div class="row2"><span>' + gbFmt(g) + ' × ' + money(t.price) + '</span><b>' + money(sub) + '</b></div>';
-      if (d === "out" && t.taxed) html += '<div class="row2"><span>Sales tax ' + t.taxRate + '%</span><b>' + money(exTax(t)) + '</b></div>';
+      if (d === "out" && t.taxed) html += '<div class="row2"><span>Sales tax ' + t.taxRate + '%' + (t.taxPlace ? ' · ' + esc(t.taxPlace) : ' · default') + '</span><b>' + money(exTax(t)) + '</b></div>';
       html += '<div class="row2"><span>' + (d === "in" ? "You pay" : "Total") + '</span><b>' + money(exTotal(t)) + '</b></div>';
     }
     var warn = [];
-    if (d === "out" && t.price && t.price < D.settings.floor) warn.push("Below your floor of " + money(D.settings.floor) + ".");
-    if (d === "out" && sub > 2000) warn.push("Over $2,000: California's bullion exemption may apply. It's a gray area for Goldbacks, so check with your CPA before dropping tax.");
+    if (d === "out" && askPrice && askPrice < D.settings.floor) warn.push("Below your floor of " + money(D.settings.floor) + ".");
+    if (d === "out" && PUB.daily && askPrice && t.price !== askPrice) warn.push(g * PUB.daily >= 2000 ? "$2,000 or more: this saves at Goldback's daily rate, " + money(PUB.daily) + " each." : "Below Goldback's daily rate: this saves at " + money(PUB.daily) + " each.");
+    if (d === "out" && sub >= exemptLine()) warn.push(money(exemptLine()) + " or more before tax: California's bulk exemption may apply. It's a gray area for Goldbacks, so check with your CPA before dropping tax.");
     if (d === "out") t.items.forEach(function(it){ var s = byId(D.inventory, it.s); if (s && (s.counts[it.d] || 0) + (id ? oldQty(it) : 0) < it.q) warn.push("Only " + (s.counts[it.d] || 0) + " × " + it.d + " " + s.name + " on hand."); });
+    if (d === "out" && PUB.daily && g > 0 && g < unlockQty() && sub >= 500){
+      var U = unlockQty(), need = U - g, nt = U * PUB.daily, ntTax = t.taxed ? Math.round(nt * t.taxRate) / 100 : 0, nowAll = exTotal(t);
+      var capped = sub >= 1999.99 - g * 0.01;
+      html += '<div class="note" style="margin-top:8px"><b>Unlock the daily rate:</b> ' + (capped ? "they're at the $2,000 line. Add " + gbFmt(need) + ' more GB (' + gbFmt(U) + ' for ' + money(nt) + ') and the whole order drops to ' + money(PUB.daily) + ' each.' : 'add ' + gbFmt(need) + ' more GB and the whole order drops to ' + money(PUB.daily) + ' each.') +
+        '<br>Now: ' + gbFmt(g) + ' GB = ' + money(nowAll) + (t.taxed ? ' with tax' : '') + '. At ' + gbFmt(U) + ': ' + money(nt) + ' before tax' + (t.taxed ? ' (' + money(nt + ntTax) + ' with tax, less if the $2,000 exemption applies)' : '') + '.' +
+        '<br><i>Say: "You\'re at ' + money(nowAll) + (t.taxed ? ' with tax' : '') + ' for ' + gbFmt(g) + ' Goldbacks. If you go to ' + gbFmt(U) + ', your whole order drops to ' + money(PUB.daily) + ' each: ' + money(nt) + ' before tax. Want me to do ' + gbFmt(U) + '?"</i></div>';
+    }
     var D2 = D.exchanges.filter(function(e){ return e.id !== id; }); D2.push(t); var keep = D.exchanges; D.exchanges = D2; var fl = exFlags(t); D.exchanges = keep;
     document.getElementById("xSum").innerHTML = html + warn.concat(fl).map(function(w){ return '<div class="flag">' + esc(w) + '</div>'; }).join("");
   }
@@ -601,13 +687,53 @@ function editExchange(id, whoId){
   bindItems();
   document.getElementById("xAdd").onclick = function(){ x.items = readItems(); var last = x.items[x.items.length - 1]; x.items.push({ s: last ? last.s : "", d: "", q: 1 }); document.getElementById("xItems").innerHTML = itemsHtml(); bindItems(); refresh(); };
   sh.querySelectorAll("[data-opts]").forEach(function(g){ g.onpick = refresh; });
-  ["xW","xPr","xVal","xDt"].forEach(function(k){ var e = document.getElementById(k); e.oninput = e.onchange = refresh; });
-  refresh();
+  var priceTouched = !!id;
+  var taxInfo = x.taxPlace ? { rate: x.taxRate, place: x.taxPlace } : null, taxT = null, taxKey = x.taxPlace ? [x.taxAddr, x.taxCity, x.taxZip].join("|") : "";
+  function taxMsg(t){ var e = document.getElementById("xTaxMsg"); if (e) e.textContent = t; }
+  function lookupTax(){
+    var a = val("xAd"), c = val("xCi"), z = val("xZ").replace(/[^0-9]/g, "");
+    var k = [a, c, z].join("|");
+    if (!a || z.length !== 5){ if (!a && !z){ taxInfo = null; taxKey = ""; taxMsg("No address: using your default rate (" + D.settings.tax + "%)."); refresh(); } return; }
+    if (k === taxKey) return;
+    taxKey = k; taxMsg("Looking up the tax rate…");
+    fetch("/api/gb-taxrate?address=" + encodeURIComponent(a) + "&city=" + encodeURIComponent(c) + "&zip=" + z).then(function(r){ return r.json(); }).then(function(j){
+      if (k !== taxKey) return;
+      if (j && j.rate > 0){ taxInfo = { rate: j.rate, place: j.place || z }; taxMsg(j.rate + "% for " + (j.place || z) + " (California CDTFA rate)" + (j.multiple ? ". This address sits on a boundary; double-check it." : ".")); }
+      else { taxInfo = null; taxMsg("Couldn't find that address. Using your default rate (" + D.settings.tax + "%)."); }
+      refresh();
+    }).catch(function(){ if (k !== taxKey) return; taxInfo = null; taxMsg("No connection. Using your default rate (" + D.settings.tax + "%)."); refresh(); });
+  }
+  function lookupGps(auto){
+    if (!navigator.geolocation){ if (!auto) taxMsg("This device can't share its location."); return; }
+    taxMsg("Finding your location…");
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var la = pos.coords.latitude.toFixed(5), lo = pos.coords.longitude.toFixed(5), k = "gps|" + la + "|" + lo;
+      taxKey = k;
+      fetch("/api/gb-taxrate?lat=" + la + "&lng=" + lo).then(function(r){ return r.json(); }).then(function(j){
+        if (k !== taxKey) return;
+        if (j && j.rate > 0){ taxInfo = { rate: j.rate, place: j.place || "your location" }; taxMsg(j.rate + "% where you are now: " + (j.place || "") + " (California CDTFA rate)."); }
+        else { taxInfo = null; taxMsg("Couldn't get a rate for this spot. Using your default rate (" + D.settings.tax + "%)."); }
+        refresh();
+      }).catch(function(){ taxInfo = null; taxMsg("No connection. Using your default rate (" + D.settings.tax + "%)."); refresh(); });
+    }, function(){ taxMsg(auto ? "Tap \"Use my location\" or type the address for the local rate. Using " + D.settings.tax + "% for now." : "Location is off. Allow location for this site, or type the address."); }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 120000 });
+  }
+  function fillAddrFromWho(){
+    var w = byId(D.members, val("xW")) || byId(D.merchants, val("xW"));
+    if (!w) return;
+    var a = document.getElementById("xAd"), c = document.getElementById("xCi"), z = document.getElementById("xZ");
+    if (!a.value && w.address){ a.value = w.address.split(",")[0].trim(); if (!c.value) c.value = w.city || (w.address.split(",")[1] || "").trim(); if (!z.value) z.value = w.zip || ((w.address.match(/\b(\d{5})\b/) || [])[1] || ""); }
+  }
+  document.getElementById("xGps").onclick = function(){ lookupGps(false); };
+  ["xAd","xCi","xZ"].forEach(function(k){ var e = document.getElementById(k); e.oninput = function(){ clearTimeout(taxT); taxT = setTimeout(lookupTax, 700); }; });
+  document.getElementById("xW").addEventListener("change", function(){ fillAddrFromWho(); lookupTax(); });
+  ["xW","xPr","xVal","xDt"].forEach(function(k){ var e = document.getElementById(k); e.oninput = e.onchange = function(){ if (k === "xPr") priceTouched = true; refresh(); }; });
+  fillAddrFromWho(); refresh(); if (x.taxPlace) taxMsg(x.taxRate + "% for " + x.taxPlace + "."); else if (val("xAd")) lookupTax(); else lookupGps(true);
   document.getElementById("xSave").onclick = function(){
     var t = draft();
     if (!t.items.length){ toast("Add at least one Goldback line."); return; }
     if (t.dir !== "barter" && !t.price){ toast("Enter the price per Goldback."); return; }
     if (t.dir === "barter" && !t.value){ t.value = exGB(t) * D.settings.rate; }
+    if (t.dir === "out") t.price = floorPrice(t.price, exGB(t));
     if (id){ adjustInventory(oldItems, -invSign(oldDir)); var i = D.exchanges.findIndex(function(e){ return e.id === id; }); t.id = id; t.created = x.created; t.updated = Date.now(); D.exchanges[i] = t; }
     else { t.id = uid("x_"); t.created = Date.now(); D.exchanges.push(t); }
     adjustInventory(t.items, invSign(t.dir));
@@ -765,7 +891,7 @@ function publishSoon(){ clearTimeout(pubT); pubT = setTimeout(publishNow, 3000);
 function publicPayload(){
   var s = D.settings, sw = s.show;
   return {
-    rate: sw.rate ? { price: s.rate, date: s.rate_date || "" } : null,
+    rate: sw.rate ? { price: retailRate(), date: s.rate_date || "" } : null,
     merchants: sw.merchants ? D.merchants.filter(function(b){ return b.listed && b.stage === "Active"; }).map(function(b){ return { name: b.name, kind: b.kind || "", area: b.area || "", address: b.address || "", option: b.option || "" }; }) : [],
     events: sw.events ? D.events.filter(function(e){ return e.kind !== "release" && e.web && e.date >= todayISO(); }).map(function(e){ return { id: e.id, title: e.title, date: e.date, time: e.time || "", place: e.place || "", desc: e.desc || "" }; }) : [],
     videos: !!sw.videos, youtube: s.youtube, review: s.review
@@ -779,7 +905,7 @@ function publishNow(loud){
 }
 function loadPublic(){
   fetch("/api/gb-public?yt=" + encodeURIComponent(D.settings.youtube || ""), { cache: "no-store" }).then(function(r){ return r.ok ? r.json() : Promise.reject(); })
-    .then(function(j){ PUB.videos = j.videos || []; PUB.err = false; if (view === "community" || view === "connections") render(); })
+    .then(function(j){ PUB.videos = j.videos || []; PUB.daily = Number(j.daily) || 0; PUB.err = false; if (view === "community" || view === "connections") render(); })
     .catch(function(){ PUB.err = true; if (view === "community") render(); });
 }
 function inqSync(loud){

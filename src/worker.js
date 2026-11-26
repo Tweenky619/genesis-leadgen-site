@@ -33,6 +33,34 @@ export default {
     }
     // Goldback app -> website: the app sends what the website may show (rate, listed merchants, events). Needs GB_INQ_KEY.
     // The website reads it back from /api/gb-public (plus the newest YouTube videos, cached for an hour).
+    // Sales tax rate for a California address, from CDTFA's official Tax Rate API (cached 30 days)
+    if (url.pathname === "/api/gb-taxrate") {
+      const J = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+      const address = (url.searchParams.get("address") || "").trim().slice(0, 120);
+      const city = (url.searchParams.get("city") || "").trim().slice(0, 60);
+      const zip = (url.searchParams.get("zip") || "").replace(/[^0-9]/g, "").slice(0, 5);
+      const lat = parseFloat(url.searchParams.get("lat") || ""), lng = parseFloat(url.searchParams.get("lng") || "");
+      const byGps = Number.isFinite(lat) && Number.isFinite(lng) && lat > 32 && lat < 42.1 && lng > -124.5 && lng < -114;
+      if (!byGps && (!address || zip.length !== 5)) return J({ error: "need_address_and_zip" }, 400);
+      const key = byGps ? "tax:gps:" + lat.toFixed(3) + "," + lng.toFixed(3) : "tax:" + (address + "|" + city + "|" + zip).toLowerCase();
+      try {
+        if (env.LEADS_DB) {
+          await env.LEADS_DB.prepare("CREATE TABLE IF NOT EXISTS gb_public (k TEXT PRIMARY KEY, v TEXT NOT NULL, updated INTEGER NOT NULL)").run();
+          const c = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = ?1").bind(key).first();
+          if (c && Date.now() - c.updated < 30 * 864e5) return J(JSON.parse(c.v));
+        }
+        const r = await fetch(byGps
+          ? "https://services.maps.cdtfa.ca.gov/api/taxrate/GetRateByLngLat?longitude=" + lng + "&latitude=" + lat
+          : "https://services.maps.cdtfa.ca.gov/api/taxrate/GetRateByAddress?address=" + encodeURIComponent(address) + "&city=" + encodeURIComponent(city) + "&zip=" + zip);
+        if (!r.ok) return J({ error: "lookup_failed" }, 502);
+        const d = await r.json();
+        const info = (d && d.taxRateInfo) || [];
+        if (!info.length || !(info[0].rate > 0)) return J({ error: "not_found" }, 404);
+        const out = { rate: Math.round(info[0].rate * 100000) / 1000, place: [info[0].city || info[0].jurisdiction, info[0].county].filter(Boolean).join(", ").replace(/\b(\w)(\w*)/g, (m, a, b) => a + b.toLowerCase()), multiple: info.length > 1, address: (d.geocodeInfo && d.geocodeInfo.formattedAddress) || "" };
+        if (env.LEADS_DB) await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES (?1, ?2, ?3) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(key, JSON.stringify(out), Date.now()).run();
+        return J(out);
+      } catch (e) { return J({ error: "lookup_failed" }, 502); }
+    }
     if (url.pathname === "/api/gb-publish" || url.pathname === "/api/gb-public") {
       const ch = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Content-Type" };
       const J = (o, st, extra) => new Response(JSON.stringify(o), { status: st || 200, headers: Object.assign({ "Content-Type": "application/json" }, extra || {}) });
@@ -94,7 +122,20 @@ export default {
       // keep off-message videos out (Playbook: no collapse talk, never "currency", old Shopify store is closed)
       const SKIP_VID = /collapse|currency|shopify|call to action/i;
       videos = videos.filter((v) => !SKIP_VID.test(v.title || ""));
-      return J({ rate: site.rate, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
+      // Goldback Inc.'s official daily rate (used as the app's price floor), cached 30 min
+      let daily = null;
+      try {
+        const dr = await env.LEADS_DB.prepare("SELECT v, updated FROM gb_public WHERE k = 'daily'").first();
+        if (dr && Date.now() - dr.updated < 1800000) daily = JSON.parse(dr.v);
+        else {
+          const rr = await fetch("https://www.goldback.com/gb-proxy.php", { headers: { "User-Agent": "Mozilla/5.0 (goldenbee-malaj)" } });
+          const dj = rr.ok ? await rr.json() : null;
+          const usd = Number(dj && dj.quotes && dj.quotes.USDUSD);
+          if (usd > 0) { daily = Math.round(usd * 100) / 100; await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES ('daily', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(JSON.stringify(daily), Date.now()).run(); }
+          else if (dr) daily = JSON.parse(dr.v);
+        }
+      } catch (e) {}
+      return J({ rate: site.rate, daily, merchants: site.merchants || [], events: (site.events || []).filter((e) => e.date >= today), videos: site.videos === false ? [] : videos, youtube: handle, review: site.review || "", updated: row ? row.updated : 0 }, 200, Object.assign({ "Cache-Control": "public, max-age=120" }, ch));
     }
     if (url.pathname === "/api/ping") {
       const h = cors(request.headers.get("Origin") || "");
