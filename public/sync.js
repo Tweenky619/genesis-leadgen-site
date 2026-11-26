@@ -238,38 +238,55 @@
   function norm(c){ var s = String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); return s.length === 12 ? s.slice(0,4) + "-" + s.slice(4,8) + "-" + s.slice(8) : ""; }
   function ago(ts){ var s = Math.round((Date.now() - ts) / 1000); return s < 60 ? "just now" : s < 3600 ? Math.round(s / 60) + " min ago" : Math.round(s / 3600) + " h ago"; }
   var box = document.createElement("div"); box.className = "full-bk"; box.id = "syncBox";
+  function startNew(){
+    var c2 = newCode(); try{ ls.setItem(CODE_K, c2); }catch(e){}
+    meta.k = meta.k || {}; for (var i = 0; i < ls.length; i++){ var k = ls.key(i); if (synced(k) && !meta.k[k]) meta.k[k] = Date.now(); }
+    ihash = {}; phMeta = {}; savePh(); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); run();
+  }
+  // Home Connector and Goldback: cloud backup is always on (encrypted with this device's recovery code)
+  var AUTO = !!(window.LG_MINE || window.LG_GB);
   function paint(){
     var c = code(), l = status();
-    box.innerHTML = '<div class="co-lbl">☁️ Sync phone ↔ iPad</div>' + (c
+    box.innerHTML = (AUTO ? '' : '<div class="co-lbl">☁️ Sync phone ↔ iPad</div>') + (c
       ? '<p style="margin:4px 0 8px">On — changes on either device show up on the other within a minute.' + (l ? ' Last synced ' + ago(l.ts) + '.' : '') + (phLeft > 0 ? ' Sending photos\u2026 ' + phLeft + ' left.' : ' Photos included.') + (lastErr === "offline" ? ' <b>Offline — will retry.</b>' : lastErr === "decrypt" ? ' <b>Code mismatch on some data.</b>' : '') + '</p>' +
-        '<div style="font-size:22px;font-weight:800;letter-spacing:2px;text-align:center;padding:10px;border:2px dashed var(--border);border-radius:12px;margin-bottom:8px" id="syncCodeShow">' + c + '</div>' +
-        '<p style="margin:0 0 8px">On your other device: open this same app → ⇅ → <b>I have a code</b> → enter this code. Keep it private — it unlocks your leads.</p>' +
+        '<div style="font-size:22px;font-weight:800;letter-spacing:2px;text-align:center;padding:10px;border:2px dashed var(--border);border-radius:12px;margin-bottom:8px" id="syncCodeShow">' + String(c).replace(/[&<>"]/g, function(ch){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]; }) + '</div>' +
+        (AUTO ? '<p style="margin:0 0 8px"><b>This is your recovery code.</b> Your leads and photos are backed up to the cloud automatically, encrypted with it. Save it in Notes: on a new phone or iPad, open this app → ⇅ → <b>Restore with a code</b> → enter it to get everything back. Without it, nobody (not even us) can unlock your backup.</p><button type="button" id="syncCopy">📋 Copy recovery code</button>' : '') +
+        (AUTO ? '' : '<p style="margin:0 0 8px">On your other device: open this same app → ⇅ → <b>I have a code</b> → enter this code. Keep it private — it unlocks your leads.</p>') +
+        (AUTO ? '<button type="button" id="syncOwn" style="background:#fff;color:var(--brand);border:1px solid var(--border)">✏️ Set my own code</button><button type="button" id="syncHave" style="background:#fff;color:var(--brand);border:1px solid var(--border)">🔑 Restore with a code from another device</button>' : '') +
         '<button type="button" id="syncNow">🔄 Sync now</button><button type="button" id="syncOff" style="background:#fff;color:#a8321f;border:1px solid #e3b4ab">Turn off sync on this device</button>'
       : '<p style="margin:4px 0 8px">Keep this app the same on your phone and iPad. Your leads are encrypted with your private code before they leave the device.</p>' +
         '<button type="button" id="syncStart">☁️ Turn on sync (start here on your phone)</button>' +
         '<button type="button" id="syncHave" style="background:#fff;color:var(--brand);border:1px solid var(--border)">🔑 I have a code (on the iPad)</button>');
     var b;
-    if ((b = document.getElementById("syncStart"))) b.onclick = function(){
-      var c2 = newCode(); try{ ls.setItem(CODE_K, c2); }catch(e){}
-      meta.k = meta.k || {}; for (var i = 0; i < ls.length; i++){ var k = ls.key(i); if (synced(k) && !meta.k[k]) meta.k[k] = Date.now(); }
-      ihash = {}; phMeta = {}; savePh(); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); run();
-    };
+    if ((b = document.getElementById("syncStart"))) b.onclick = startNew;
+    if ((b = document.getElementById("syncCopy"))) b.onclick = function(){ var c3 = code(); try{ navigator.clipboard.writeText(c3).then(function(){ toast("\ud83d\udccb Code copied \u2014 paste it in Notes or email it to yourself."); }); }catch(e){ prompt("Copy your recovery code:", c3); } };
     if ((b = document.getElementById("syncHave"))) b.onclick = function(){
-      var c2 = norm(prompt("Enter the sync code shown on your phone (⇅ → Sync phone ↔ iPad):") || "");
-      if (!c2){ alert("That code doesn't look right — it's 12 letters/numbers like ABCD-EFGH-JKLM."); return; }
-      try{ ls.setItem(CODE_K, c2); }catch(e){}
+      var raw = prompt(AUTO ? "Enter your recovery code (⇅ → Cloud backup on your other device):" : "Enter the sync code shown on your phone (⇅ → Sync phone ↔ iPad):") || "";
+      var c2 = norm(raw) || (AUTO && raw.trim().length >= 12 ? raw.trim() : "");
+      if (!c2){ alert(AUTO ? "That code doesn't look right. Enter it exactly as you saved it (12 characters or more)." : "That code doesn't look right — it's 12 letters/numbers like ABCD-EFGH-JKLM."); return; }
+      try{ ls.setItem(CODE_K, c2); rawRemove.call(ls, PRE + "sync_optout"); }catch(e){}
       // this device's existing data counts as older, so the phone's copy wins where they differ (lists still merge)
       Object.keys(meta.k).forEach(function(k){ meta.k[k] = 1; }); Object.keys(meta.it).forEach(function(k){ Object.keys(meta.it[k]).forEach(function(id){ meta.it[k][id] = meta.it[k][id] < 0 ? -1 : 1; }); });
       ihash = {}; phMeta = {}; savePh(); set(PRE + "sync_base", "1"); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); toast("🔑 Linked — pulling your leads…"); run();
     };
+    if ((b = document.getElementById("syncOwn"))) b.onclick = function(){
+      var c1 = (prompt("Make your own recovery code: at least 12 characters, a few words is best (example: Sunset-Bee-TStreet-26). Capital letters count.") || "").trim();
+      if (!c1) return;
+      if (c1.length < 12){ alert("Too short. Use at least 12 characters."); return; }
+      if ((prompt("Type it again to confirm:") || "").trim() !== c1){ alert("Those didn't match. Nothing changed."); return; }
+      if (!confirm("Use this as your recovery code? Your backup moves to the new code. Save it in Notes \u2014 if it's lost, the backup can't be unlocked.")) return;
+      try{ ls.setItem(CODE_K, c1); rawRemove.call(ls, PRE + "sync_optout"); }catch(e){}
+      meta.k = meta.k || {}; for (var i = 0; i < ls.length; i++){ var k = ls.key(i); if (synced(k)) meta.k[k] = Date.now(); }
+      ihash = {}; phMeta = {}; savePh(); saveMeta(); set(SINCE_K, "0"); set(PRE + "sync_pushed", "{}"); paint(); run(); toast("\u2705 Your own code is set. Backing up\u2026");
+    };
     if ((b = document.getElementById("syncNow"))) b.onclick = function(){ run().then(function(){ toast("☁️ Synced"); }); };
-    if ((b = document.getElementById("syncOff"))) b.onclick = function(){ if (!confirm("Turn off sync on this device? Your leads stay here; they just stop updating from your other device.")) return; try{ rawRemove.call(ls, CODE_K); }catch(e){} paint(); };
+    if ((b = document.getElementById("syncOff"))) b.onclick = function(){ if (!confirm(AUTO ? "Turn off cloud backup on this device? Your leads stay here, but they won't be backed up anymore." : "Turn off sync on this device? Your leads stay here; they just stop updating from your other device.")) return; try{ rawRemove.call(ls, CODE_K); if (AUTO) rawSet.call(ls, PRE + "sync_optout", "1"); }catch(e){} paint(); };
   }
-  function mount(){ var sh = document.querySelector("#backupSheet .sheet"); if (!sh || document.getElementById("syncBox")) return; var first = sh.querySelector(".full-bk"); sh.insertBefore(box, first || null); paint(); }
+  function mount(){ var sh = document.querySelector("#backupSheet .sheet"); if (!sh || document.getElementById("syncBox")) return; var first = sh.querySelector(".full-bk"); sh.insertBefore(box, first || null); if (AUTO){ var h = document.getElementById("backupTitle"); if (h) h.textContent = "\u2601\ufe0f Cloud backup & sync"; box.querySelector && (box.style.borderTop = "0"); } paint(); }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount); else mount();
 
   // ---- when to sync ----
-  setTimeout(function(){ if (code()) run(); }, 1500);
+  setTimeout(function(){ if (!code() && AUTO && !get(PRE + "sync_optout")){ startNew(); toast("\u2601\ufe0f Cloud backup is on. Save your recovery code: \u21c5 \u2192 Cloud backup."); } else if (code()) run(); }, 1500);
   setInterval(function(){ if (code() && document.visibilityState === "visible") run(); }, 45000);
   document.addEventListener("visibilitychange", function(){ if (code()) run(); });
   window.addEventListener("online", function(){ if (code()) run(); });

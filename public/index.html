@@ -448,6 +448,8 @@
 
   .yesno-group{display:flex;gap:8px;}
   .hc-only{display:none;}
+  /* Home Connector + Goldback: the Backup sheet is just cloud backup & sync */
+  html.wl-mine #backupIntro,html.wl-mine #exportBtn,html.wl-mine #importBtn,html.wl-mine #fullBk,html.lg-gb #backupIntro,html.lg-gb #exportBtn,html.lg-gb #importBtn,html.lg-gb #fullBk{display:none!important;}
   html.solar-on .hc-only{display:block;}
   .solar-fit{margin:-4px 0 14px;padding:10px 12px;border-radius:10px;font-size:14px;font-weight:700;display:none;}
   .solar-fit.yes{display:block;background:#fff6db;color:#7a4a00;border:1.5px solid #f2c94c;}
@@ -1965,15 +1967,15 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
 </div>
 <div class="sheet-bg" id="backupSheet" hidden>
   <div class="sheet">
-    <h3>Backup</h3>
-    <p>Your leads are saved on this phone. Export a backup at the end of each day.</p>
+    <h3 id="backupTitle">Backup</h3>
+    <p id="backupIntro">Your leads are saved on this phone. Export a backup at the end of each day.</p>
     <button type="button" id="exportBtn">&#8659; Export backup (CSV)</button>
     <button type="button" id="importBtn">&#8657; Import leads (CSV)</button>
     <div class="full-bk" id="trashBox">
       <div class="co-lbl">&#128465;&#65039; Recently deleted &mdash; kept 30 days</div>
       <div id="trashList"></div>
     </div>
-    <div class="full-bk">
+    <div class="full-bk" id="fullBk">
       <div class="co-lbl">Full backup &mdash; everything</div>
       <button type="button" id="fullSaveBtn">&#128190; Save full backup</button>
       <button type="button" id="fullRestoreBtn">&#128260; Restore full backup</button>
@@ -4760,7 +4762,7 @@ html.lg-mine:not(.dark).socal-main .pg-links a{background:#e5e4e2}
 <script src="playbook.js?v=11"></script>
 <script src="practice.js?v=59"></script>
 <script src="tele.js?v=29"></script>
-<script src="sync.js?v=3"></script>
+<script src="sync.js?v=6"></script>
 <script src="slicks.js?v=18"></script>
 <div id="wlSetup">
   <div class="wl-wrap">
