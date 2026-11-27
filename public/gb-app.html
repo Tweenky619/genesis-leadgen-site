@@ -170,7 +170,7 @@ function load(){
   if (s.tax == null) s.tax = 7.75;
   if (s.floor == null) s.floor = 8.75;
 }
-function save(which){ (which ? [which] : ["members","merchants","exchanges","inventory","events","settings"]).forEach(function(w){ jset(K[w], D[w]); }); if (!which || /merchants|events|settings/.test(which)) publishSoon(); }
+function save(which){ (which ? [which] : ["members","merchants","exchanges","inventory","events","settings"]).forEach(function(w){ jset(K[w], D[w]); }); if (!which || /merchants|events|settings|inventory|exchanges/.test(which)) publishSoon(); }
 
 var DEN = { orig: ["1","5","10","25","50"], ut26: ["¼","½","1","2","5","10","25","50"], new8: ["½","1","2","5","10","25","50","100"], all9: ["¼","½","1","2","5","10","25","50","100"] };
 function dval(d){ return d === "¼" ? 0.25 : d === "½" ? 0.5 : parseFloat(d); }
@@ -892,7 +892,8 @@ function rConnections(){
     '<div class="card"><div class="av sq">YT</div><div class="grow"><div class="nm">YouTube</div><div class="sub">' + esc(s.youtube) + ' · ' + (PUB.videos && PUB.videos.length ? PUB.videos.length + " newest videos" : "newest videos") + '</div></div><span class="pill p-Active">On</span></div>' +
     (key ? "" : '<div class="card" style="display:block"><div class="nm">Connect the website</div><div class="sub wrap">Enter the website access key once. It also pulls website form requests and orders into Members.</div><input class="in" id="kIn" type="password" placeholder="Access key" style="margin-top:8px"><div class="btns"><button class="btn solid" id="kSave">Connect</button></div></div>') +
     '<h2>Show on website</h2><div class="card" style="display:block">' +
-      tog("rate", "Today's rate", money(s.rate)) + tog("merchants", "Merchants (agreed to be listed)", listed + " of " + act) + tog("events", "Classes and meetups", "") + tog("videos", "Newest YouTube videos", "") +
+      tog("rate", "Today's rate", money(s.rate)) + tog("merchants", "Merchants (agreed to be listed)", listed + " of " + act) + tog("events", "Classes and meetups", "") + tog("videos", "Newest YouTube videos", "") + tog("stock", "Stock (In stock / Special order in the shop)", "") +
+      '<div class="sub wrap" style="margin:4px 0 2px">Turn on Stock after your Inventory counts are right. Sizes at 0 show as Special order.</div>' +
       (key ? '<div class="btns"><button class="btn" id="pubNow">Send to website now</button></div>' : "") + '</div>' +
     '<h2>Website requests</h2><div class="card" style="display:block"><div class="sub wrap">' + (key ? "New form requests and orders show up in Members with a Website tag, and you get the 7-step follow-up plan." : "Connect the website above.") + '</div>' + (key ? '<div class="btns"><button class="btn" id="inqNow">Check now</button></div>' : "") + '<div class="sub wrap" id="inqMsg" style="margin-top:6px"></div></div>' +
     '<h2>Google Business Profile</h2><div class="card" style="display:block">' + fld("Review link", "gRev", s.review, "url") +
@@ -922,7 +923,8 @@ function publicPayload(){
     rate: sw.rate ? { price: retailRate(), date: s.rate_date || "" } : null,
     merchants: sw.merchants ? D.merchants.filter(function(b){ return b.listed && b.stage === "Active"; }).map(function(b){ return { name: b.name, kind: b.kind || "", area: b.area || "", address: b.address || "", option: b.option || "" }; }) : [],
     events: sw.events ? D.events.filter(function(e){ return e.kind !== "release" && e.web && e.date >= todayISO(); }).map(function(e){ return { id: e.id, title: e.title, date: e.date, time: e.time || "", place: e.place || "", desc: e.desc || "" }; }) : [],
-    videos: !!sw.videos, youtube: s.youtube, review: s.review
+    videos: !!sw.videos, youtube: s.youtube, review: s.review,
+    stock: sw.stock ? D.inventory.map(function(x){ var c = {}; Object.keys(x.counts).forEach(function(d){ c[d] = Math.max(0, Math.min(999, x.counts[d] || 0)); }); return { name: x.name + (x.alpha ? " Alpha" : ""), min: x.min || 0, counts: c }; }) : []
   };
 }
 function publishNow(loud){

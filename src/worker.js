@@ -82,6 +82,11 @@ export default {
           merchants: (Array.isArray(b.merchants) ? b.merchants : []).slice(0, 100).map((m) => ({ name: str(m.name, 80), kind: str(m.kind, 60), area: str(m.area, 60), address: str(m.address, 140), option: str(m.option, 40) })).filter((m) => m.name),
           events: (Array.isArray(b.events) ? b.events : []).slice(0, 30).map((e) => ({ id: str(e.id, 40), title: str(e.title, 100), date: str(e.date, 10), time: str(e.time, 30), place: str(e.place, 120), desc: str(e.desc, 300) })).filter((e) => e.title && /^\d{4}-\d\d-\d\d$/.test(e.date)),
           videos: !!b.videos, youtube: str(b.youtube, 60), review: /^https:\/\//.test(b.review || "") ? str(b.review, 200) : "",
+          stock: (Array.isArray(b.stock) ? b.stock : []).slice(0, 60).map((x) => {
+            const counts = {};
+            Object.keys(x && x.counts || {}).slice(0, 12).forEach((d) => { counts[str(d, 4)] = Math.max(0, Math.min(999, parseInt(x.counts[d], 10) || 0)); });
+            return { name: str(x && x.name, 60), min: Math.max(0, Math.min(99, parseInt(x && x.min, 10) || 0)), counts };
+          }).filter((x) => x.name),
         };
         await env.LEADS_DB.prepare("INSERT INTO gb_public (k, v, updated) VALUES ('site', ?1, ?2) ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated = excluded.updated").bind(JSON.stringify(out), Date.now()).run();
         return J({ ok: true });
