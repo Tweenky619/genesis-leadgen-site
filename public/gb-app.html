@@ -401,7 +401,7 @@ function viewMember(id){
   if (m.web_new || (m.plan > 0 && m.plan < PLAN.length && m.status === "Following up")){
     var cur = m.plan || 0;
     planHtml = '<h2>Follow-up plan · ' + cur + ' of ' + PLAN.length + ' done</h2>' + PLAN.map(function(p, i){ return '<div class="step ' + (i < cur ? "done" : i === cur ? "now" : "") + '"><span>' + (i + 1) + '.</span><span>' + esc(p[1]) + (p[0] ? ' (day ' + p[0] + ')' : '') + '</span></div>'; }).join("") +
-      (cur < PLAN.length ? scriptHtml(m, cur) : "") + '<div class="btns">' + (cur < PLAN.length ? '<button class="btn" id="planNext">Done: ' + esc(PLAN[cur][1]) + '</button>' : '<button class="btn" id="planCold">Mark cold (check in at 30 and 90 days)</button>') + '<button class="btn ghost" id="planReached">Reached them</button></div>';
+      (cur < PLAN.length ? scriptHtml(m, cur) : "") + '<div class="btns">' + (cur < PLAN.length ? '<button class="btn" id="planRemind">' + (m.remindedStep === cur ? 'Reminder set: step ' : 'Remind me: step ') + (cur + 1) + (m.next ? ' (' + fmtDate(m.next) + ')' : '') + '</button>' : '') + (cur < PLAN.length ? '<button class="btn" id="planNext">Done: ' + esc(PLAN[cur][1]) + '</button>' : '<button class="btn" id="planCold">Mark cold (check in at 30 and 90 days)</button>') + '<button class="btn ghost" id="planReached">Reached them</button></div>';
   }
   openSheet(head(m.name) +
     '<div class="sub wrap">' + esc([m.kind, m.status, m.phone, m.email].filter(Boolean).join(" · ")) + '</div>' +
@@ -424,13 +424,37 @@ function viewMember(id){
     if (!m.plan_start) m.plan_start = todayISO(); m.plan = i + 1; m.web_new = false; m.status = "Following up";
     m.next = m.plan < PLAN.length ? (function(){ var d = addDays(m.plan_start, PLAN[m.plan][0]); return d < todayISO() ? todayISO() : d; })() : todayISO();
     m.updated = Date.now(); save("members"); viewMember(m.id); render();
-    toast(m.plan < PLAN.length ? "Next: " + PLAN[m.plan][1] + " (" + fmtDate(m.next) + ")" : "All steps done. Mark cold if no reply.");
+    toast(m.plan < PLAN.length ? "Next: " + PLAN[m.plan][1] + " (" + fmtDate(m.next) + "). Tap Remind me to add it to your calendar." : "All steps done. Mark cold if no reply.");
   };
+  if ((b = document.getElementById("planRemind"))) b.onclick = function(){ remindNext(m); viewMember(m.id); };
   if ((b = document.getElementById("planCold"))) b.onclick = function(){ m.status = "Cold"; m.web_new = false; m.next = addDays(todayISO(), 30); addLog(m, "Marked cold. Check in on " + fmtDate(m.next)); m.updated = Date.now(); save("members"); viewMember(m.id); render(); };
   if ((b = document.getElementById("planReached"))) b.onclick = function(){ m.web_new = false; m.plan = PLAN.length; m.status = "Customer"; m.next = ""; addLog(m, "Reached them"); m.updated = Date.now(); save("members"); viewMember(m.id); render(); };
   sh.querySelectorAll("[data-x]").forEach(function(c){ c.onclick = function(){ editExchange(c.dataset.x); }; });
   sh.querySelectorAll("[data-copy]").forEach(function(c){ c.onclick = function(){ copy(c.dataset.copy, "Script copied"); }; });
   sh.querySelectorAll("[data-obj]").forEach(function(c){ c.onclick = function(){ objectionsSheet(c.dataset.obj); }; });
+}
+// Calendar reminder (.ics) for a member's next follow-up step: opens "Add to Calendar" on the phone
+var STEP_HOUR = [10, 10, 17, 11, 11, 11, 11]; // call 5-7 pm on step 3, mid-day for the rest
+function remindNext(m){
+  var i = Math.min(m.plan || 0, PLAN.length - 1), when = m.next || todayISO();
+  var h = STEP_HOUR[i] || 11, dt = when.replace(/-/g, "") + "T" + (h < 10 ? "0" + h : h) + "0000";
+  var end = when.replace(/-/g, "") + "T" + (h + 1 < 10 ? "0" + (h + 1) : h + 1) + "0000";
+  var sc = SCRIPTS[i], line = sc ? fillScript(sc.kind === "text" ? (sc.holiday && holidayToday() ? sc.holiday : sc.text) : sc.say, m) : "";
+  var esc2 = function(t){ return String(t || "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n"); };
+  var desc = (m.phone ? "Phone: " + m.phone + "\n" : "") + "Step " + (i + 1) + " of " + PLAN.length + ": " + PLAN[i][1] + "\n\nScript: " + line + "\n\nOpen the Goldbacks app: https://goldback.goldenbeemalaj.com";
+  var ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Goldenbee MALAJ//Goldbacks//EN","BEGIN:VEVENT",
+    "UID:" + m.id + "-step" + (i + 1) + "@goldenbeemalaj.com","DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z",
+    "DTSTART:" + dt, "DTEND:" + end,
+    "SUMMARY:" + esc2(m.name + ": step " + (i + 1) + " - " + PLAN[i][1]),
+    "DESCRIPTION:" + esc2(desc),
+    m.phone ? "URL:tel:" + digits(m.phone) : "",
+    "BEGIN:VALARM","ACTION:DISPLAY","DESCRIPTION:" + esc2(m.name + ": " + PLAN[i][1]),"TRIGGER:PT0M","END:VALARM",
+    "END:VEVENT","END:VCALENDAR"].filter(Boolean).join("\r\n");
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = first(m.name).toLowerCase() + "-step" + (i + 1) + ".ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  addLog(m, "Reminder added for step " + (i + 1) + " (" + fmtDate(when) + ")"); m.remindedStep = i; m.updated = Date.now(); save("members");
 }
 function textReview(m){
   if (!m || !m.phone){ toast("Add a phone number first."); return; }
