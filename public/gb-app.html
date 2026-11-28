@@ -796,13 +796,44 @@ function rInventory(){
   D.inventory.forEach(function(s){ var t = serTotal(s); tot += t; if (t > 0) held++; Object.keys(s.counts).forEach(function(d){ if (t > 0 && isLow(s, d)) low++; }); });
   var list = D.inventory.slice().sort(function(a, b){ return serTotal(b) - serTotal(a); });
   el.innerHTML = '<div class="stats"><div class="stat"><b>' + gbFmt(tot) + '</b><span>GB on hand</span></div><div class="stat"><b>' + held + '</b><span>State series</span></div><div class="stat"><b>' + low + '</b><span>Running low</span></div></div>' +
-    '<h2>By series <a href="#" id="iCount">Count all</a></h2>' + list.map(function(s){
+    '<h2>By series <span><a href="#" id="iImp">Import</a> &nbsp; <a href="#" id="iCount">Count all</a></span></h2>' + list.map(function(s){
       var t = serTotal(s), dens = Object.keys(s.counts).sort(function(a, b){ return dval(a) - dval(b); });
       return '<div class="ser" data-s="' + esc(s.id) + '"><div class="sh"><b>' + esc(s.name) + (s.alpha ? " α" : "") + '</b><span>' + gbFmt(t) + ' GB</span></div><div class="dn">' + dens.map(function(d){ return '<i class="' + (t > 0 && isLow(s, d) ? "low" : "") + '">' + esc(d) + ' <b>' + (s.counts[d] || 0) + '</b></i>'; }).join("") + '</div></div>';
     }).join("") +
     '<div class="note"><b>Red = below your minimum.</b> Every exchange updates the counts. Tap a series to restock or fix a count. Add Alpha printings as their own series with +.</div>';
   el.querySelectorAll("[data-s]").forEach(function(c){ c.onclick = function(){ editSeries(c.dataset.s); }; });
   document.getElementById("iCount").onclick = function(e){ e.preventDefault(); toast("Tap each series to enter your count."); };
+  document.getElementById("iImp").onclick = function(e){ e.preventDefault(); importOld(); };
+}
+// Counts from the old app (app.goldenbeemalaj.com export, July 2026)
+var OLD_STOCK = [
+  ["idaho","Idaho",DEN.all9,{"¼":91,"½":9,"1":4,"2":2}],
+  ["florida","Florida",DEN.all9,{"¼":88,"½":4,"1":4}],
+  ["arizona","Arizona",DEN.new8,{"½":5,"1":5,"2":1}],
+  ["oklahoma","Oklahoma",DEN.new8,{"½":5,"1":5,"5":1}],
+  ["utah","Utah",DEN.orig,{"1":5}],
+  ["nevada","Nevada",DEN.orig,{"1":5}],
+  ["wyoming","Wyoming",DEN.orig,{"1":5}],
+  ["sd","South Dakota",DEN.orig,{"1":5}],
+  ["nh","New Hampshire",DEN.orig,{"1":5}],
+  ["texas","Texas (Dallas)",DEN.new8,{"1":5}]
+];
+function importOld(){
+  var done = D.settings.oldImported;
+  openSheet(head("Import from old app") +
+    '<div class="note">These are the counts from your old app (July). Importing <b>replaces</b> the count for each size listed here. Sizes and series not listed stay as they are.' + (done ? '<br><b style="color:#e66">You already imported once on ' + esc(done) + '.</b>' : '') + '</div>' +
+    OLD_STOCK.map(function(x){ return '<div class="ser"><div class="sh"><b>' + esc(x[1]) + '</b><span>' + gbFmt(Object.keys(x[3]).reduce(function(a,d){ return a + dval(d)*x[3][d]; },0)) + ' GB</span></div><div class="dn">' + Object.keys(x[3]).sort(function(a, b){ return dval(a) - dval(b); }).map(function(d){ return '<i>' + esc(d) + ' <b>' + x[3][d] + '</b></i>'; }).join("") + '</div></div>'; }).join("") +
+    '<div class="note">After importing, fix anything that changed since July, and add Nevada 2026 and California.</div>' +
+    '<div class="btns"><button class="btn solid" id="impGo">Import counts</button></div>');
+  document.getElementById("impGo").onclick = function(){
+    if (done && !confirm("You already imported once. Import again and replace those counts?")) return;
+    OLD_STOCK.forEach(function(x){
+      var s = byId(D.inventory, x[0]) || D.inventory.filter(function(y){ return !y.alpha && y.name.toLowerCase() === x[1].toLowerCase(); })[0];
+      if (!s){ var c = {}; x[2].forEach(function(d){ c[d] = 0; }); s = { id: x[0], name: x[1], counts: c, min: 2, alpha: false }; D.inventory.push(s); }
+      Object.keys(x[3]).forEach(function(d){ s.counts[d] = x[3][d]; });
+    });
+    D.settings.oldImported = todayISO(); save("settings"); save("inventory"); closeSheet(); render(); toast("Old counts imported");
+  };
 }
 function editSeries(id){
   var s = id ? byId(D.inventory, id) : { counts: {}, min: 2, alpha: false };
